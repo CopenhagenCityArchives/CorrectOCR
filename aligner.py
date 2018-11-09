@@ -1,10 +1,14 @@
 import os
 import numpy as np
+from scipy import sparse
 import timeit
 import json
 import argparse
 
-
+class Direction():
+	D = 1
+	H = 2
+	V = 3
 
 # - - - Defaults - - -
 # Setting
@@ -29,60 +33,66 @@ def pointers(di,ho,ve):
     pointer = max(di,ho,ve) #based on python default maximum(return the first element).
 
     if(di == pointer):
-        return 'D'
+        return Direction.D
     elif(ho == pointer):
-        return 'H'
+        return Direction.H
     else:
-         return 'V'
+        return Direction.V
 
 
 def load_text(filename, header=0):
-    with open(filename, 'rb') as f:
-         data = [i.decode('utf-8') for i in f][header:]
-    return data
+	try:
+		f = open(filename, 'rb')
+		return [i.decode('utf-8') for i in f][header:]
+	except UnicodeDecodeError:
+		f = open(filename, 'rb')
+		return [i.decode('Windows-1252') for i in f][header:]
 
-
+		
 def align(s1, s2, match=1, mismatch=-1, gap=-1, full_output=''):
     penalty = {'MATCH': match, 'MISMATCH': mismatch, 'GAP': gap}  # Penalty dictionary
-    n = len(s1) + 1  # # matrix columns
-    m = len(s2) + 1  # # matrix rows
-    al_mat = np.zeros((m, n), dtype=int)  # Initializes the alignment matrix with zeros
-    p_mat = np.zeros((m, n), dtype=str)  # Initializes the alignment matrix with zeros
+    m = len(s2) + 1  # matrix rows
+    n = len(s1) + 1  # matrix columns
+    al_mat = sparse.lil_matrix((m, n), dtype=np.uint8)  # Initializes the alignment matrix 
+    p_mat = sparse.lil_matrix((m, n), dtype=np.uint8)  # Initializes the pointer matrix 
     # Scans all the first rows element in the matrix and fill it with "gap penalty"
     for i in range(m):
-        al_mat[i][0] = penalty['GAP'] * i
-        p_mat[i][0] = 'V'
+        al_mat[i,0] = penalty['GAP'] * i
+        p_mat[i,0] = Direction.V
     # Scans all the first columns element in the matrix and fill it with "gap penalty"
     for j in range(n):
-        al_mat[0][j] = penalty['GAP'] * j
-        p_mat[0][j] = 'H'
-    # Fill the matrix with the correct values.
+        al_mat[0,j] = penalty['GAP'] * j
+        p_mat[0,j] = Direction.H
+		
+    print('Set up matrices.')
+	
+	# Fill the matrix with the correct values.
 
     # Approximation constant to limit and optimize matrix area; assumes a maximum misalignment distance of
     # Ignoring this loop can give a more accurate results, yet computation time will become quadratic
     k = 2*abs(m-n)+20
     for i in range(1, m):
         for j in range(max([i-k,1]), min([i+k, n])):
-            al_mat[i][j] = -k
+            al_mat[i,j] = -k
 
     p_mat[0][0] = 0  # Return the first element of the pointer matrix back to 0.
     for i in range(1, m):
         for j in range(max([i-k,1]), min([i+k, n])):#range(1,n):#
-            di = al_mat[i - 1][j - 1] + diagonal(s1[j - 1], s2[i - 1],
+            di = al_mat[i - 1,j - 1] + diagonal(s1[j - 1], s2[i - 1],
                                                  penalty)  # The value for match/mismatch -  diagonal.
-            ho = al_mat[i][j - 1] + penalty['GAP']  # The value for gap - horizontal.(from the left cell)
-            ve = al_mat[i - 1][j] + penalty['GAP']  # The value for gap - vertical.(from the upper cell)
-            al_mat[i][j] = max(di, ho, ve)  # Fill the matrix with the maximal value.(based on the python default maximum)
-            p_mat[i][j] = pointers(di, ho, ve)
+            ho = al_mat[i,j - 1] + penalty['GAP']  # The value for gap - horizontal.(from the left cell)
+            ve = al_mat[i - 1,j] + penalty['GAP']  # The value for gap - vertical.(from the upper cell)
+            al_mat[i,j] = max(di, ho, ve)  # Fill the matrix with the maximal value.(based on the python default maximum)
+            p_mat[i,j] = pointers(di, ho, ve)
 
     #helper indexer functions for word statistics
     def getWordIndex(index):
         a = index
-        while a >= 0 and not s1[a].isspace():
-            a -= 1
         # Fix a bug occuring when the final character of s1 is whitespace
         if a >= (len(s1) - 1):
             return len(s1) - 1
+        while a >= 0 and not s1[a].isspace():
+            a -= 1
         return a+1
 
     def getWordIndex2(index):
@@ -103,9 +113,9 @@ def align(s1, s2, match=1, mismatch=-1, gap=-1, full_output=''):
     
     
     while i != 0 and j != 0:
-        val = p_mat[j][i]
+        val = p_mat[j,i]
 
-        if val == 'D' and al_mat[j-1][i-1] <= al_mat[j][i]: # if match
+        if val == Direction.D and al_mat[j-1,i-1] <= al_mat[j,i]: # if match
             i -= 1
             j -= 1
             
@@ -114,22 +124,22 @@ def align(s1, s2, match=1, mismatch=-1, gap=-1, full_output=''):
         else: #there is a discrepancy
             correctString = ''
             incorrectString = ''
-            while (i != 0 and j != 0) and not (val == 'D' and al_mat[j-1][i-1] <= al_mat[j][i]):
-                if val == 'D' and not al_mat[j-1][i-1] <= al_mat[j][i]: #mistmach
+            while (i != 0 and j != 0) and not (val == Direction.D and al_mat[j-1,i-1] <= al_mat[j,i]):
+                if val == Direction.D and not al_mat[j-1,i-1] <= al_mat[j,i]: #mistmach
                     i -= 1
                     j -= 1
                     correctString = s1[i] + correctString
                     incorrectString = s2[j] + incorrectString
-                elif val == 'V':
+                elif val == Direction.V:
                     j -= 1
                     incorrectString = s2[j] + incorrectString
-                elif val == 'H':
+                elif val == Direction.H:
                     i -= 1
                     correctString = s1[i] + correctString
                 else:
                     break
                 #update value
-                val = p_mat[j][i]
+                val = p_mat[j,i]
             wordIndex = -1
             wordIndex2 = -1
             
@@ -143,7 +153,7 @@ def align(s1, s2, match=1, mismatch=-1, gap=-1, full_output=''):
 
     if full_output != '':
         fullAlign.reverse()
-        with open(full_output, 'wb') as f:
+        with open(full_output, 'w') as f:
             json.dump(fullAlign, f)
             
     # format: [[correct, incorrect, word index, word index2],...]
@@ -168,8 +178,8 @@ if __name__=='__main__':
     correctCharCountDict = {}
     
     basename = os.path.splitext(os.path.basename(args.original_file))[0]
-    print 'Comparing files...'
-    print args.original_file, '\n', args.gold_file
+    print('Comparing files...')
+    print(args.original_file, '\n', args.gold_file)
     
     #Run
     start = timeit.default_timer()
@@ -179,13 +189,13 @@ if __name__=='__main__':
     
     # Output full alignments or just misread counts and misread indices
     if output_full_alignment == True:
-        full_path = os.path.join(dir_full, basename + '_full_alignment.txt')
+        full_path = os.path.join(dir_full, basename + '_full_alignment.json')
         newErrors = align(correctedText, originalText, full_output=full_path)
     
     newErrors = align(correctedText, originalText)
     
     # Output the indices of misread characters
-    with open(os.path.join(dir_misread, basename + '_misreads.txt'), 'wb') as f:
+    with open(os.path.join(dir_misread, basename + '_misreads.json'), 'w') as f:
         json.dump(newErrors, f)
         
     charCount += len(''.join(correctedText.split()))
@@ -212,9 +222,9 @@ if __name__=='__main__':
         else:
             correctCharCountDict[char] = 1
 
-    print 'Characters with error', errorCharCount / float(charCount) * 100 
-    print 'Words with one error:', singleErrorWordCount/ float(wordCount) * 100
-    print 'Words with multiple errors:', multipleErrorWordCount/ float(wordCount) * 100 
+    print('Characters with error', errorCharCount / float(charCount) * 100)
+    print('Words with one error:', singleErrorWordCount/ float(wordCount) * 100)
+    print('Words with multiple errors:', multipleErrorWordCount/ float(wordCount) * 100)
     
     # Count the occurrences of errors, to calculate probabilities later
     misreadCountDictionary = {}
@@ -234,8 +244,8 @@ if __name__=='__main__':
             misreadCountDictionary[char][char] = correctCharCountDict[char] - total
     
     # Output the misread counts. These will be used to build the HMM    
-    with open(os.path.join(dir_misread_counts, basename + '_misread_counts.txt'), 'wb') as f:
+    with open(os.path.join(dir_misread_counts, basename + '_misread_counts.json'), 'w') as f:
         json.dump(misreadCountDictionary, f)
     
     stop = timeit.default_timer()
-    print '\nCompleted in', stop - start, 'seconds.'
+    print('\nCompleted in', stop - start, 'seconds.')
