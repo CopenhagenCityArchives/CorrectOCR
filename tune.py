@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import division
 import codecs, glob, regex, argparse
+import collections
 # c richter / ricca@seas.upenn.edu
 
 # defaults
@@ -70,32 +71,18 @@ def percc(n,x):
 
 # check a single word's membership in dictionary
 def checcy(wd):
-    if caseSens:
-        return asymDictCheck(wd)
-    else:
-        return basicDictCheck(wd)
 
-    
-
-# asymmetrically case-sensitive dictionary checking
-# Words that the language requires to be capitalised - ex. Canada, Catherine, BBC -
-#      must be capitalised to pass the check ('canada' fails).
-# Words that appear lower-case in the dictionary - ex. country, cat, oboe -
-#       pass the check either way ('cat' and 'Cat' both ok).
-
-def asymDictCheck(wd):
-
-# if the word as-is appears in the case-sensitive dictionary
-    if wd in dws:
-        return True
-    
 # in case nothing is left of the word after stripping punctuation
 #      like the error '*!!' for the word 'øll'
-    elif (len(wd)==0):
+    if (len(wd)==0):
         return False
 
+# if the word as-is appears in the case-sensitive dictionary
+    elif wd in dws or (caseSens and wd.lower() in dws):
+        return True
+    
 # if the word includes capitalisation
-    elif wd[0] != wd[0].lower():
+    elif not caseSens and wd[0] != wd[0].lower():
         if wd.lower() in dws: # example: wd = 'Cat' while dictionary contains 'cat'
             return True
         else: # example: wd = 'hevÓi', is a corruption of 'hevði'
@@ -107,22 +94,6 @@ def asymDictCheck(wd):
     else:
         return False
 
-
-# non-case-sensitive dictionary membership checking
-def basicDictCheck(wd):
-    
-# if the word (enforced lower-case) is in the (entirely lower-case) dictionary
-    if wd.lower() in dws:
-        return True
-    
-# in case nothing is left of the word after stripping punctuation
-#      like the error '*!!' for the word 'øll'
-    elif (len(wd)==0):
-        return False
-
-# if the word is something that is not in the dictionary
-    else:
-        return False
 
 
 
@@ -140,7 +111,7 @@ def codeline(i,ln):
         ln = ln.lower()
     l = ln.replace(u'\r\n','').split('\t')
 
-
+    print(l)
     # strip punctuation, which is considered not relevant to evaluation
     gold = regex.sub(ur"\p{P}+", "", l[0]) # gold standard wordform
     orig = regex.sub(ur"\p{P}+", "", l[1]) # original uncorrected wordform
@@ -206,6 +177,8 @@ def codeline(i,ln):
 #   as defined by features observable at correction time,
 #   with results for each bin reported wrt matching gold standard
 
+
+	#bins = [defaultdict(int)] * 9
 
 # bin 1
 # k1 = orig and this is in dict.
@@ -372,8 +345,11 @@ def codeline(i,ln):
 # - - -
 
 # read in csv data
-fnames = glob.glob(csvdir + '/*.csv')
-lns1 = [codecs.open(fn, 'r', 'utf-8').readlines()[1:] for fn in fnames]
+lns1 = []
+for filename in glob.glob(csvdir + '/*.csv'):
+	print(filename)
+	with open(filename, 'r', encoding='utf-8') as f:
+		lns1.append(f.readlines()[1:])
 lns = [val for sublist in lns1 for val in sublist]
 
 # sort each token
@@ -382,7 +358,7 @@ for (i, lin) in enumerate(lns):
 
 
 # write - - -
-outf = codecs.open(outfile,'w', 'utf-8')
+outf = open(outfile,'w', encoding='utf-8')
 outf.write('Tokens included in evaluation: \t n = ' + str(vs[0])+'\n\n')
 outf.write('INITIAL ERROR - ' + str(vs[2]+vs[4]+vs[6]+vs[7]+vs[9]+vs[10]+vs[12]+vs[13]+vs[15]+vs[16]+vs[17]+vs[19]+vs[20]+vs[22]+vs[23]+vs[25]+vs[26]+vs[27]) + '  (' + percc((vs[2]+vs[4]+vs[6]+vs[7]+vs[9]+vs[10]+vs[12]+vs[13]+vs[15]+vs[16]+vs[17]+vs[19]+vs[20]+vs[22]+vs[23]+vs[25]+vs[26]+vs[27]),vs[0]) + ' %) \n\n\n' )
 outf.write('Choose from these options for each bin:  a (annotator), o (original), k (k1, best candidate), d (best candidate in dictionary)\n  (o and k interchangeable when original is identical to k1; d not applicable in all bins)\n\n\n\n')

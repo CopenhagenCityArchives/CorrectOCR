@@ -12,6 +12,7 @@ For example:
 > locale
 '''
 
+punctuation = regex.compile(r"\p{posix_punct}+")
 
 # - - - Defaults - - -
 
@@ -159,17 +160,17 @@ if os.path.isfile(correctfilename):
 # - - - set up files - - -
 
 # read dictionary
-dictfilepre = codecs.open(dictfilename, 'r', 'utf-8')
-dictfile = dictfilepre.readlines()
-dwl = [] # dictionary-words-list
-for line in dictfile:
-    for word in line.split():
-        if caseSens:
-            dwl.append(word)
-        else:
-            dwl.append(word.lower())
-dws = set(dwl) # dictionary-words-set
-dictfilepre.close()
+dws = set() # dictionary-words
+if dictfilename and os.path.exists(dictfilename):
+	dictfilepre = codecs.open(dictfilename, 'r', 'utf-8')
+	dictfile = dictfilepre.readlines()
+	for line in dictfile:
+		for word in line.split():
+			if caseSens:
+				dws.add(word)
+			else:
+				dws.add(word.lower())
+	dictfilepre.close()
 
 # read heuristic settings
 settfile = [l[:-1] for l in codecs.open(settfilename, 'r', 'utf-8').readlines()]
@@ -263,11 +264,11 @@ def basicDictCheck(wd):
 def dehyph(tk):
     o = tk
     # if - in token, and token is not only punctuation, and - is not at end or start of token:
-    if (u'-' in tk) & ((len(regex.sub(ur"\p{P}+", "", tk)) > 0) & ((tk[-1] != u'-') & (tk[0] != u'-')) ):
+    if (u'-' in tk) & ((len(punctuation.sub("", tk)) > 0) & ((tk[-1] != u'-') & (tk[0] != u'-')) ):
         # if - doesn't precede capital letter, and the word including dash form isn't in dictionary:
         if ((not tk[tk.index(u'-')+1].isupper()) & ((not tk in dws) & (not tk.lower() in dws))):
             # if the word not including dash form is in dictionary, only then take out the dash
-            if (( regex.sub(ur"\p{P}+", "", tk) in dws) or (  regex.sub(ur"\p{P}+", "", tk).lower() in dws)):
+            if (( punctuation.sub("", tk) in dws) or (  punctuation.sub("", tk).lower() in dws)):
                 o = tk.replace(u'-',u'')
     return(o)
 
@@ -285,7 +286,7 @@ def linecombiner(ls):
 # check that: wordstart isn't in dictionary,
 # combining it with restofword is in dictionary,
 # and restofword doesn't start with capital letter -- this is generally approximately good enough
-                if ( ((not(checcy(regex.sub(ur"\p{P}+", "", curw)))) & (checcy(regex.sub(ur"\p{P}+", "", curw+nexw)))) & (nexw[0].islower())):
+                if ( ((not(checcy(punctuation.sub("", curw)))) & (checcy(punctuation.sub("", curw+nexw)))) & (nexw[0].islower())):
 # make a new row to put combined form into the output later
                     newrw = (u'\t').join([curw[:-1]+nexw,curw[:-1]+nexw,curw[:-1]+nexw,u'.99',u'_PRE_COMBINED_',u'1.11e-25',u'_PRE_COMBINED_',u'1.11e-25',u'_PRE_COMBINED_',u'1.11e-25'])
                     newrw += u'\r\n'
@@ -316,7 +317,7 @@ def fetchcontext(n,dec,tokenlist):
 
 
 def codeline(i,ln):
-
+    print(i,ln)
 # - - -
 
     # setup
@@ -343,10 +344,10 @@ def codeline(i,ln):
  # punctuation is considered not relevant
     
     # original form
-    orig = regex.sub(ur"\p{P}+", "", l[0])
+    orig = punctuation.sub("", l[0])
 
     # k best candidate words
-    kbws = [ regex.sub(ur"\p{P}+", "", l[ix]) for ix in range(1,(kn*2),2)]
+    kbws = [ punctuation.sub("", l[ix]) for ix in range(1,(kn*2),2)]
 
     # top k best
     k1 = kbws[0]
@@ -459,11 +460,11 @@ def codeline(i,ln):
 
 
 # open file to write corrected output
-o = codecs.open(correctfilename, 'w', 'utf-8')
+o = open(correctfilename, 'w', encoding='utf-8')
 
 # get metadata, if any
 if nheaderlines > 0:
-    mtdf = codecs.open(origfilename, 'r', 'utf-8')
+    mtdf = open(origfilename, 'r', encoding='utf-8')
     mtd = mtdf.readlines()[:nheaderlines]
     mtdf.close()
 else:
@@ -475,10 +476,11 @@ for l in mtd:
 
 
 # get decodings to use for correction
-decf = codecs.open(decodefilename, 'r', 'utf-8')
-dec = decf.readlines()[1:]
-decf.close()
+with open(decodefilename, 'r', encoding='utf-8') as f:
+	print('opening : '+decodefilename)
+	dec = f.readlines()[1:]
 
+print(dec[:5])
 
 if linecombine:
     dec = linecombiner(dec)
@@ -508,7 +510,7 @@ for (i, lin) in enumerate(dec):
         tokenlist.append(handle[1][1])
         trackdict[u'\t'.join([handle[1][0],handle[1][1]])] += 1
     elif 'ERROR' in handle[0]:
-        print('\n\n' + handle[0] + ': That should not have happened!\nLine print:\n'+ u' # '.join(lin.split(u'\t')) )
+        print('\n\n' + handle[0] + ': That should not have happened!\nLine '+str(i)+' print:\n'+ u' # '.join(lin.split(u'\t')) )
 
     elif handle[0] == 'ANNOT':
         huct +=1 # increment human-effort count
@@ -519,11 +521,11 @@ for (i, lin) in enumerate(dec):
         for u in range(min(kn,(len(handle[1])-1))):
             print('\n\t' + str(u+1) + '.  ' + handle[1][u+1]) # print choices
 
-        ipt = raw_input('\n').decode(sys.stdin.encoding)
+        ipt = input('> ')
         
         if (ipt == annkey['orig']) | (ipt == ''):
             tokenlist.append(handle[1][0]) # add to output tokenlist
-            cleanword = regex.sub(ur"\p{P}+", "", handle[1][0].lower())
+            cleanword = punctuation.sub("", handle[1][0].lower())
             newdictwords.append(cleanword) # add to suggestions for dictionary review
             dws.add(cleanword) # add to temp dict for the rest of this file
             trackdict[u'\t'.join([handle[1][0],handle[1][0]])] += 1 # track annotator's choice
@@ -542,9 +544,9 @@ for (i, lin) in enumerate(dec):
                 ipt = ipt[1:]
             if ipt[-1] == annkey['forceDictadd']: # add this new input form to dictionary if specified
                 ipt = ipt[:-1]
-                cleanword = regex.sub(ur"\p{P}+", "", ipt.lower())
+                cleanword = punctuation.sub("", ipt.lower())
                 if ipt[-1] == annkey['newln']:
-                    cleanword = regex.sub(ur"\p{P}+", "", ipt[:-1].lower())
+                    cleanword = punctuation.sub("", ipt[:-1].lower())
                 newdictwords.append(cleanword)
                 dws.add(cleanword)
             if ipt[-1] == annkey['newln']: # add new linebreak following token, if specified

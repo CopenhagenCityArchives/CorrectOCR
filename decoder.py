@@ -1,17 +1,21 @@
 import csv
 import json
-import cStringIO
+import io
 import codecs
 import re
 import itertools
-
-
+import os
 
 class Decoder(object):
 
-    def __init__(self, hmm, word_dict, prev_decodings=None):
-        self.hmm = hmm
-        self.word_dict = word_dict
+    def __init__(self, hmm_path, dict_path=None, prev_decodings=None):
+        with open(hmm_path, 'r', encoding='utf-8') as f:
+            self.hmm = HMM(*json.load(f, encoding='utf-8'))
+        if dict_path is not None and os.path.exists(dict_path):
+            with open(dict_path, 'r', encoding='utf-8') as f:
+                self.word_dict = f.readlines() #TODO
+        else:
+            self.word_dict = []
         if prev_decodings is None:
             self.prev_decodings = dict()
         else:
@@ -73,7 +77,8 @@ class HMM(object):
         self.emis = emission
         
         self.states = initial.keys()
-        self.symbols = emission[self.states[0]].keys()
+        #print(self.states) #debug
+        #self.symbols = emission[self.states[0]].keys() # Not used ?!
 
 
     def viterbi(self, char_seq):
@@ -85,9 +90,9 @@ class HMM(object):
         delta[0] = {i:self.init[i] * self.emis[i][char_seq[0]]
                     for i in self.states}
 
-        for t in xrange(1, len(char_seq)):
+        for t in range(1, len(char_seq)):
             # (preceding state with max probability, value of max probability)           
-            d = {j:max({i:delta[t-1][i] * self.tran[i][j] for i in self.states}.iteritems(),
+            d = {j:max({i:delta[t-1][i] * self.tran[i][j] for i in self.states}.items(),
                        key=lambda x: x[1]) for j in self.states}
             
             delta[t] = {i:d[i][1] * self.emis[i][char_seq[t]] for i in self.states}
@@ -97,7 +102,7 @@ class HMM(object):
         best_state = max(delta[-1], key=lambda x: delta[-1][x])
 
         selected_states = [best_state] * len(char_seq)
-        for t in xrange(len(char_seq) - 1, 0, -1):
+        for t in range(len(char_seq) - 1, 0, -1):
             best_state = back_pointers[t][best_state]
             selected_states[t-1] = best_state
 
@@ -121,67 +126,24 @@ class HMM(object):
 
             # Continue through the input word, only keeping k sequences at
             # each time step.
-            for t in xrange(2, len(word)):
+            for t in range(2, len(word)):
                 temp = [(x[0] + (j,), (x[1] * self.tran[x[0][-1]][j] * self.emis[j][word[t]]))
                          for j in self.states for x in paths]
                 paths = sorted(temp, key=lambda x: x[1], reverse=True)[:k]
+                #print(t, len(temp), temp[:5], len(paths), temp[:5])
 
         
         return [(''.join(seq), prob) for seq, prob in paths[:k]]
 
 
 
-class UnicodeWriter:
-    """
-    A CSV writer which will write rows to CSV file "f",
-    which is encoded in the given encoding.
-    Source: https://docs.python.org/2/library/csv.html
-    """
-
-    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-        # Redirect output to a queue
-        self.queue = cStringIO.StringIO()
-        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-        self.stream = f
-        self.encoder = codecs.getincrementalencoder(encoding)()
-
-    def writerow(self, row):
-        #self.writer.writerow([s.encode("utf-8") for s in row])
-        
-        # Modification to avoid attempting to encode non-unicode entries.
-        self.writer.writerow([s.encode("utf-8") if type(s) == unicode else s for s in row])
-        
-        # Fetch UTF-8 output from the queue ...
-        data = self.queue.getvalue()
-        data = data.decode("utf-8")
-        # ... and reencode it into the target encoding
-        data = self.encoder.encode(data)
-        # write to the target stream
-        self.stream.write(data)
-        # empty queue
-        self.queue.truncate(0)
-
-    def writerows(self, rows):
-        for row in rows:
-            self.writerow(row)
-
-
-
-def load_hmm(filename):
-    with open(filename, 'rb') as f:
-        h = HMM(*json.load(f, 'utf-8'))
-    return h
-
-
-def load_dictionary(filename):
-    with open(filename, 'rb') as f:
-        worddict = set([i.decode('utf-8').strip() for i in f])
-    return worddict
-
-
 def load_text(filename, header=0):
-    with open(filename, 'rb') as f:
-        data = [i.decode('utf-8') for i in f][header:]
+    try:
+        f = open(filename, 'r', encoding='utf-8')
+        data = [i for i in f][header:]
+    except UnicodeDecodeError:
+        f = open(filename, 'r', encoding='Windows-1252')
+        data = [i for i in f][header:]
     words = []
     temp = []
     for line in data:
@@ -205,11 +167,3 @@ def load_text(filename, header=0):
         words.append(''.join(temp))
                 
     return words
-
-
-def load_csv_unicode(filename, delimiter, quoting):
-    with open(filename, 'rb') as f:
-        reader = csv.reader(f, delimiter=delimiter, quoting=quoting)
-        data = [[unicode(element, 'utf-8') for element in line]
-                for line in reader]
-    return data
