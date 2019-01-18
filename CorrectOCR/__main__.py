@@ -94,4 +94,6 @@ if __name__=='__main__':
 			basename = os.path.splitext(os.path.basename(pair[0].name))[0]
 			align(config, basename, pair[0].read(), pair[1].read())
 	elif args.command == 'build_model':
-		print('Not implemented. Use model_builder.py instead.')
+		from . import model
+		model.build_model(config['data']['characterSet'])
+
