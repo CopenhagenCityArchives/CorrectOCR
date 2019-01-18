@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 
-import os
-import configparser
-import argparse
-import difflib
-import json
-import collections
-
 defaults = """
 [paths]
 fullAlignments = train/parallelAligned/fullAlignments/
@@ -15,35 +8,11 @@ misreads = train/parallelAligned/misreads/
 additionalCharacters = train/additional_characters.txt
 """
 
-def build_dictionary(config, output, files): # TODO option to add to existing dictionary?
-	import datrie
-	words = datrie.BaseTrie('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÆØÅæøåäëïöü') # TODO use filtered additionalCharacters?
-	
-	import re
-	remove_re = re.compile(u'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]')
-	spaces_re = re.compile(u'\s*[\r\n]\s*[\r\n]\s*')
-	
-	import textract
-	
-	for file in files:
-		print(file)
-		if os.path.splitext(file)[1] == '.pdf':
-			text = textract.process(file)
-			for word in re.findall(r'\w+', str(text), re.IGNORECASE):
-				words[word] = 1
-		elif os.path.splitext(file)[1] == '.txt':
-			with open(file, encoding='utf-8') as f:
-				for word in re.findall(r'\w+', f.read(), re.IGNORECASE):
-					words[word] = 1
-		else:
-			print('unrecognized filetype: %s' % file)
-	
-	for word in sorted(words.keys()):
-		output.write(word + '\n')
-	output.close()
-
-
 def align(config, basename, a, b, words=False):
+	import difflib
+	import collections
+	import json
+	
 	matcher = difflib.SequenceMatcher(autojunk=False) #isjunk=lambda x: junkre.search(x))
 	
 	if words:
@@ -87,6 +56,10 @@ def align(config, basename, a, b, words=False):
 
 			
 if __name__=='__main__':
+	import configparser
+	import argparse
+	import os
+	
 	config = configparser.ConfigParser()
 	config.read_string(defaults)
 	if os.path.exists('CorrectOCR.ini'):
@@ -111,7 +84,8 @@ if __name__=='__main__':
 	#mainparser.func(args)
 	
 	if args.command == 'build_dictionary':
-		build_dictionary(config, args.output, args.files)
+		from . import dictionary
+		dictionary.build_dictionary(config, args.output, args.files)
 	elif args.command == 'align':
 		for pair in args.filepairs:
 			basename = os.path.splitext(os.path.basename(pair[0].name))[0]
