@@ -61,8 +61,9 @@ if __name__=='__main__':
 	import configparser
 	import argparse
 	import os
+	import re
 	
-	config = configparser.ConfigParser()
+	config = configparser.RawConfigParser()
 	config.read_string(defaults)
 	if os.path.exists('CorrectOCR.ini'):
 		config.read_file(open('CorrectOCR.ini', encoding='utf-8'))
@@ -87,7 +88,7 @@ if __name__=='__main__':
 	
 	if args.command == 'build_dictionary':
 		from . import dictionary
-		dictionary.build_dictionary(config['data']['characterSet'], args.output, args.files)
+		dictionary.build_dictionary(re.sub(r'\W+', r'', config['data']['characterSet']), args.output, args.files)
 	elif args.command == 'align':
 		for pair in args.filepairs:
 			basename = os.path.splitext(os.path.basename(pair[0].name))[0]
