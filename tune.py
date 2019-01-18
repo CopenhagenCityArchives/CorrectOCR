@@ -4,6 +4,8 @@ import codecs, glob, regex, argparse
 import collections
 # c richter / ricca@seas.upenn.edu
 
+punctuation = regex.compile(r"\p{posix_punct}+")
+
 # defaults
 dictfilename = 'resources/dictionary.txt'
 caseSens = True
@@ -62,6 +64,8 @@ dictfilepre.close()
 
 # print percents nicely
 def percc(n,x):
+    if n == 0:
+    	return "00"
     return str(round((n/x)*100,2))
 
 
@@ -113,8 +117,8 @@ def codeline(i,ln):
 
     print(l)
     # strip punctuation, which is considered not relevant to evaluation
-    gold = regex.sub(ur"\p{P}+", "", l[0]) # gold standard wordform
-    orig = regex.sub(ur"\p{P}+", "", l[1]) # original uncorrected wordform
+    gold = punctuation.sub("", l[0]) # gold standard wordform
+    orig = punctuation.sub("", l[1]) # original uncorrected wordform
 
     
     # if the 1st or 2nd input column is empty, a word segmentation error probably occurred in the original
@@ -137,7 +141,7 @@ def codeline(i,ln):
 
 
     # k best candidate words
-    kbws = [ regex.sub(ur"\p{P}+", "", l[ix]) for ix in range(2,(kn*2)+1,2)]
+    kbws = [ punctuation.sub("", l[ix]) for ix in range(2,(kn*2)+1,2)]
 
     # accompanying probabilities, if wanted
     #kbprobs = [ l[ix] for ix in range(3,(kn*2)+2,2)]

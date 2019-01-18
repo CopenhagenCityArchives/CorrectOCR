@@ -61,7 +61,7 @@ Additional packages: NumPy 1.10.4+ (earlier versions may also work)
 	probabilities of the HMM and the misread counts are used to create the 
 	emission probabilities. It can additionally be given characters which 
 	should or should not be included in the final model.
-	The HMM parameters are written to resources/hmm_parameters.txt
+	The HMM parameters are written to resources/hmm_parameters.json
 (3) Decode texts.
 	(3a) decoder_script.py uses the HMM as the base for determining likely 
 	  pre-OCR text strings. The HMM only works with 1-to-1 errors, but the 
@@ -125,7 +125,7 @@ Finished plain text documents, after correction/annotation of the decoded CSVs.
   - HMMtrain -
   Files for training the HMM. Select them from parallelAligned/misreadCounts/
 
-  - hmm_parameters.txt
+  - hmm_parameters.json
   Parameters of the HMM (initial, transition, and emission probabilities)
 
   - parallelAligned -

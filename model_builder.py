@@ -16,7 +16,7 @@ sourcedir_hmm = 'train/HMMtrain/'
 sourcedir_gold = 'train/parallelSource/'
 
 # Output
-hmm_params = 'train/hmm_parameters.txt'
+hmm_params = 'train/hmm_parameters.json'
 
 #-------------------------------------
 
