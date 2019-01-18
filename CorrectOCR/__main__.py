@@ -5,7 +5,9 @@ defaults = """
 fullAlignments = train/parallelAligned/fullAlignments/
 misreadCounts = train/parallelAligned/misreadCounts/
 misreads = train/parallelAligned/misreads/
-additionalCharacters = train/additional_characters.txt
+
+[data]
+characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 """
 
 def align(config, basename, a, b, words=False):
@@ -63,7 +65,7 @@ if __name__=='__main__':
 	config = configparser.ConfigParser()
 	config.read_string(defaults)
 	if os.path.exists('CorrectOCR.ini'):
-		config.read_file('CorrectOCR.ini')
+		config.read_file(open('CorrectOCR.ini', encoding='utf-8'))
 	
 	mainparser = argparse.ArgumentParser(description='Correct OCR')
 	
@@ -85,7 +87,7 @@ if __name__=='__main__':
 	
 	if args.command == 'build_dictionary':
 		from . import dictionary
-		dictionary.build_dictionary(config, args.output, args.files)
+		dictionary.build_dictionary(config['data']['characterSet'], args.output, args.files)
 	elif args.command == 'align':
 		for pair in args.filepairs:
 			basename = os.path.splitext(os.path.basename(pair[0].name))[0]

@@ -35,9 +35,8 @@ def extract_text_from_pdf(pdf_path):
 	if text:
 		return text
 
-
-def build_dictionary(config, output, files): # TODO option to add to existing dictionary?
-	words = datrie.BaseTrie('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÆØÅæøåäëïöü') # TODO use filtered additionalCharacters?
+def build_dictionary(charset, output, files): # TODO option to add to existing dictionary?
+	words = datrie.BaseTrie(charset)
 	
 	for file in files:
 		print(file)
