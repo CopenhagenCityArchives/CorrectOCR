@@ -3,6 +3,51 @@ import json
 import os
 
 
+def align(config, basename, a, b, words=False):
+	import difflib
+	import collections
+	import json
+	
+	matcher = difflib.SequenceMatcher(autojunk=False) #isjunk=lambda x: junkre.search(x))
+	
+	if words:
+		a = a.split()
+		b = b.split()
+	matcher.set_seqs(a, b)
+		
+	fullAlignments = []
+	misreadCounts = collections.defaultdict(collections.Counter)
+	misreads = []
+	
+	for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+		if tag != 'equal':
+			if max(j2-j1, i2-i1) > 4:							# skip moved lines from overeager contributors :)
+				continue
+			fullAlignments.append([a[i1:i2], b[j1:j2]])
+			misreadCounts[b[j1:j2]][a[i1:i2]] += 1
+			misreads.append([b[j1:j2], a[i1:i2], j1, i1])
+			print('{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}'.format(tag, i1, i2, j1, j2, a[i1:i2], b[j1:j2]))
+		else:
+			for char in a[i1:i2]:
+				fullAlignments.append([char, char])
+				misreadCounts[char][char] += 1
+	
+	#for char,reads in misreadCounts.copy().items():
+	#	if char in reads and len(reads) == 1: # remove characters that were read 100% correctly
+	#		del misreadCounts[char]
+	
+	with open(config['paths']['fullAlignments'] + basename + '_full_alignments.json', 'w', encoding='utf-8') as f:
+		json.dump(fullAlignments, f)
+		f.close()
+	
+	with open(config['paths']['misreadCounts'] + basename + '_misread_counts.json', 'w', encoding='utf-8') as f:
+		json.dump(misreadCounts, f)
+		print(misreadCounts)
+		f.close()
+	
+	with open(config['paths']['misreads'] + basename + '_misreads.json', 'w', encoding='utf-8') as f:
+		json.dump(misreads, f)
+		f.close()
 
 
 #-------------------------------------
