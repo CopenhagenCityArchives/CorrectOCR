@@ -96,7 +96,7 @@ class HMM(object):
 					for i in self.states}
 
 		for t in range(1, len(char_seq)):
-			# (preceding state with max probability, value of max probability)		   
+			# (preceding state with max probability, value of max probability)
 			d = {j:max({i:delta[t-1][i] * self.tran[i][j] for i in self.states}.items(),
 					   key=lambda x: x[1]) for j in self.states}
 			
@@ -191,7 +191,7 @@ def decode(settings):
 		decoded_words[0].extend(['{}-best'.format(i+1), '{}-best prob.'.format(i+1)])
 
 	# Load previously done decodings if any
-	prev_decodings = dict()   
+	prev_decodings = dict()
 	if use_existing_decodings == True:
 		for filename in os.listdir(dir_decodings):
 			with open(os.path.join(dir_decodings, filename), 'r', encoding='utf-8') as f:
