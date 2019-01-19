@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from . import get_encoding
 from . import dictionary
 from . import model
 
@@ -14,13 +15,6 @@ characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 if __name__=='__main__':
 	import configparser
 	import argparse
-	
-	import chardet
-	
-	def get_encoding(file):
-		with open(file, 'rb') as f:
-			detection = chardet.detect(f.read(1024*50))
-			return detection['encoding']
 	
 	class FileType(argparse.FileType):
 		def __call__(self, string):

@@ -2,6 +2,8 @@ import collections
 import json
 import os
 
+from . import get_encoding
+
 def align_pairs(settings):
 	for pair in settings.filepairs:
 		basename = os.path.splitext(os.path.basename(pair[0].name))[0]
@@ -57,12 +59,8 @@ def align(settings, basename, a, b, words=False):
 #-------------------------------------
 
 def load_text(filename, header=0):
-	try:
-		f = open(filename, 'r', encoding='utf-8')
-		return [i for i in f][header:]
-	except UnicodeDecodeError:
-		f = open(filename, 'r', encoding='Windows-1252')
-		return [i for i in f][header:]
+	f = open(filename, 'r', encoding=get_encoding(filename))
+	return [i for i in f][header:]
 
 
 
