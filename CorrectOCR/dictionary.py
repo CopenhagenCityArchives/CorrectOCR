@@ -42,19 +42,17 @@ def build_dictionary(settings):
 	words = datrie.BaseTrie(charset)
 	
 	for file in files:
-		print(file)
+		logging.getLogger(__name__).info('Getting words from '+file)
 		if os.path.splitext(file)[1] == '.pdf':
 			text = extract_text_from_pdf(file)
-			print(text)
 			for word in re.findall(r'\w+', str(text), re.IGNORECASE):
-				print(word)
 				words[word] = 1
 		elif os.path.splitext(file)[1] == '.txt':
 			with open(file, encoding=get_encoding(file)) as f:
 				for word in re.findall(r'\w+', f.read(), re.IGNORECASE):
 					words[word] = 1
 		else:
-			print('unrecognized filetype: %s' % file)
+			logging.getLogger(__name__).error('Unrecognized filetype: %s' % file)
 	
 	for word in sorted(words.keys()):
 		output.write(word + '\n')
