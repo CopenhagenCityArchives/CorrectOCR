@@ -14,6 +14,15 @@ characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 """
 
 if __name__=='__main__':
+	import logging
+	import sys
+
+	logging.basicConfig(
+		stream=sys.stdout,
+		format='%(asctime)s - %(levelname)8s - %(name)s - %(message)s',
+		level=logging.DEBUG #TODO argparse
+	)
+	
 	import configparser
 	import argparse
 	

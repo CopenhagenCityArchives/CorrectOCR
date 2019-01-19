@@ -3,6 +3,7 @@ import json
 import re
 import itertools
 import os
+import logging
 
 from . import get_encoding
 
@@ -75,9 +76,13 @@ class HMM(object):
 		self.init = initial
 		self.tran = transition
 		self.emis = emission
+		self.logger = logging.getLogger(__name__ + '.HMM')
 		
 		self.states = initial.keys()
-		#print(self.states) #debug
+		#self.logger.debug('self.init: ' + str(self.init))
+		#self.logger.debug('self.tran: ' + str(self.tran))
+		#self.logger.debug('self.emis: ' + str(self.emis))
+		#self.logger.debug('self.states: ' + str(self.states))
 		#self.symbols = emission[self.states[0]].keys() # Not used ?!
 
 
@@ -112,6 +117,7 @@ class HMM(object):
 	def k_best_beam(self, word, k):
 		# Single symbol input is just initial * emission.
 		if len(word) == 1:
+			#self.logger.debug('word: '+word)
 			paths = [(i, self.init[i] * self.emis[i][word[0]])
 					 for i in self.states]
 			paths = sorted(paths, key=lambda x: x[1], reverse=True)
