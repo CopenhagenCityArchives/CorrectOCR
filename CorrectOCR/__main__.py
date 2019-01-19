@@ -3,6 +3,7 @@
 from . import get_encoding
 from . import dictionary
 from . import model
+from . import decoder
 
 defaults = """
 [settings]
@@ -46,7 +47,12 @@ if __name__=='__main__':
 	
 	alignparser = subparsers.add_parser('build_model', help='Build model')
 	alignparser.set_defaults(func=model.build_model)
-
+	
+	decodeparser = subparsers.add_parser('decode', help='Decode')
+	decodeparser.add_argument('input_file', help='text file to decode')
+	decodeparser.add_argument('--dictionary', help='dictionary')
+	decodeparser.set_defaults(func=decoder.decode)
+	
 	args = mainparser.parse_args(namespace=settings)
 	
 	args.func(args)
