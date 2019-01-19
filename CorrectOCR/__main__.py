@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from . import get_encoding
+from . import get_encoding, clean
 from . import dictionary
 from . import model
 from . import decoder
@@ -62,6 +62,9 @@ if __name__=='__main__':
 	decodeparser.add_argument('input_file', help='text file to decode')
 	decodeparser.add_argument('--dictionary', help='dictionary')
 	decodeparser.set_defaults(func=decoder.decode)
+	
+	cleanparser = subparsers.add_parser('clean', help='Clean files')
+	cleanparser.set_defaults(func=clean)
 	
 	args = mainparser.parse_args(namespace=settings)
 	
