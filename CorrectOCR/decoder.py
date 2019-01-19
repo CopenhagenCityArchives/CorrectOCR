@@ -1,6 +1,6 @@
 import csv
 import json
-import re
+import regex, re
 import itertools
 import os
 import logging
@@ -148,6 +148,7 @@ def load_text(filename, header=0):
 	data = [i for i in f][header:]
 	words = []
 	temp = []
+	controlchars = regex.compile(r'^\p{control}$')
 	for line in data:
 		for char in line:
 			# Keep newline and carriage return, but discard other whitespace
@@ -161,6 +162,8 @@ def load_text(filename, header=0):
 					if len(temp) > 0:
 						words.append(''.join(temp))
 					temp = []
+			elif controlchars.match(char):
+				pass
 			else:
 				temp.append(char)
 				
