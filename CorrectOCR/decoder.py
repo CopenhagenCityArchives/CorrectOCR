@@ -178,7 +178,6 @@ def decode(settings):
 	use_existing_decodings = True
 
 	# Inputs
-	hmm_params = 'train/hmm_parameters.json'
 	multichar_file = 'resources/multicharacter_errors.txt'
 
 	# Output
@@ -198,7 +197,7 @@ def decode(settings):
 					prev_decodings[row['Original']] = list(row.values())
 
 	# Load the rest of the parameters and create the decoder
-	dec = Decoder(hmm_params, settings.dictionary, prev_decodings)
+	dec = Decoder(settings.hmmParams, settings.dictionary, prev_decodings)
 
 	words = load_text(settings.input_file, num_header_lines)
 	

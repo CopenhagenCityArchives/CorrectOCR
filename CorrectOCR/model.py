@@ -245,10 +245,6 @@ def build_model(settings):
 	sourcedir_hmm = 'train/HMMtrain/'
 	sourcedir_gold = 'corrected/'
 
-	# Output
-	hmm_params = 'train/hmm_parameters.json'
-
-
 	# Select the gold files which correspond to the misread count files.
 	gold_files = []
 	misread_files = []
@@ -270,5 +266,5 @@ def build_model(settings):
 										 extra_chars=set(list(settings.characterSet)))
 
 	if parameter_check(init, tran, emis) == True:
-		with open(hmm_params,'w', encoding='utf-8') as f:
+		with open(settings.hmmParams,'w', encoding='utf-8') as f:
 			json.dump((init, tran, emis), f)

@@ -11,6 +11,7 @@ fullAlignments = train/parallelAligned/fullAlignments/
 misreadCounts = train/parallelAligned/misreadCounts/
 misreads = train/parallelAligned/misreads/
 characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+hmmParams = train/hmm_parameters.json
 """
 
 if __name__=='__main__':
