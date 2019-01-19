@@ -4,6 +4,7 @@ import datrie
 import re
 import textract
 import os
+import logging
 
 from . import get_encoding
 
@@ -15,6 +16,9 @@ def extract_text_from_pdf(pdf_path):
 	from pdfminer.pdfinterp import PDFResourceManager
 	from pdfminer.pdfpage import PDFPage
 	from pdfminer.layout import LAParams
+	
+	# pdfminer sprays a ton of debug/info output
+	logging.getLogger('pdfminer').setLevel(logging.WARNING)
 	
 	resource_manager = PDFResourceManager()
 	fake_file_handle = io.StringIO()
