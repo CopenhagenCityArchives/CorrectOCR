@@ -2,8 +2,12 @@ import collections
 import json
 import os
 
+def align_pairs(settings):
+	for pair in settings.filepairs:
+		basename = os.path.splitext(os.path.basename(pair[0].name))[0]
+		align(settings, basename, pair[0].read(), pair[1].read())
 
-def align(config, basename, a, b, words=False):
+def align(settings, basename, a, b, words=False):
 	import difflib
 	import collections
 	import json
@@ -36,16 +40,16 @@ def align(config, basename, a, b, words=False):
 	#	if char in reads and len(reads) == 1: # remove characters that were read 100% correctly
 	#		del misreadCounts[char]
 	
-	with open(config['paths']['fullAlignments'] + basename + '_full_alignments.json', 'w', encoding='utf-8') as f:
+	with open(settings.fullAlignments + basename + '_full_alignments.json', 'w', encoding='utf-8') as f:
 		json.dump(fullAlignments, f)
 		f.close()
 	
-	with open(config['paths']['misreadCounts'] + basename + '_misread_counts.json', 'w', encoding='utf-8') as f:
+	with open(settings.misreadCounts + basename + '_misread_counts.json', 'w', encoding='utf-8') as f:
 		json.dump(misreadCounts, f)
 		print(misreadCounts)
 		f.close()
 	
-	with open(config['paths']['misreads'] + basename + '_misreads.json', 'w', encoding='utf-8') as f:
+	with open(settings.misreads + basename + '_misreads.json', 'w', encoding='utf-8') as f:
 		json.dump(misreads, f)
 		f.close()
 
@@ -232,7 +236,7 @@ def parameter_check(init, tran, emis):
 
 #-------------------------------------
 
-def build_model(characterSet):
+def build_model(settings):
 	# - - - Defaults - - -
 	# Settings
 	num_header_lines = 0
@@ -260,12 +264,12 @@ def build_model(characterSet):
 
 	# Create the emission probabilities from the misread counts and the character counts
 	emis = emission_probabilities(confusion, char_counts, smoothing_parameter, remove_chars, 
-								  extra_chars=set(list(characterSet)))
+								  extra_chars=set(list(settings.characterSet)))
 
 	# Create the initial and transition probabilities from the gold files
 	init, tran = init_tran_probabilities(gold_files, smoothing_parameter,
 										 remove_chars, num_header_lines, 
-										 extra_chars=set(list(characterSet)))
+										 extra_chars=set(list(settings.characterSet)))
 
 	if parameter_check(init, tran, emis) == True:
 		with open(hmm_params,'w', encoding='utf-8') as f:
