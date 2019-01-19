@@ -1,6 +1,7 @@
 import collections
 import json
 import os
+import logging
 
 from . import open_for_reading
 
@@ -13,6 +14,8 @@ def align(settings, basename, a, b, words=False):
 	import difflib
 	import collections
 	import json
+	
+	log = logging.getLogger(__name__+'.align')
 	
 	matcher = difflib.SequenceMatcher(autojunk=False) #isjunk=lambda x: junkre.search(x))
 	
@@ -32,7 +35,7 @@ def align(settings, basename, a, b, words=False):
 			fullAlignments.append([a[i1:i2], b[j1:j2]])
 			misreadCounts[b[j1:j2]][a[i1:i2]] += 1
 			misreads.append([b[j1:j2], a[i1:i2], j1, i1])
-			print('{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}'.format(tag, i1, i2, j1, j2, a[i1:i2], b[j1:j2]))
+			log.debug('{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}'.format(tag, i1, i2, j1, j2, a[i1:i2], b[j1:j2]))
 		else:
 			for char in a[i1:i2]:
 				fullAlignments.append([char, char])
@@ -48,7 +51,7 @@ def align(settings, basename, a, b, words=False):
 	
 	with open(settings.misreadCounts + basename + '_misread_counts.json', 'w', encoding='utf-8') as f:
 		json.dump(misreadCounts, f)
-		print(misreadCounts)
+		log.debug(misreadCounts)
 		f.close()
 	
 	with open(settings.misreads + basename + '_misreads.json', 'w', encoding='utf-8') as f:
@@ -96,7 +99,7 @@ def load_misread_counts(file_list, remove=[]):
 			if unwanted in confusion[outer]:
 				del confusion[outer][unwanted]
 	
-	print(confusion)
+	logging.getLogger(__name__+'.load_misread_counts').debug(confusion)
 	return confusion
 
 # Get the character counts of the training files. Used for filling in 
@@ -157,7 +160,7 @@ def emission_probabilities(confusion, char_counts, alpha,
 	for char in extra_chars:
 		confusion[char][char] = 1.0
 	
-	#print(confusion)
+	#logging.getLogger(__name__+'.emission_probabilities').debug(confusion)
 	return confusion
 	
 	
@@ -215,20 +218,21 @@ def init_tran_probabilities(file_list, alpha,
 
 
 def parameter_check(init, tran, emis):
+	log = logging.getLogger(__name__+'.parameter_check')
 	all_match = True
 	if set(init) != set(tran):
 		all_match = False
-		print('Initial keys do not match transition keys.')
+		log.error('Initial keys do not match transition keys.')
 	if set(init) != set(emis):
 		all_match = False
 		keys = set(init).symmetric_difference(set(emis))
-		print('Initial keys do not match emission keys:', [k for k in keys], [init.get(k, None) for k in keys], [emis.get(k, None) for k in keys])
+		log.error('Initial keys do not match emission keys:', [k for k in keys], [init.get(k, None) for k in keys], [emis.get(k, None) for k in keys])
 	for key in tran:
 		if set(tran[key]) != set(tran):
 			all_match = False
-			print('Outer transition keys do not match inner keys: {}'.format(key))
+			log.error('Outer transition keys do not match inner keys: {}'.format(key))
 	if all_match == True:
-		print('Parameters match.')
+		log.info('Parameters match.')
 	return all_match
 
 
