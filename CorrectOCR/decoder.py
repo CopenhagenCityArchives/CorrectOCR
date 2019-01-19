@@ -5,7 +5,7 @@ import itertools
 import os
 import logging
 
-from . import get_encoding
+from . import open_for_reading
 
 class Decoder(object):
 
@@ -144,7 +144,7 @@ class HMM(object):
 
 
 def load_text(filename, header=0):
-	f = open(filename, 'r', encoding=get_encoding(filename))
+	f = open_for_reading(filename)
 	data = [i for i in f][header:]
 	words = []
 	temp = []

@@ -10,6 +10,9 @@ def get_encoding(file):
 		logging.getLogger(__name__+'.get_encoding').debug('detecting %s for %s' % (dammit.original_encoding, file))
 		return dammit.original_encoding
 
+def open_for_reading(file):
+	return open(file, 'r', encoding=get_encoding(file))
+
 def clean(settings):
 	os.remove(settings.hmmParams)
 	#TODO

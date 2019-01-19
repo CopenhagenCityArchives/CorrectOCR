@@ -2,7 +2,7 @@ import collections
 import json
 import os
 
-from . import get_encoding
+from . import open_for_reading
 
 def align_pairs(settings):
 	for pair in settings.filepairs:
@@ -59,8 +59,8 @@ def align(settings, basename, a, b, words=False):
 #-------------------------------------
 
 def load_text(filename, header=0):
-	f = open(filename, 'r', encoding=get_encoding(filename))
-	return [i for i in f][header:]
+	with open_for_reading(filename) as f:
+		return [i for i in f][header:]
 
 
 

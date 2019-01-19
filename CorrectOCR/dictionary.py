@@ -6,7 +6,7 @@ import textract
 import os
 import logging
 
-from . import get_encoding
+from . import open_for_reading
 
 def extract_text_from_pdf(pdf_path):
 	# see https://www.blog.pythonlibrary.org/2018/05/03/exporting-data-from-pdfs-with-python/
@@ -52,7 +52,7 @@ def build_dictionary(settings):
 			for word in re.findall(r'\w+', str(text), re.IGNORECASE):
 				words[word] = 1
 		elif os.path.splitext(file)[1] == '.txt':
-			with open(file, encoding=get_encoding(file)) as f:
+			with open_for_reading(file) as f:
 				for word in re.findall(r'\w+', f.read(), re.IGNORECASE):
 					words[word] = 1
 		else:
