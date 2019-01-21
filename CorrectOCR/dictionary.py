@@ -8,6 +8,22 @@ import logging
 
 from . import open_for_reading
 
+class Dictionary(object):
+	def __init__(self, dictionaryfile, caseInsensitive=False):
+		self.caseInsensitive = caseInsensitive
+		self.words = set()
+		with open_for_reading(dictionaryfile) as f:
+			for line in f.readlines():
+				if self.caseInsensitive:
+					self.words.add(line.strip().lower())
+				else:
+					self.words.add(line.strip())
+	
+	def contains(self, word):
+		if self.caseInsensitive:
+			word = word.lower()
+		return word in self.words
+
 def extract_text_from_pdf(pdf_path):
 	# see https://www.blog.pythonlibrary.org/2018/05/03/exporting-data-from-pdfs-with-python/
 	import io

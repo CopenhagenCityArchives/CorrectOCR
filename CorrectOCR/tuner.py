@@ -6,12 +6,14 @@ import collections
 import logging
 
 from . import open_for_reading
+from .dictionary import Dictionary
 
 class Tuner(object):
 	def __init__(self, dictionaryPath, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
 		self.k = k
 		self.log = logging.getLogger(__name__+'.Tuner')
+		self.dictionary = Dictionary(dictionaryPath, caseInsensitive)
 		with open_for_reading(dictionaryPath) as f:
 			dictfile = f.readlines()
 			dwl = [] # dictionary-words-list
@@ -22,36 +24,7 @@ class Tuner(object):
 					else:
 						dwl.append(word)
 			self.dws = set(dwl) # dictionary-words-set
-
-	#-------------------------------------
-	# dictionary-checking
-	# - - - 
-
-	# check a single word's membership in dictionary
-	def checcy(self, wd):
-
-	# in case nothing is left of the word after stripping punctuation
-	#	  like the error '*!!' for the word 'øll'
-		if (len(wd)==0):
-			return False
-
-	# if the word as-is appears in the case-sensitive dictionary
-		elif wd in self.dws or (self.caseInsensitive and wd.lower() in self.dws):
-			return True
-
-	# if the word includes capitalisation
-		elif self.caseInsensitive and wd[0] != wd[0].lower():
-			if wd.lower() in self.dws: # example: wd = 'Cat' while dictionary contains 'cat'
-				return True
-			else: # example: wd = 'hevÓi', is a corruption of 'hevði'
-				return False
 	
-	# if the word is all lower-case and is not in the dictionary -
-	# includes failures to capitalise when required, like 'ísland' (should be 'Ísland'),
-	# as well as any remaining errors, like 'foddur' (should be 'føddur')
-		else:
-			return False
-
 	#-------------------------------------
 	# measure
 	# - - - 
@@ -99,7 +72,7 @@ class Tuner(object):
 		k1 = kbws[0]
 
 		# number of distinct k-best words that pass the dictionary check
-		nkdict = len(set([kww for kww in kbws if self.checcy(kww)]))
+		nkdict = len(set([kww for kww in kbws if self.dictionary.contains(kww)]))
 
 
 		# code type of candidates' dict membership
@@ -111,12 +84,12 @@ class Tuner(object):
 		filtws = [] # filtered words - only candidates that pass dict check
 		if 0 < nkdict < len(set(kbws)):
 			dcode = 'somekd'
-			filtws = [kww for kww in kbws if self.checcy(kww)]
+			filtws = [kww for kww in kbws if self.dictionary.contains(kww)]
 			d1 = filtws[0]
 
 		# code - does orig pass dict check? does k1?
-		oind = self.checcy(orig)
-		k1ind = self.checcy(k1)
+		oind = self.dictionary.contains(orig)
+		k1ind = self.dictionary.contains(k1)
 
 		# an evidently useful quantity for sorting out what to send to annotators
 		#  - can split any existing category across a threshold of this quantity
