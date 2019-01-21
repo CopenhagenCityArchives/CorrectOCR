@@ -4,6 +4,7 @@ from . import get_encoding, clean
 from . import dictionary
 from . import model
 from . import decoder
+from . import tuner
 
 defaults = """
 [settings]
@@ -62,6 +63,14 @@ if __name__=='__main__':
 	decodeparser.add_argument('input_file', help='text file to decode')
 	decodeparser.add_argument('--dictionary', help='dictionary')
 	decodeparser.set_defaults(func=decoder.decode)
+	
+	tunerparser = subparsers.add_parser('tune', help='Tune settings prep')
+	tunerparser.add_argument('-d', '--dictionary', help='path to dictionary file')
+	tunerparser.add_argument('-c', '--caseInsensitive', action='store_true', help='case sensitivity')
+	tunerparser.add_argument('-k', default=4, help='number of decoded candidates in input, default 4')
+	tunerparser.add_argument('-v', '--csvdir', default='train/devDecoded', help='path for directory of decoding CSVs')
+	tunerparser.add_argument('-o', '--outfile', default='resources/report.txt', help='output file name')
+	tunerparser.set_defaults(func=tuner.tune)
 	
 	cleanparser = subparsers.add_parser('clean', help='Clean files')
 	cleanparser.set_defaults(func=clean)
