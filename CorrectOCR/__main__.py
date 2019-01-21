@@ -24,6 +24,7 @@ if __name__=='__main__':
 		format='%(asctime)s - %(levelname)8s - %(name)s - %(message)s',
 		level=logging.DEBUG #TODO argparse
 	)
+	log = logging.getLogger(__name__)
 	
 	import configparser
 	import argparse
@@ -82,6 +83,7 @@ if __name__=='__main__':
 	
 	args = mainparser.parse_args(namespace=settings)
 	
+	log.info(settings)
 	args.func(args)
 	
 	exit() # TODO exit code?
