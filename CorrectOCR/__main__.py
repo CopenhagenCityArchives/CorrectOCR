@@ -72,6 +72,11 @@ if __name__=='__main__':
 	tunerparser.add_argument('-o', '--outfile', default='resources/report.txt', help='output file name')
 	tunerparser.set_defaults(func=tuner.tune)
 	
+	settingsparser = subparsers.add_parser('make_settings', help='Make settings')
+	settingsparser.add_argument('--report', default='resources/report.txt', type=FileType('r'))
+	settingsparser.add_argument('-o', '--outfile', default='resources/settings.txt', help='output file name')
+	settingsparser.set_defaults(func=tuner.make_settings)
+	
 	cleanparser = subparsers.add_parser('clean', help='Clean files')
 	cleanparser.set_defaults(func=clean)
 	

@@ -397,3 +397,14 @@ def tune(settings):
 	outf.write('tokens where k1 == gold? \t '+ str(vs[25]) + '  (' + percc(vs[25],vs[0]) + ' %)\n')
 	outf.write('tokens where top dict-filtered candidate == gold? \t '+ str(vs[26]) + '  (' + percc(vs[26],vs[0]) + ' %)\n')
 	outf.write('tokens where none of the above == gold? \t '+ str(vs[27]) + '  (' + percc(vs[27],vs[0]) + ' %)\n')
+
+def make_settings(settings):
+	# read report
+	bins = [ln for ln in settings.report.readlines() if "BIN" in ln]
+	
+	# write settings
+	with open(settings.outfile,'w', encoding='utf-8') as outf:
+		for b in bins:
+			binID = b.split()[1]
+			action = b.split()[-1]
+			outf.write(binID + u'\t' + action + u'\n')
