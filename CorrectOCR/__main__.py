@@ -45,7 +45,7 @@ if __name__=='__main__':
 	
 	mainparser = argparse.ArgumentParser(description='Correct OCR')
 	
-	subparsers = mainparser.add_subparsers(dest='command', help='Choose command')
+	subparsers = mainparser.add_subparsers(dest='command', help='Choose command', required=True)
 	
 	dictparser = subparsers.add_parser('build_dictionary', help='Build dictionary')
 	dictparser.add_argument('output', type=FileType('w', encoding='utf-8'))
