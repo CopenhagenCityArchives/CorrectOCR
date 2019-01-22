@@ -80,7 +80,7 @@ decodeparser.add_argument('--dictionary', help='dictionary')
 decodeparser.set_defaults(func=decoder.decode, **settings)
 
 tunerparser = subparsers.add_parser('tune', help='Tune settings prep')
-tunerparser.add_argument('-d', '--dictionary', help='path to dictionary file')
+tunerparser.add_argument('-d', '--dictionaryPath', help='path to dictionary file')
 tunerparser.add_argument('-c', '--caseInsensitive', action='store_true', help='case sensitivity')
 tunerparser.add_argument('-k', default=4, help='number of decoded candidates in input, default 4')
 tunerparser.add_argument('-v', '--devDecodedPath', help='path for directory of decoding CSVs')

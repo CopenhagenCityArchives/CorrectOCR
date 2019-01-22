@@ -1,57 +1,44 @@
 # coding=utf-8
 import glob
 import regex
-import collections
+import csv
 # c richter / ricca@seas.upenn.edu
 
 import logging
 
 from . import open_for_reading
 from .dictionary import Dictionary
+from .heuristics import Heuristics
 
 
 class Tuner(object):
-	def __init__(self, dictionaryPath, caseInsensitive=False, k=4):
+	def __init__(self, dictionary, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
 		self.k = k
 		self.log = logging.getLogger(__name__+'.Tuner')
-		self.dictionary = Dictionary(dictionaryPath, caseInsensitive)
-		with open_for_reading(dictionaryPath) as f:
-			dictfile = f.readlines()
-			dwl = [] # dictionary-words-list
-			for line in dictfile:
-				for word in line.split():
-					if self.caseInsensitive:
-						dwl.append(word.lower())
-					else:
-						dwl.append(word)
-			self.dws = set(dwl) # dictionary-words-set
+		self.dictionary = dictionary
+		self.heuristics = Heuristics(self.dictionary, dict()) # settings not needed here and indeed may not be available yet
+		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
 	#-------------------------------------
 	# measure
 	# - - -
 
 	# handle one token.
-	def codeline(self, vs, i, ln):
-		punctuation = regex.compile(r'\p{posix_punct}+')
-	
-		if self.caseInsensitive:
-			ln = ln.lower()
-		l = ln.replace(u'\r\n', '').split('\t')
-		
+	def codeline(self, vs, l):
 		self.log.debug(l)
 		# strip punctuation, which is considered not relevant to evaluation
-		gold = punctuation.sub('', l[0]) # gold standard wordform
-		orig = punctuation.sub('', l[1]) # original uncorrected wordform
+		gold = self.punctuation.sub('', l['Gold']) # gold standard wordform
+		orig = self.punctuation.sub('', l['Original']) # original uncorrected wordform
 
 		# if the 1st or 2nd input column is empty, a word segmentation error probably occurred in the original
 		# (though possibly a deletion)
 		# don't count any other errors here; they will be counted in the segmentation error's other line.
-		if ((l[1] == '') & (len(gold) > 0)):
+		if ((l['Original'] == '') & (len(gold) > 0)):
 			vs[29] += 1 # words ran together in original / undersegmentation
 			return vs
 
-		if ((l[0] == '') & (len(orig) > 0)):
+		if ((l['Gold'] == '') & (len(orig) > 0)):
 			vs[30] += 1 # word wrongly broken apart in original / oversegmentation
 			return vs
 
@@ -62,10 +49,7 @@ class Tuner(object):
 		# total number of real tokens - controlled for segmentation errors
 
 		# k best candidate words
-		kbws = [punctuation.sub('', l[ix]) for ix in range(2, (self.k*2)+1, 2)]
-
-		# accompanying probabilities, if wanted
-		#kbprobs = [ l[ix] for ix in range(3,(self.k*2)+2,2)]
+		kbws = [self.punctuation.sub('', l['{}-best'.format(n+1)]) for n in range(0, self.k)]
 
 		# best candidate
 		k1 = kbws[0]
@@ -85,204 +69,151 @@ class Tuner(object):
 			filtws = [kww for kww in kbws if kww in self.dictionary]
 			d1 = filtws[0]
 
-		# code - does orig pass dict check? does k1?
-		oind = orig in self.dictionary
-		k1ind = k1 in self.dictionary
-
 		# an evidently useful quantity for sorting out what to send to annotators
 		#  - can split any existing category across a threshold of this quantity
 		#	(based on probabilities of best and 2nd-best decoded candidates)
-		qqh = (float(l[3])-float(l[5]))/float(l[3])
+		qqh = (float(l['1-best prob.'])-float(l['2-best prob.']))/float(l['1-best prob.'])
 
 		# ---------- tracked categories (bins)
 		#   as defined by features observable at correction time,
 		#   with results for each bin reported wrt matching gold standard
-
-		#bins = [defaultdict(int)] * 9
-
-		# bin 1
-		# k1 = orig and this is in dict.
-		if ((orig == k1) & oind) & (orig == gold):
-			vs[1] += 1
-			vs[28] += 1
-		if ((orig == k1) & oind) & (orig != gold):
-			vs[2] += 1
-			vs[28] += 1
-
-		# bin 2
-		# k1 = orig but not in dict, and no other kbest in dict either
-		if ((orig == k1) & (not oind)) & (dcode == 'zerokd'):
-			if (orig == gold):
+		
+		(bin,_) = self.heuristics.evaluate(l, dcode)
+		
+		if bin == 1:
+			# k1 = orig and this is in dict.
+			if orig == gold:
+				vs[1] += 1
+				vs[28] += 1
+			else:
+				vs[2] += 1
+				vs[28] += 1
+		elif bin == 2:
+			# k1 = orig but not in dict, and no other kbest in dict either
+			if orig == gold:
 				vs[3] += 1
-				#if (qqh <= .95): # EXAMPLE using qqh with threshold to subdivide categories
-				#	vs[31] += 1
-				#else:
-				#	vs[32] += 1
 				vs[28] += 1
-			if (orig != gold):
+			else:
 				vs[4] += 1
-				#if (qqh <= .95): # EXAMPLE
-				#	vs[33] += 1
-				#else:
-				#	vs[34] += 1
 				vs[28] += 1
-
-		# bin 3
-		# k1 = orig but not in dict, but some lower-ranked kbest is in dict
-		if ((orig == k1) & (not oind)) & (dcode == 'somekd'):
-
-			if (k1 == gold):
+		elif bin == 3:
+			# k1 = orig but not in dict, but some lower-ranked kbest is in dict
+			if k1 == gold:
 				vs[5] += 1
 				vs[28] += 1
-
-			# if highest-probability word that passes dict check = gold
-			elif (d1 == gold):
+			elif d1 == gold:
+				# if highest-probability word that passes dict check = gold
 				vs[6] += 1
 				vs[28] += 1
-		
 			else:
 				vs[7] += 1
 				vs[28] += 1
-
-		# bin 4
-		# k1 is different from orig, and k1 passes dict check while orig doesn't
-		if ((orig != k1) & (not oind)) & k1ind:
-	
-			if (orig == gold):
+		elif bin == 4:
+			# k1 is different from orig, and k1 passes dict check while orig doesn't
+			if orig == gold:
 				vs[8] += 1
 				vs[28] += 1
-	
-			elif (k1 == gold):
+			elif k1 == gold:
 				vs[9] += 1
 				vs[28] += 1
-
-			# neither orig nor k1 forms are correct
 			else:
+				# neither orig nor k1 forms are correct
 				vs[10] += 1
 				vs[28] += 1
-
-		# bin 5
-		# k1 is different from orig and nothing anywhere passes dict check
-		if ((orig != k1) & (not oind)) & (dcode == 'zerokd'):
-	
-			if (orig == gold):
+		elif bin == 5:
+			# k1 is different from orig and nothing anywhere passes dict check
+			if orig == gold:
 				vs[11] += 1
 				vs[28] += 1
-	
-			elif (k1 == gold):
+			elif k1 == gold:
 				vs[12] += 1
 				vs[28] += 1
-
 			else:
 				vs[13] += 1
 				vs[28] += 1
-
-		# bin 6
-		# k1 is different from orig and neither is in dict, but a lower-ranked candidate is
-		if ((orig != k1) & (not oind)) & ((not k1ind) & (dcode == 'somekd')):
-
+		elif bin == 6:
+			# k1 is different from orig and neither is in dict, but a lower-ranked candidate is
 			# orig is correct although not in dict
-			if (orig == gold):
+			if orig == gold:
 				vs[14] += 1
 				vs[28] += 1
-
 			# k1 is correct although not in dict
-			elif (k1 == gold):
+			elif k1 == gold:
 				vs[15] += 1
 				vs[28] += 1
-
 			# best dictionary-filtered candidate is correct
-			elif (d1 == gold):
+			elif d1 == gold:
 				vs[16] += 1
 				vs[28] += 1
-
 			else:
 				vs[17] += 1
 				vs[28] += 1
-
-		# bin 7
-		# k1 is different from orig and both are in dict
-		if ((orig != k1) & oind) & k1ind:
-	
-			if (orig == gold):
+		elif bin == 7:
+			# k1 is different from orig and both are in dict
+			if orig == gold:
 				vs[18] += 1
 				vs[28] += 1
-	
-			elif (k1 == gold):
+			elif k1 == gold:
 				vs[19] += 1
 				vs[28] += 1
-
 			else:
 				vs[20] += 1
 				vs[28] += 1
-
-		# bin 8
-		# k1 is different from orig, orig is in dict and no candidates are in dict
-		if ((orig != k1) & oind) & (dcode == 'zerokd'):
-	
-			if (orig == gold):
+		elif bin == 8:
+			# k1 is different from orig, orig is in dict and no candidates are in dict
+			if orig == gold:
 				vs[21] += 1
 				vs[28] += 1
-	
-			elif (k1 == gold):
+			elif k1 == gold:
 				vs[22] += 1
 				vs[28] += 1
-
 			else:
 				vs[23] += 1
 				vs[28] += 1
-
-		# bin 9
-		# k1 is different from orig, k1 not in dict but a lower candidate is
-		#   and orig also in dict
-		if ((orig != k1) & oind) & ((not k1ind) & (dcode == 'somekd')):
-	
-			if (orig == gold):
+		elif bin == 9:
+			# k1 is different from orig, k1 not in dict but a lower candidate is
+			# and orig also in dict
+			if orig == gold:
 				vs[24] += 1
 				vs[28] += 1
-	
-			elif (k1 == gold):
+			elif k1 == gold:
 				vs[25] += 1
 				vs[28] += 1
-
-			elif (d1 == gold):
+			elif d1 == gold:
 				vs[26] += 1
 				vs[28] += 1
-		
 			else:
 				vs[27] += 1
 				vs[28] += 1
-	
+		
 		return vs
 
 
+# print percents nicely
+def percc(n, x):
+	if n == 0:
+		return '00'
+	return str(round((n/x)*100, 2))
+
 def tune(settings):
-	# print percents nicely
-	def percc(n, x):
-		if n == 0:
-			return '00'
-		return str(round((n/x)*100, 2))
+	log = logging.getLogger(__name__+'.tune')
 	
 	#-------------------------------------
 	# gather stats on devset
 	# - - -
-
-	# read in csv data
-	lns1 = []
-	for filename in glob.glob(settings.devDecodedPath + '/*.csv'):
-		print(filename)
-		with open_for_reading(filename) as f:
-			lns1.append(f.readlines()[1:])
-	lns = [val for sublist in lns1 for val in sublist]
-
 	# variables to track - see output file for interpretation
 	vs = [0]*35
 	
-	tuner = Tuner(settings.dictionary, settings.caseInsensitive, settings.k)
+	tuner = Tuner(Dictionary(settings.dictionaryPath, settings.caseInsensitive), settings.caseInsensitive, settings.k)
 	
-	# sort each token
-	for (i, lin) in enumerate(lns):
-		vs = tuner.codeline(vs, i, lin)
+	# read in csv data
+	for filename in glob.glob(settings.devDecodedPath + '/*.csv'):
+		log.info('Collecting stats from ' + filename)
+		with open_for_reading(filename) as f:
+			reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
+			# sort each token
+			for row in reader:
+				vs = tuner.codeline(vs, row)
 	
 	# write - - -
 	outf = open(settings.outfile, 'w', encoding='utf-8')
