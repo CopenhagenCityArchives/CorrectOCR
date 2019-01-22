@@ -6,7 +6,7 @@ from collections import defaultdict
 import csv
 import logging
 
-from . import open_for_reading
+from . import open_for_reading, splitwindow
 from .dictionary import Dictionary
 
 '''
@@ -19,10 +19,10 @@ For example:
 '''
 
 class Correcter(object):
-	def __init__(self, dictionary, conv, binsettings, memos, caseInsensitive=False, k=4):
+	def __init__(self, dictionary, conv, heuristicSettings, memos, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
 		self.conv = conv
-		self.binsettings = binsettings
+		self.heuristicSettings = heuristicSettings
 		self.memos = memos
 		self.k = k
 		self.log = logging.getLogger(__name__+'.Correcter')
@@ -73,84 +73,58 @@ class Correcter(object):
 						ls[i+2] = {'Original': 'BLANK'}
 		return [lin for lin in ls if lin != u'BLANK']
 	
-	def determine_bin(self, token):
+	def determine_bin(self, token, dcode):
 		# original form
 		original = self.punctuation.sub('', token['Original'])
 		
-		# k best candidate words
-		kbws = [ self.punctuation.sub('', token['{}-best'.format(n+1)]) for n in range(0,self.k)]
-		
 		# top k best
-		k1 = kbws[0]
+		k1 = token['1-best']
 		
 		# evaluate candidates against the dictionary
-		
-		# number of k-best that are in the dictionary
-		nkdict = len(set([kww for kww in kbws if self.dictionary.contains(kww)]))
 		
 		oind = self.dictionary.contains(original) #orig in dict?
 		k1ind = self.dictionary.contains(k1) #k1 in dict?
 		
-		# create dictionary-filtered candidate list if appropriate
-		filtws = []
-		if nkdict == 0:
-			dcode = 'zerokd'
-		if nkdict == 4:
-			dcode = 'allkd'
-		if 0 < nkdict < 4:
-			dcode = 'somekd'
-			filtws = [kww for kww in kbws if self.dictionary.contains(kww)]
-			filtids = [nn for nn, kww in enumerate(kbws) if self.dictionary.contains(kww)]
-		
-		# bin 1
 		# k1 = orig and this is in dict.
 		if ((original == k1) & oind):
 			return 1
 		
-		# bin 2
 		# k1 = orig but not in dict, and no other kbest in dict either
 		if ((original == k1) & (not oind)) & (dcode == 'zerokd'):
 			return 2
 		
-		# bin 3
 		# k1 = orig but not in dict, but some lower-ranked kbest is in dict
 		if ((original == k1) & (not oind)) & (dcode == 'somekd'):
 			return 3
 		
-		# bin 4
 		# k1 is different from orig, and k1 passes dict check while orig doesn't
 		if ((original != k1) & (not oind)) & k1ind:
 			return 4
 		
-		# bin 5
 		# k1 is different from orig and nothing anywhere passes dict check
 		if ((original != k1) & (not oind)) & (dcode == 'zerokd'):
 			return 5
 		
-		# bin 6
 		# k1 is different from orig and neither is in dict, but a lower-ranked candidate is
 		if ((original != k1) & (not oind)) & ((not k1ind) & (dcode == 'somekd')):
 			return 6
 		
-		# bin 7
 		# k1 is different from orig and both are in dict
 		if ((original != k1) & oind) & k1ind:
 			return 7
 		
-		# bin 8
 		# k1 is different from orig, orig is in dict and no candidates are in dict
 		if ((original != k1) & oind) & (dcode == 'zerokd'):
 			return 8
 		
-		# bin 9
 		# k1 is different from orig, k1 not in dict but a lower candidate is
 		#   and orig also in dict
 		if ((original != k1) & oind) & ((not k1ind) & (dcode == 'somekd')):
 			return 9
 		
 	
-	def codeline(self, i, l):
-		self.log.debug('%d: %s' % (i,str(l)))
+	def codeline(self, l):
+		self.log.debug(l)
 		
 		# this should not happen in well-formed input
 		if len(l['Original']) == 0:
@@ -164,7 +138,24 @@ class Correcter(object):
 		if (l['Original'] in self.memos):
 			return ('MEMO', [l['Original'],memodict[l['Original']]])
 		
-		decision = self.conv[self.binsettings[self.determine_bin(l)]]
+		# k best candidate words
+		kbws = [ self.punctuation.sub('', l['{}-best'.format(n+1)]) for n in range(0,self.k)]
+		
+		# number of k-best that are in the dictionary
+		nkdict = len(set([kww for kww in kbws if self.dictionary.contains(kww)]))
+		
+		# create dictionary-filtered candidate list if appropriate
+		filtws = []
+		if nkdict == 0:
+			dcode = 'zerokd'
+		if nkdict == 4:
+			dcode = 'allkd'
+		if 0 < nkdict < 4:
+			dcode = 'somekd'
+			filtws = [kww for kww in kbws if self.dictionary.contains(kww)]
+			filtids = [nn for nn, kww in enumerate(kbws) if self.dictionary.contains(kww)]
+		
+		decision = self.conv[self.heuristicSettings[self.determine_bin(l, dcode)]]
 		
 		# return decision codes and output token form or candidate list as appropriate
 		if decision == 'ORIG':
@@ -172,7 +163,7 @@ class Correcter(object):
 		elif decision == 'K1':
 			return ('K1', l['1-best'])
 		elif decision == 'KDICT':
-			return ('KDICT', l[(2*filtids[0])+1])
+			return ('KDICT', l['{}-best'.format(filtids[0])])
 		elif decision == 'ANNOT':
 			if l['Original'] == l['1-best']:
 				return ('ANNOT', [l['{}-best'.format(n+1)] for n in range(0,self.k)])
@@ -181,12 +172,6 @@ class Correcter(object):
 		elif decision == 'UNK':
 			return ('NULLERROR', None)
 
-def fetchcontext(n,dec,tokenlist):
-	# fetchcontext should give to 15 words to either side of target word,
-	# or stop at file boundaries
-	lbound = max((n - 15),0)
-	ubound = min((n + 15),len(dec))
-	return (tokenlist[lbound:n], [ln['Original'] for ln in dec[(n+1):ubound]])
 
 def correct(settings):
 	log = logging.getLogger(__name__+'.correct')
@@ -211,17 +196,17 @@ def correct(settings):
 	
 	# - - - parse inputs - - -
 	
-	log.info('* * * * * CORRECTING   '  + settings.fileid + ' ')
+	log.info('Correcting '  + settings.fileid + ' ')
 	origfilename = settings.origtxtdir + settings.fileid + '.txt'
 	decodefilename = settings.decodecsvdir + settings.fileid + decodeext
 	
 	# - - - set up files - - -
 	
 	# read heuristic settings
-	settfile = [l[:-1] for l in settings.settingsfile.readlines()]
-	binsettings = {}
+	settfile = [l[:-1] for l in settings.heuristicSettings.readlines()]
+	heuristicSettings = {}
 	for l in settfile:
-		binsettings[int(l.split(u'\t')[0])] = l.split(u'\t')[1]
+		heuristicSettings[int(l.split(u'\t')[0])] = l.split(u'\t')[1]
 	
 	# read memorised corrections
 	try:
@@ -281,7 +266,7 @@ def correct(settings):
 		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
 	
 	dictionary = Dictionary(settings.dictionary, settings.caseInsensitive)
-	correcter = Correcter(dictionary, conv, binsettings, memos, settings.caseInsensitive, settings.k)
+	correcter = Correcter(dictionary, conv, heuristicSettings, memos, settings.caseInsensitive, settings.k)
 	
 	if linecombine:
 		dec = correcter.linecombiner(dec)
@@ -299,8 +284,8 @@ def correct(settings):
 	
 	# - - -
 	# - - - process each token in decoded input - - -
-	for (i, lin) in enumerate(dec):
-		handle = correcter.codeline(i, lin) # get heuristic decision for how to handle token
+	for cxl, lin, cxr in splitwindow(dec, before=7, after=7):
+		handle = correcter.codeline(lin) # get heuristic decision for how to handle token
 
 	 # use decision outcomes as indicated
 	
@@ -310,12 +295,11 @@ def correct(settings):
 			tokenlist.append(handle[1][1])
 			trackdict[u'\t'.join([handle[1][0],handle[1][1]])] += 1
 		elif 'ERROR' in handle[0]:
-			log.error('\n\n' + handle[0] + ': That should not have happened!\nLine '+str(i)+' print:\n'+ u' # '.join(lin.split(u'\t')) )
+			log.error('\n\n' + handle[0] + ': That should not have happened! Line:'+str(lin))
 
 		elif handle[0] == 'ANNOT':
 			huct +=1 # increment human-effort count
-			(cxl, cxr) = fetchcontext(i,dec,tokenlist) # get context words to display
-			print('\n\n'+' '.join(cxl) + ' \033[1;7m ' + handle[1][0] + ' \033[0m ' + ' '.join(cxr)) # print sentence
+			print('\n\n'+' '.join([c['Original'] for c in cxl]) + ' \033[1;7m ' + handle[1][0] + ' \033[0m ' + ' '.join([c['Original'] for c in cxr])) # print sentence
 
 			print('\nSELECT for ' + handle[1][0] + ' :')
 			for u in range(min(kn,(len(handle[1])-1))):

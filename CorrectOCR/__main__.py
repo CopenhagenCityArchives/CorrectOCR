@@ -20,7 +20,7 @@ origtxtdir = ./original/
 dictionary = ./resources/dictionary.txt
 correctdir = ./corrected/
 dictadddir = ./resources/newwords/
-settingsfile = ./resources/settings.txt
+heuristicSettings = ./resources/settings.txt
 memofilename =  ./resources/memorised_corrections.txt
 learningfilename = ./resources/correction_tracking.txt
 """
@@ -85,7 +85,7 @@ if __name__=='__main__':
 	
 	settingsparser = subparsers.add_parser('make_settings', help='Make settings')
 	settingsparser.add_argument('--report', default='resources/report.txt', type=FileType('r'))
-	settingsparser.add_argument('-o', '--outfile', default='resources/settings.txt', help='output file name')
+	settingsparser.add_argument('-o', '--outfile', default=settings['heuristicSettings'], help='output file name')
 	settingsparser.set_defaults(func=tuner.make_settings, **settings)
 	
 	correctparser = subparsers.add_parser('correct', help='Make settings')
@@ -93,13 +93,13 @@ if __name__=='__main__':
 	correctparser.add_argument('-d', '--dictionary', help='path to dictionary file')
 	correctparser.add_argument('-c', '--caseInsensitive', action='store_true', default=False, help='case sensitivity')
 	correctparser.add_argument('-v', '--decodecsvdir', help='directory containing HMM decodings')
-	correctparser.add_argument('-s', '--settingsfile', type=FileType('r'), help='path to heuristic settings file')
+	correctparser.add_argument('-s', '--heuristicSettings', type=FileType('r'), help='path to heuristic settings file')
 	correctparser.add_argument('-k', default=4, help='number of decoded candidates in input')
 	correctparser.add_argument('-r', '--dehyphenate', action='store_true', help='repair hyphenation')
 	correctparser.add_argument('-o', '--correctfilename', help='path for corrected output file name')
 	correctparser.add_argument('-w', '--dictpotentialname', type=FileType('r'), help='path for file of new words to consider for dictionary')
 	correctparser.add_argument('-t', '--learningfilename', type=FileType('r'), help='file to track annotations')
-	correctparser.add_argument('-m', '--memofilename', help='file of memorised deterministic corrections')
+	correctparser.add_argument('-m', '--memofilename', type=FileType('r'), help='file of memorised deterministic corrections')
 	correctparser.add_argument('-p', '--origtxtdir', help='original plain text corpus directory location')
 	correctparser.add_argument('-l', '--nheaderlines', type=int, help='number of header lines in original corpus texts')
 	correctparser.set_defaults(func=correcter.correct, **settings)
