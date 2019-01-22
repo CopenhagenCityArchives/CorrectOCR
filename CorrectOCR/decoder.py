@@ -224,7 +224,7 @@ def decode(settings):
 					prev_decodings[row['Original']] = row
 
 	# Load the rest of the parameters and create the decoder
-	decoder = Decoder(settings.hmmParams, settings.dictionary, prev_decodings)
+	decoder = Decoder(settings.hmmParamsPath, settings.dictionaryPath, prev_decodings)
 
 	words = load_text(settings.input_file, num_header_lines)
 	
@@ -239,7 +239,7 @@ def decode(settings):
 	
 	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.']
 	
-	corrections = corrected_words([settings.fullAlignments + basename + '_full_alignments.json'])
+	corrections = corrected_words([settings.fullAlignmentsPath + basename + '_full_alignments.json'])
 	
 	decoded_words = []
 	

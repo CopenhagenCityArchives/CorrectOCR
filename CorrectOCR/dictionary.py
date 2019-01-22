@@ -9,10 +9,12 @@ import logging
 from . import open_for_reading
 
 class Dictionary(object):
-	def __init__(self, dictionaryfile, caseInsensitive=False):
+	def __init__(self, file, caseInsensitive=False):
 		self.caseInsensitive = caseInsensitive
 		self.words = set()
-		self.path = dictionaryfile
+		self.path = file
+		self.log = logging.getLogger(__name__+'.Dictionary')
+		self.log.info('Loading dictionary from ' + self.path)
 		with open_for_reading(self.path) as f:
 			for line in f.readlines():
 				if self.caseInsensitive:

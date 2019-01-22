@@ -197,20 +197,20 @@ def correct(settings):
 	# - - - parse inputs - - -
 	
 	log.info('Correcting '  + settings.fileid + ' ')
-	origfilename = settings.origtxtdir + settings.fileid + '.txt'
-	decodefilename = settings.decodecsvdir + settings.fileid + decodeext
+	origfilename = settings.originalPath + settings.fileid + '.txt'
+	decodefilename = settings.decodedPath + settings.fileid + decodeext
 	
 	# - - - set up files - - -
 	
 	# read heuristic settings
-	settfile = [l[:-1] for l in settings.heuristicSettings.readlines()]
+	settfile = [l[:-1] for l in settings.heuristicSettingsPath.readlines()]
 	heuristicSettings = {}
 	for l in settfile:
 		heuristicSettings[int(l.split(u'\t')[0])] = l.split(u'\t')[1]
 	
 	# read memorised corrections
 	try:
-		memofile = [l[:-1] for l in settings.memofilename.readlines()]
+		memofile = [l[:-1] for l in settings.memoizedPath.readlines()]
 		memodict = {}
 		for l in memofile:
 			memodict[l.split(u'\t')[0]] = l.split(u'\t')[1]
@@ -221,8 +221,8 @@ def correct(settings):
 	
 	# read corrections learning file
 	try:
-		trackfile = settings.learningfilename
-		trackfilelines = [l[:-1] for l in settings.learningfilename.readlines()]
+		trackfile = settings.correctionTrackingPath
+		trackfilelines = [l[:-1] for l in settings.correctionTrackingPath.readlines()]
 		trackdict = defaultdict(int)
 		for l in trackfilelines:
 			li = l.split(u'\t')
@@ -241,7 +241,7 @@ def correct(settings):
 
 	# open file to write corrected output
 	# don't write over finished corrections
-	correctfilename = settings.correctfilename or (settings.correctdir + 'c_' + settings.fileid + '.txt')
+	correctfilename = settings.correctfilename or (settings.correctedPath + 'c_' + settings.fileid + '.txt')
 	if os.path.isfile(correctfilename):
 		correctfilename = correctfilename[:-4] + '_' + ''.join([random.choice(string.ascii_letters + string.digits) for n in range(8)]) + '.txt'
 		log.info('Corrected file already exists! Renaming to avoid overwriting.')
@@ -265,7 +265,7 @@ def correct(settings):
 		log.info('opening : '+decodefilename)
 		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
 	
-	dictionary = Dictionary(settings.dictionary, settings.caseInsensitive)
+	dictionary = Dictionary(settings.dictionaryPath, settings.caseInsensitive)
 	correcter = Correcter(dictionary, conv, heuristicSettings, memos, settings.caseInsensitive, settings.k)
 	
 	if linecombine:

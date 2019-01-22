@@ -281,7 +281,7 @@ def tune(settings):
 
 	# read in csv data
 	lns1 = []
-	for filename in glob.glob(settings.csvdir + '/*.csv'):
+	for filename in glob.glob(settings.devDecodedPath + '/*.csv'):
 		print(filename)
 		with open_for_reading(filename) as f:
 			lns1.append(f.readlines()[1:])
@@ -373,7 +373,7 @@ def tune(settings):
 
 def make_settings(settings):
 	# read report
-	bins = [ln for ln in settings.report.readlines() if "BIN" in ln]
+	bins = [ln for ln in settings.reportPath.readlines() if "BIN" in ln]
 	
 	# write settings
 	with open(settings.outfile,'w', encoding='utf-8') as outf:

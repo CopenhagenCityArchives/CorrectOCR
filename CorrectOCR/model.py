@@ -45,16 +45,16 @@ def align(settings, basename, a, b, words=False):
 	#	if char in reads and len(reads) == 1: # remove characters that were read 100% correctly
 	#		del misreadCounts[char]
 	
-	with open(settings.fullAlignments + basename + '_full_alignments.json', 'w', encoding='utf-8') as f:
+	with open(settings.fullAlignmentsPath + basename + '_full_alignments.json', 'w', encoding='utf-8') as f:
 		json.dump(fullAlignments, f)
 		f.close()
 	
-	with open(settings.misreadCounts + basename + '_misread_counts.json', 'w', encoding='utf-8') as f:
+	with open(settings.misreadCountsPath + basename + '_misread_counts.json', 'w', encoding='utf-8') as f:
 		json.dump(misreadCounts, f)
 		log.debug(misreadCounts)
 		f.close()
 	
-	with open(settings.misreads + basename + '_misreads.json', 'w', encoding='utf-8') as f:
+	with open(settings.misreadsPath + basename + '_misreads.json', 'w', encoding='utf-8') as f:
 		json.dump(misreads, f)
 		f.close()
 
@@ -270,5 +270,5 @@ def build_model(settings):
 										 extra_chars=set(list(settings.characterSet)))
 
 	if parameter_check(init, tran, emis) == True:
-		with open(settings.hmmParams,'w', encoding='utf-8') as f:
+		with open(settings.hmmParamsPath,'w', encoding='utf-8') as f:
 			json.dump((init, tran, emis), f)
