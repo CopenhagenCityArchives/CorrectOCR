@@ -14,6 +14,7 @@ import logging
 
 from . import open_for_reading, splitwindow
 from .dictionary import Dictionary
+from .heuristics import Heuristics
 
 '''
 IMPORTANT BEFORE USING:
@@ -29,11 +30,11 @@ class Correcter(object):
 	def __init__(self, dictionary, conv, heuristicSettings, memos, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
 		self.conv = conv
-		self.heuristicSettings = heuristicSettings
 		self.memos = memos
 		self.k = k
 		self.log = logging.getLogger(__name__+'.Correcter')
 		self.dictionary = dictionary
+		self.heuristics = Heuristics(self.dictionary, heuristicSettings)
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
 	# remove selected hyphens from inside a single token - postprocessing step
@@ -80,55 +81,6 @@ class Correcter(object):
 						ls[i+2] = {'Original': 'BLANK'}
 		return [lin for lin in ls if lin != u'BLANK']
 	
-	def determine_bin(self, token, dcode):
-		# original form
-		original = self.punctuation.sub('', token['Original'])
-		
-		# top k best
-		k1 = token['1-best']
-		
-		# evaluate candidates against the dictionary
-		
-		oind = self.dictionary.contains(original) #orig in dict?
-		k1ind = self.dictionary.contains(k1) #k1 in dict?
-		
-		# k1 = orig and this is in dict.
-		if ((original == k1) & oind):
-			return 1
-		
-		# k1 = orig but not in dict, and no other kbest in dict either
-		if ((original == k1) & (not oind)) & (dcode == 'zerokd'):
-			return 2
-		
-		# k1 = orig but not in dict, but some lower-ranked kbest is in dict
-		if ((original == k1) & (not oind)) & (dcode == 'somekd'):
-			return 3
-		
-		# k1 is different from orig, and k1 passes dict check while orig doesn't
-		if ((original != k1) & (not oind)) & k1ind:
-			return 4
-		
-		# k1 is different from orig and nothing anywhere passes dict check
-		if ((original != k1) & (not oind)) & (dcode == 'zerokd'):
-			return 5
-		
-		# k1 is different from orig and neither is in dict, but a lower-ranked candidate is
-		if ((original != k1) & (not oind)) & ((not k1ind) & (dcode == 'somekd')):
-			return 6
-		
-		# k1 is different from orig and both are in dict
-		if ((original != k1) & oind) & k1ind:
-			return 7
-		
-		# k1 is different from orig, orig is in dict and no candidates are in dict
-		if ((original != k1) & oind) & (dcode == 'zerokd'):
-			return 8
-		
-		# k1 is different from orig, k1 not in dict but a lower candidate is
-		#   and orig also in dict
-		if ((original != k1) & oind) & ((not k1ind) & (dcode == 'somekd')):
-			return 9
-		
 	def codeline(self, l):
 		self.log.debug(l)
 		
@@ -161,7 +113,7 @@ class Correcter(object):
 			filtws = [kww for kww in kbws if self.dictionary.contains(kww)]
 			filtids = [nn for nn, kww in enumerate(kbws) if self.dictionary.contains(kww)]
 		
-		decision = self.conv[self.heuristicSettings[self.determine_bin(l, dcode)]]
+		decision = self.conv[self.heuristics.evaluate(l, dcode)[1]]
 		
 		# return decision codes and output token form or candidate list as appropriate
 		if decision == 'ORIG':
