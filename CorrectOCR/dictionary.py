@@ -8,6 +8,7 @@ import logging
 
 from . import open_for_reading
 
+
 class Dictionary(object):
 	def __init__(self, file, caseInsensitive=False):
 		self.caseInsensitive = caseInsensitive
@@ -39,6 +40,7 @@ class Dictionary(object):
 	def set(self):
 		return self.words
 
+
 def extract_text_from_pdf(pdf_path):
 	# see https://www.blog.pythonlibrary.org/2018/05/03/exporting-data-from-pdfs-with-python/
 	import io
@@ -58,9 +60,9 @@ def extract_text_from_pdf(pdf_path):
 	page_interpreter = PDFPageInterpreter(resource_manager, converter)
 	
 	with open(pdf_path, 'rb') as fh:
-		for page in PDFPage.get_pages(fh, 
-							caching=True,
-							check_extractable=True):
+		for page in PDFPage.get_pages(fh,
+                                caching=True,
+                                check_extractable=True):
 			page_interpreter.process_page(page)
 		
 		text = fake_file_handle.getvalue()
@@ -71,6 +73,7 @@ def extract_text_from_pdf(pdf_path):
 	
 	if text:
 		return text
+
 
 def build_dictionary(settings):
 	(charset, output, files) = (re.sub(r'\W+', r'', settings.characterSet), settings.output, settings.files) # TODO option to add to existing dictionary?

@@ -1,11 +1,13 @@
 import csv
 import json
-import regex, re
+import regex
+import re
 import itertools
 import os
 import logging
 
 from . import open_for_reading
+
 
 class Decoder(object):
 
@@ -24,7 +26,7 @@ class Decoder(object):
 	
 	def decode_word(self, word, k, multichars={}):
 		if len(word) == 0:
-			return [''] + ['',0.0] * k
+			return [''] + ['', 0.0] * k
 
 		if word in self.prev_decodings:
 			return self.prev_decodings[word]
@@ -39,12 +41,12 @@ class Decoder(object):
 				for v in variant_words:
 					if v != word:
 						k_best.extend(self.hmm.k_best_beam(v, k))
-				# Keep the k best 
+				# Keep the k best
 				k_best = sorted(k_best, key=lambda x: x[1], reverse=True)[:k]
 				   
 		k_best = [element for subsequence in k_best for element in subsequence]
 		k_best_dict = dict()
-		for n in range(0,k):
+		for n in range(0, k):
 			k_best_dict['{}-best'.format(n+1)] = k_best[n*2]
 			k_best_dict['{}-best prob.'.format(n+1)] = k_best[n*2+1]
 		self.prev_decodings[word] = k_best_dict
@@ -89,17 +91,17 @@ class HMM(object):
 		delta = [None] * len(char_seq)
 		back_pointers = [None] * len(char_seq)
 		
-		delta[0] = {i:self.init[i] * self.emis[i][char_seq[0]]
-					for i in self.states}
+		delta[0] = {i: self.init[i] * self.emis[i][char_seq[0]]
+                    for i in self.states}
 		
 		for t in range(1, len(char_seq)):
 			# (preceding state with max probability, value of max probability)
-			d = {j:max({i:delta[t-1][i] * self.tran[i][j] for i in self.states}.items(),
-					   key=lambda x: x[1]) for j in self.states}
+			d = {j: max({i: delta[t-1][i] * self.tran[i][j] for i in self.states}.items(),
+                            key=lambda x: x[1]) for j in self.states}
 			
-			delta[t] = {i:d[i][1] * self.emis[i][char_seq[t]] for i in self.states}
+			delta[t] = {i: d[i][1] * self.emis[i][char_seq[t]] for i in self.states}
 			
-			back_pointers[t] = {i:d[i][0] for i in self.states}
+			back_pointers[t] = {i: d[i][0] for i in self.states}
 		
 		best_state = max(delta[-1], key=lambda x: delta[-1][x])
 		
@@ -115,13 +117,13 @@ class HMM(object):
 		if len(word) == 1:
 			#self.logger.debug('word: '+word)
 			paths = [(i, self.init[i] * self.emis[i][word[0]])
-					 for i in self.states]
+                            for i in self.states]
 			paths = sorted(paths, key=lambda x: x[1], reverse=True)
 		else:
 			# Create the N*N sequences for the first two characters
 			# of the word.
 			paths = [((i, j), (self.init[i] * self.emis[i][word[0]] * self.tran[i][j] * self.emis[j][word[1]]))
-					 for i in self.states for j in self.states]
+                            for i in self.states for j in self.states]
 			
 			# Keep the k best sequences.
 			paths = sorted(paths, key=lambda x: x[1], reverse=True)[:k]
@@ -130,7 +132,7 @@ class HMM(object):
 			# each time step.
 			for t in range(2, len(word)):
 				temp = [(x[0] + (j,), (x[1] * self.tran[x[0][-1]][j] * self.emis[j][word[t]]))
-						 for j in self.states for x in paths]
+                                    for j in self.states for x in paths]
 				paths = sorted(temp, key=lambda x: x[1], reverse=True)[:k]
 				#print(t, len(temp), temp[:5], len(paths), temp[:5])
 		
@@ -167,6 +169,7 @@ def load_text(filename, header=0):
 				
 	return words
 
+
 def corrected_words(alignments):
 	nonword = re.compile(r'\W+')
 	
@@ -198,6 +201,7 @@ def corrected_words(alignments):
 	log.debug(corrections)
 	
 	return corrections
+
 
 def decode(settings):
 	# - - - Defaults - - -
@@ -281,13 +285,13 @@ def decode(settings):
 			decoded['Gold'] = corrections.get(decoded['Original'], decoded['Original'])
 			decoded_words.append(decoded)
 	
-	with open(os.path.join(dir_decodings,basename + '_decoded.csv'), 'w', encoding='utf-8') as f:
+	with open(os.path.join(dir_decodings, basename + '_decoded.csv'), 'w', encoding='utf-8') as f:
 		writer = csv.DictWriter(f, header, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='', extrasaction='ignore')
 		writer.writeheader()
 		writer.writerows(decoded_words)
 	
 	if len(corrections) > 0:
-		with open(os.path.join('train/devDecoded/',basename + '_devDecoded.csv'), 'w', encoding='utf-8') as f:
+		with open(os.path.join('train/devDecoded/', basename + '_devDecoded.csv'), 'w', encoding='utf-8') as f:
 			writer = csv.DictWriter(f, ['Gold']+header, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
 			writer.writeheader()
 			writer.writerows(decoded_words)

@@ -27,7 +27,7 @@ memoizedPath =  ./resources/memoized_corrections.txt
 correctionTrackingPath = ./resources/correction_tracking.txt
 """
 
-if __name__=='__main__':
+if __name__ == '__main__':
 	import logging
 	import sys
 

@@ -5,10 +5,12 @@ import logging
 
 from . import open_for_reading
 
+
 def align_pairs(settings):
 	for pair in settings.filepairs:
 		basename = os.path.splitext(os.path.basename(pair[0].name))[0]
 		align(settings, basename, pair[0].read(), pair[1].read())
+
 
 def align(settings, basename, a, b, words=False):
 	import difflib
@@ -75,12 +77,12 @@ def load_misread_counts(file_list, remove=[]):
 				confusion[i].update(counts[i])
 
 	# Strip out any outer keys that aren't a single character
-	confusion = {key:value for key, value in confusion.items()
-				 if len(key) == 1}
+	confusion = {key: value for key, value in confusion.items()
+              if len(key) == 1}
 
 	for unwanted in remove:
 		if unwanted in confusion:
-			del confusion[unwanted]		
+			del confusion[unwanted]
 
 	# Strip out any inner keys that aren't a single character.
 	# Later, these may be useful, for now, remove them.
@@ -96,8 +98,10 @@ def load_misread_counts(file_list, remove=[]):
 	logging.getLogger(__name__+'.load_misread_counts').debug(confusion)
 	return confusion
 
-# Get the character counts of the training files. Used for filling in 
+# Get the character counts of the training files. Used for filling in
 # gaps in the confusion probabilities.
+
+
 def text_char_counts(file_list, remove=[], nheaderlines=0):
 	char_count = collections.Counter()
 	for filename in file_list:
@@ -119,12 +123,12 @@ def text_char_counts(file_list, remove=[], nheaderlines=0):
 # expected characters as model states whose emission probabilities are set to
 # only output themselves.
 def emission_probabilities(confusion, char_counts, alpha,
-						   remove=[], extra_chars=None):
+                           remove=[], extra_chars=None):
 	# Add missing dictionary elements.
-	# Missing outer terms are ones which were always read correctly.	
+	# Missing outer terms are ones which were always read correctly.
 	for char in char_counts:
 		if char not in confusion:
-			confusion[char] = {char:char_counts[char]}
+			confusion[char] = {char: char_counts[char]}
 			
 	# Inner terms are just added with 0 probability.
 	charset = set().union(*[confusion[i].keys() for i in confusion])
@@ -145,9 +149,9 @@ def emission_probabilities(confusion, char_counts, alpha,
 	extra_chars = extra_chars.difference(set(confusion))
 	extra_chars = extra_chars.difference(set(remove))
 
-	# Add them as new states.				
+	# Add them as new states.
 	for char in extra_chars:
-		confusion[char] = {i:0 for i in charset}
+		confusion[char] = {i: 0 for i in charset}
 	# Add them with 0 probability to every state.
 	for i in confusion:
 		for char in extra_chars:
@@ -163,7 +167,7 @@ def emission_probabilities(confusion, char_counts, alpha,
 # Create the initial and transition probabilities from the corrected
 # text in the training data.
 def init_tran_probabilities(file_list, alpha,
-							remove=[], nheaderlines=0, extra_chars=None):
+                            remove=[], nheaderlines=0, extra_chars=None):
 	tran = collections.defaultdict(lambda: collections.defaultdict(int))
 	init = collections.defaultdict(int)
 	
@@ -209,8 +213,8 @@ def init_tran_probabilities(file_list, alpha,
 			tran[i][j] = (tran[i][j] + alpha) / tran_denom
 
 	# Change the parameter dictionaries into normal dictionaries.
-	init = {i:init[i] for i in init}
-	tran = {i:{j:tran[i][j] for j in tran[i]} for i in tran}
+	init = {i: init[i] for i in init}
+	tran = {i: {j: tran[i][j] for j in tran[i]} for i in tran}
 
 	return init, tran
 
@@ -244,7 +248,7 @@ def build_model(settings):
 	gold_files = []
 	misread_files = []
 	for filename in os.listdir(settings.hmmTrainPath):
-		misread_files.append(os.path.join(settings.hmmTrainPath,filename))
+		misread_files.append(os.path.join(settings.hmmTrainPath, filename))
 		# [:-10] is to remove '_misread_counts' from the filename
 		gold_files.append(os.path.join(settings.correctedPath, 'c_' + os.path.splitext(filename)[0][:-15] + '.txt'))
 
@@ -252,14 +256,14 @@ def build_model(settings):
 	char_counts = text_char_counts(gold_files, remove_chars, settings.nheaderlines)
 
 	# Create the emission probabilities from the misread counts and the character counts
-	emis = emission_probabilities(confusion, char_counts, settings.smoothingParameter, remove_chars, 
-								  extra_chars=set(list(settings.characterSet)))
+	emis = emission_probabilities(confusion, char_counts, settings.smoothingParameter, remove_chars,
+                               extra_chars=set(list(settings.characterSet)))
 
 	# Create the initial and transition probabilities from the gold files
 	init, tran = init_tran_probabilities(gold_files, settings.smoothingParameter,
-										 remove_chars, settings.nheaderlines, 
-										 extra_chars=set(list(settings.characterSet)))
+                                      remove_chars, settings.nheaderlines,
+                                      extra_chars=set(list(settings.characterSet)))
 
 	if parameter_check(init, tran, emis):
-		with open(settings.hmmParamsPath,'w', encoding='utf-8') as f:
+		with open(settings.hmmParamsPath, 'w', encoding='utf-8') as f:
 			json.dump((init, tran, emis), f)

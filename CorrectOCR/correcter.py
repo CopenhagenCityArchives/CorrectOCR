@@ -1,5 +1,11 @@
 # coding=utf-8
-import glob, regex, sys, argparse, os, random, string
+import glob
+import regex
+import sys
+import argparse
+import os
+import random
+import string
 from collections import defaultdict
 # c richter / ricca@seas.upenn.edu
 
@@ -18,6 +24,7 @@ For example:
 > locale
 '''
 
+
 class Correcter(object):
 	def __init__(self, dictionary, conv, heuristicSettings, memos, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
@@ -33,12 +40,12 @@ class Correcter(object):
 	def dehyph(self, tk):
 		o = tk
 		# if - in token, and token is not only punctuation, and - is not at end or start of token:
-		if (u'-' in tk) & ((len(self.punctuation.sub('', tk)) > 0) & ((tk[-1] != u'-') & (tk[0] != u'-')) ):
+		if (u'-' in tk) & ((len(self.punctuation.sub('', tk)) > 0) & ((tk[-1] != u'-') & (tk[0] != u'-'))):
 			# if - doesn't precede capital letter, and the word including dash form isn't in dictionary:
 			if ((not tk[tk.index(u'-')+1].isupper()) & ((not tk in dws) & (not tk.lower() in dws))):
 				# if the word not including dash form is in dictionary, only then take out the dash
-				if (( self.punctuation.sub('', tk) in dws) or (  self.punctuation.sub('', tk).lower() in dws)):
-					o = tk.replace(u'-',u'')
+				if ((self.punctuation.sub('', tk) in dws) or (self.punctuation.sub('', tk).lower() in dws)):
+					o = tk.replace(u'-', u'')
 		return(o)
 	
 	# try putting together some lines that were split by hyphenation - preprocessing step
@@ -51,12 +58,12 @@ class Correcter(object):
 				nexw = ls[i+2]['Original']
 				# look for pattern: wordstart-, newline, restofword.
 				
-				if (((newl == u'_NEWLINE_N_') or (newl == u'_NEWLINE_R_')) & ((curw[-1] == u'-') & (len(curw) > 1)) ):
+				if (((newl == u'_NEWLINE_N_') or (newl == u'_NEWLINE_R_')) & ((curw[-1] == u'-') & (len(curw) > 1))):
 					# check that: wordstart isn't in dictionary,
 					# combining it with restofword is in dictionary,
 					# and restofword doesn't start with capital letter
 					# -- this is generally approximately good enough
-					if ( ((not(self.dictionary.contains(self.punctuation.sub('', curw)))) & (self.dictionary.contains(self.punctuation.sub('', curw+nexw)))) & (nexw[0].islower())):
+					if (((not(self.dictionary.contains(self.punctuation.sub('', curw)))) & (self.dictionary.contains(self.punctuation.sub('', curw+nexw)))) & (nexw[0].islower())):
 						# make a new row to put combined form into the output later
 						ls[i] = {
 							'Original': curw[:-1]+nexw,
@@ -122,7 +129,6 @@ class Correcter(object):
 		if ((original != k1) & oind) & ((not k1ind) & (dcode == 'somekd')):
 			return 9
 		
-	
 	def codeline(self, l):
 		self.log.debug(l)
 		
@@ -136,10 +142,10 @@ class Correcter(object):
 		
 		# catch memorised corrections
 		if (l['Original'] in self.memos):
-			return ('MEMO', [l['Original'],memodict[l['Original']]])
+			return ('MEMO', [l['Original'], memodict[l['Original']]])
 		
 		# k best candidate words
-		kbws = [ self.punctuation.sub('', l['{}-best'.format(n+1)]) for n in range(0,self.k)]
+		kbws = [self.punctuation.sub('', l['{}-best'.format(n+1)]) for n in range(0, self.k)]
 		
 		# number of k-best that are in the dictionary
 		nkdict = len(set([kww for kww in kbws if self.dictionary.contains(kww)]))
@@ -166,9 +172,9 @@ class Correcter(object):
 			return ('KDICT', l['{}-best'.format(filtids[0])])
 		elif decision == 'ANNOT':
 			if l['Original'] == l['1-best']:
-				return ('ANNOT', [l['{}-best'.format(n+1)] for n in range(0,self.k)])
+				return ('ANNOT', [l['{}-best'.format(n+1)] for n in range(0, self.k)])
 			else:
-				return ('ANNOT', [l['Original']] + [l['{}-best'.format(n+1)] for n in range(0,self.k)])
+				return ('ANNOT', [l['Original']] + [l['{}-best'.format(n+1)] for n in range(0, self.k)])
 		elif decision == 'UNK':
 			return ('NULLERROR', None)
 
@@ -188,15 +194,16 @@ def correct(settings):
 	decodeext = '_decoded.csv'
 	
 	# decision code conversion dictionary
-	conv = {'o':'ORIG','a':'ANNOT','k':'K1','d':'KDICT'}
+	conv = {'o': 'ORIG', 'a': 'ANNOT', 'k': 'K1', 'd': 'KDICT'}
 	
 	# annotator key controls
 	# can replace o, O, *, A, N with other keypress choices
-	annkey = {'orig':'o','origSkipDictadd':'O','numescape':'*','forceDictadd':'A','newln':'N'}
+	annkey = {'orig': 'o', 'origSkipDictadd': 'O',
+           'numescape': '*', 'forceDictadd': 'A', 'newln': 'N'}
 	
 	# - - - parse inputs - - -
 	
-	log.info('Correcting '  + settings.fileid + ' ')
+	log.info('Correcting ' + settings.fileid + ' ')
 	origfilename = settings.originalPath + settings.fileid + '.txt'
 	decodefilename = settings.decodedPath + settings.fileid + decodeext
 	
@@ -231,13 +238,10 @@ def correct(settings):
 	except:
 		trackdict = defaultdict(int)
 
-
-
 	# -----------------------------------------------------------
 	# // -------------------------------------------- //
 	# //  Interactively handle corrections in a file  //
 	# // -------------------------------------------- //
-
 
 	# open file to write corrected output
 	# don't write over finished corrections
@@ -256,8 +260,7 @@ def correct(settings):
 
 	# and write it to output file, replacing 'Corrected: No' with 'Yes'
 	for l in mtd:
-		o.write(l.replace(u'Corrected: No',u'Corrected: Yes'))
-
+		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
 
 	# get decodings to use for correction
 	log.info('Opening decoded file: '+decodefilename)
@@ -265,7 +268,8 @@ def correct(settings):
 		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
 	
 	dictionary = Dictionary(settings.dictionaryPath, settings.caseInsensitive)
-	correcter = Correcter(dictionary, conv, heuristicSettings, memos, settings.caseInsensitive, settings.k)
+	correcter = Correcter(dictionary, conv, heuristicSettings,
+	                      memos, settings.caseInsensitive, settings.k)
 	
 	if linecombine:
 		dec = correcter.linecombiner(dec)
@@ -276,7 +280,7 @@ def correct(settings):
 		log.info(l)
 
 	# track count of tokens seen by human
-	huct=0
+	huct = 0
 
 	tokenlist = [] # build list of output tokens
 	newdictwords = [] # potential additions to dictionary, after review
@@ -284,15 +288,16 @@ def correct(settings):
 	# - - -
 	# - - - process each token in decoded input - - -
 	for cxl, lin, cxr in splitwindow(dec, before=7, after=7):
-		handle = correcter.codeline(lin) # get heuristic decision for how to handle token
+		# get heuristic decision for how to handle token
+		handle = correcter.codeline(lin)
 
 	 # use decision outcomes as indicated
 	
-		if handle[0] in ['LN','ORIG','K1','KDICT']:
+		if handle[0] in ['LN', 'ORIG', 'K1', 'KDICT']:
 			tokenlist.append(handle[1])
 		elif handle[0] == 'MEMO': # memorised correction - keep track of how many times it is used
 			tokenlist.append(handle[1][1])
-			trackdict[u'\t'.join([handle[1][0],handle[1][1]])] += 1
+			trackdict[u'\t'.join([handle[1][0], handle[1][1]])] += 1
 		elif 'ERROR' in handle[0]:
 			log.error('\n\n' + handle[0] + ': That should not have happened! Line:'+str(lin))
 
@@ -301,7 +306,7 @@ def correct(settings):
 			print('\n\n'+' '.join([c['Original'] for c in cxl]) + ' \033[1;7m ' + handle[1][0] + ' \033[0m ' + ' '.join([c['Original'] for c in cxr])) # print sentence
 
 			print('\nSELECT for ' + handle[1][0] + ' :')
-			for u in range(min(kn,(len(handle[1])-1))):
+			for u in range(min(kn, (len(handle[1])-1))):
 				print('\n\t' + str(u+1) + '.  ' + handle[1][u+1]) # print choices
 
 			ipt = input('> ')
@@ -311,14 +316,15 @@ def correct(settings):
 				cleanword = punctuation.sub('', handle[1][0].lower())
 				newdictwords.append(cleanword) # add to suggestions for dictionary review
 				dictionary.add(cleanword) # add to temp dict for the rest of this file
-				trackdict[u'\t'.join([handle[1][0],handle[1][0]])] += 1 # track annotator's choice
+				trackdict[u'\t'.join([handle[1][0], handle[1][0]])] += 1 # track annotator's choice
 			
-			elif (ipt == annkey['origSkipDictadd']): # DO NOT add to temp dict for the rest of this file
+			# DO NOT add to temp dict for the rest of this file
+			elif (ipt == annkey['origSkipDictadd']):
 				tokenlist.append(handle[1][0])
-				trackdict[u'\t'.join([handle[1][0],handle[1][0]])] += 1
-			elif ipt in [str(nb) for nb in range(1,kn+1)]: # annotator picked a number 1-k
+				trackdict[u'\t'.join([handle[1][0], handle[1][0]])] += 1
+			elif ipt in [str(nb) for nb in range(1, kn+1)]: # annotator picked a number 1-k
 				tokenlist.append(handle[1][int(ipt)])
-				trackdict[u'\t'.join([handle[1][0],handle[1][int(ipt)]])] += 1
+				trackdict[u'\t'.join([handle[1][0], handle[1][int(ipt)]])] += 1
 
 			else: # annotator typed custom input
 				# escape numbers 1-k:
@@ -334,11 +340,10 @@ def correct(settings):
 					dws.add(cleanword)
 				if ipt[-1] == annkey['newln']: # add new linebreak following token, if specified
 					tokenlist.append(ipt[:-1] + '\n')
-					trackdict[u'\t'.join([handle[1][0][:-1],ipt[:-1]])] += 1
+					trackdict[u'\t'.join([handle[1][0][:-1], ipt[:-1]])] += 1
 				else:
 					tokenlist.append(ipt)
-					trackdict[u'\t'.join([handle[1][0],ipt])] += 1
-
+					trackdict[u'\t'.join([handle[1][0], ipt])] += 1
 
 	# optionally clean up hyphenation in completed tokenlist
 	if settings.dehyphenate:
@@ -346,7 +351,7 @@ def correct(settings):
 
 	# make print-ready text
 	spaced = u' '.join(tokenlist)
-	despaced = spaced.replace(u' \n ',u'\n')
+	despaced = spaced.replace(u' \n ', u'\n')
 
 	# write corrected output
 	o.write(despaced)
