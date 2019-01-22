@@ -29,11 +29,6 @@ class Correcter(object):
 		self.dictionary = dictionary
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
-
-	# - - -
-	# hyphenation
-	# - - - 
-
 	# remove selected hyphens from inside a single token - postprocessing step
 	def dehyph(self, tk):
 		o = tk
@@ -45,8 +40,7 @@ class Correcter(object):
 				if (( self.punctuation.sub('', tk) in dws) or (  self.punctuation.sub('', tk).lower() in dws)):
 					o = tk.replace(u'-',u'')
 		return(o)
-
-
+	
 	# try putting together some lines that were split by hyphenation - preprocessing step
 	def linecombiner(self, ls):
 		for i in range(len(ls) - 2):
@@ -56,7 +50,7 @@ class Correcter(object):
 				newl = ls[i+1]['Original']
 				nexw = ls[i+2]['Original']
 				# look for pattern: wordstart-, newline, restofword.
-		
+				
 				if (((newl == u'_NEWLINE_N_') or (newl == u'_NEWLINE_R_')) & ((curw[-1] == u'-') & (len(curw) > 1)) ):
 					# check that: wordstart isn't in dictionary,
 					# combining it with restofword is in dictionary,
@@ -78,30 +72,25 @@ class Correcter(object):
 						ls[i+1] = {'Original': 'BLANK'}
 						ls[i+2] = {'Original': 'BLANK'}
 		return [lin for lin in ls if lin != u'BLANK']
-
 	
 	def determine_bin(self, token):
-		# - - -
-		# - - - check observable features of token - - -
-
 		# original form
 		original = self.punctuation.sub('', token['Original'])
-
+		
 		# k best candidate words
 		kbws = [ self.punctuation.sub('', token['{}-best'.format(n+1)]) for n in range(0,self.k)]
-
+		
 		# top k best
 		k1 = kbws[0]
-
-
-	 # evaluate candidates against the dictionary
-
+		
+		# evaluate candidates against the dictionary
+		
 		# number of k-best that are in the dictionary
 		nkdict = len(set([kww for kww in kbws if self.dictionary.contains(kww)]))
-
+		
 		oind = self.dictionary.contains(original) #orig in dict?
 		k1ind = self.dictionary.contains(k1) #k1 in dict?
-
+		
 		# create dictionary-filtered candidate list if appropriate
 		filtws = []
 		if nkdict == 0:
@@ -112,119 +101,89 @@ class Correcter(object):
 			dcode = 'somekd'
 			filtws = [kww for kww in kbws if self.dictionary.contains(kww)]
 			filtids = [nn for nn, kww in enumerate(kbws) if self.dictionary.contains(kww)]
-	# - - -
-	# - - - BIN SORTING - - -
-	#  sort each token into a bin
-	#  and return that bin's decision as defined in settings file
-
-
-	# bin 1
-	# k1 = orig and this is in dict.
+		
+		# bin 1
+		# k1 = orig and this is in dict.
 		if ((original == k1) & oind):
 			return 1
-
-	# bin 2
-	# k1 = orig but not in dict, and no other kbest in dict either
+		
+		# bin 2
+		# k1 = orig but not in dict, and no other kbest in dict either
 		if ((original == k1) & (not oind)) & (dcode == 'zerokd'):
 			return 2
-
-	# bin 3
-	# k1 = orig but not in dict, but some lower-ranked kbest is in dict
+		
+		# bin 3
+		# k1 = orig but not in dict, but some lower-ranked kbest is in dict
 		if ((original == k1) & (not oind)) & (dcode == 'somekd'):
 			return 3
-
-	# bin 4
-	# k1 is different from orig, and k1 passes dict check while orig doesn't
+		
+		# bin 4
+		# k1 is different from orig, and k1 passes dict check while orig doesn't
 		if ((original != k1) & (not oind)) & k1ind:
 			return 4
-
-	# bin 5
-	# k1 is different from orig and nothing anywhere passes dict check
+		
+		# bin 5
+		# k1 is different from orig and nothing anywhere passes dict check
 		if ((original != k1) & (not oind)) & (dcode == 'zerokd'):
 			return 5
-
-	# bin 6
-	# k1 is different from orig and neither is in dict, but a lower-ranked candidate is
+		
+		# bin 6
+		# k1 is different from orig and neither is in dict, but a lower-ranked candidate is
 		if ((original != k1) & (not oind)) & ((not k1ind) & (dcode == 'somekd')):
 			return 6
-
-	# bin 7
-	# k1 is different from orig and both are in dict
+		
+		# bin 7
+		# k1 is different from orig and both are in dict
 		if ((original != k1) & oind) & k1ind:
 			return 7
 		
-	# bin 8
-	# k1 is different from orig, orig is in dict and no candidates are in dict
+		# bin 8
+		# k1 is different from orig, orig is in dict and no candidates are in dict
 		if ((original != k1) & oind) & (dcode == 'zerokd'):
 			return 8
-
-	# bin 9
-	# k1 is different from orig, k1 not in dict but a lower candidate is
-	#   and orig also in dict
+		
+		# bin 9
+		# k1 is different from orig, k1 not in dict but a lower candidate is
+		#   and orig also in dict
 		if ((original != k1) & oind) & ((not k1ind) & (dcode == 'somekd')):
 			return 9
 		
-
-	# -----------------------------------------------------------
-
-	# // --------------------- //
-	# //   Process ONE TOKEN   //
-	# // --------------------- //
-
-
+	
 	def codeline(self, i, l):
 		self.log.debug('%d: %s' % (i,str(l)))
-	# - - -
-
-		# setup
-		decision = 'UNK'
-		#l = ln.replace(u'\r\n','').split('\t')
-
-	# - - -
-
+		
 		# this should not happen in well-formed input
 		if len(l['Original']) == 0:
-			return('ZEROERROR',None)
-
+			return ('ZEROERROR', None)
+		
 		# catch linebreaks
 		if (l['Original'] == u'_NEWLINE_N_') or (l['Original'] == u'_NEWLINE_R_'):
-			return('LN',u'\n')
-
+			return ('LN', u'\n')
+		
 		# catch memorised corrections
 		if (l['Original'] in self.memos):
-			return('MEMO',[l['Original'],memodict[l['Original']]])
-
-
-
-	 #	EXAMPLE
-	 #  an evidently useful quantity for sorting out what to send to annotators
-	 # - difference ratio of k1 and k2 decoding probabilities 
-	 #	qqh = (float(l[2])-float(l[4]))/float(l[2])
+			return ('MEMO', [l['Original'],memodict[l['Original']]])
 		
 		decision = self.conv[self.binsettings[self.determine_bin(l)]]
-
-	# return decision codes and output token form or candidate list as appropriate
+		
+		# return decision codes and output token form or candidate list as appropriate
 		if decision == 'ORIG':
-			return('ORIG',l['Original'])
+			return ('ORIG', l['Original'])
 		elif decision == 'K1':
-			return('K1',l['1-best'])
+			return ('K1', l['1-best'])
 		elif decision == 'KDICT':
-			return('KDICT',l[(2*filtids[0])+1])
+			return ('KDICT', l[(2*filtids[0])+1])
 		elif decision == 'ANNOT':
 			if l['Original'] == l['1-best']:
-				return('ANNOT',[l['{}-best'.format(n+1)] for n in range(0,self.k)])
+				return ('ANNOT', [l['{}-best'.format(n+1)] for n in range(0,self.k)])
 			else:
-				return('ANNOT',([l['Original']] + [l['{}-best'.format(n+1)] for n in range(0,self.k)]))
+				return ('ANNOT', [l['Original']] + [l['{}-best'.format(n+1)] for n in range(0,self.k)])
 		elif decision == 'UNK':
-			return('NULLERROR',None)
+			return ('NULLERROR', None)
 
-# - - -
-# for interface
-# - - -
-
-# fetchcontext should give to 15 words to either side of target word,
-# or stop at file boundaries
 def fetchcontext(n,dec,tokenlist):
+	# fetchcontext should give to 15 words to either side of target word,
+	# or stop at file boundaries
 	lbound = max((n - 15),0)
 	ubound = min((n + 15),len(dec))
 	return (tokenlist[lbound:n], [ln['Original'] for ln in dec[(n+1):ubound]])
@@ -233,37 +192,37 @@ def correct(settings):
 	log = logging.getLogger(__name__+'.correct')
 	
 	punctuation = regex.compile(r'\p{posix_punct}+')
-
+	
 	caseSens = True
 	kn = 4
-
+	
 	# try to combine hyphenated linebreaks before correction
 	linecombine = True
-
+	
 	# naming convention for HMM decoding files
 	decodeext = '_decoded.csv'
-
+	
 	# decision code conversion dictionary
 	conv = {'o':'ORIG','a':'ANNOT','k':'K1','d':'KDICT'}
-
+	
 	# annotator key controls
 	# can replace o, O, *, A, N with other keypress choices
 	annkey = {'orig':'o','origSkipDictadd':'O','numescape':'*','forceDictadd':'A','newln':'N'}
-
+	
 	# - - - parse inputs - - -
-
+	
 	log.info('* * * * * CORRECTING   '  + settings.fileid + ' ')
 	origfilename = settings.origtxtdir + settings.fileid + '.txt'
 	decodefilename = settings.decodecsvdir + settings.fileid + decodeext
-
+	
 	# - - - set up files - - -
-
+	
 	# read heuristic settings
 	settfile = [l[:-1] for l in settings.settingsfile.readlines()]
 	binsettings = {}
 	for l in settfile:
 		binsettings[int(l.split(u'\t')[0])] = l.split(u'\t')[1]
-
+	
 	# read memorised corrections
 	try:
 		memofile = [l[:-1] for l in settings.memofilename.readlines()]
@@ -274,7 +233,7 @@ def correct(settings):
 	except:
 		log.info('no memoized corrections found!')
 		memos = {}
-
+	
 	# read corrections learning file
 	try:
 		trackfile = settings.learningfilename
