@@ -175,8 +175,11 @@ def corrected_words(alignments):
 	corrections = dict()
 	
 	for filename in alignments:
+		if not os.path.isfile(filename):
+			continue
+		
 		log.info('Getting alignments from '+filename)
-	
+		
 		alignments = None
 		with open(filename, encoding='utf-8') as f:
 			alignments = json.load(f)
@@ -283,7 +286,8 @@ def decode(settings):
 		writer.writeheader()
 		writer.writerows(decoded_words)
 	
-	with open(os.path.join('train/devDecoded/',basename + '_devDecoded.csv'), 'w', encoding='utf-8') as f:
-		writer = csv.DictWriter(f, ['Gold']+header, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
-		writer.writeheader()
-		writer.writerows(decoded_words)
+	if len(corrections) > 0:
+		with open(os.path.join('train/devDecoded/',basename + '_devDecoded.csv'), 'w', encoding='utf-8') as f:
+			writer = csv.DictWriter(f, ['Gold']+header, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
+			writer.writeheader()
+			writer.writerows(decoded_words)
