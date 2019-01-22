@@ -12,7 +12,8 @@ class Dictionary(object):
 	def __init__(self, dictionaryfile, caseInsensitive=False):
 		self.caseInsensitive = caseInsensitive
 		self.words = set()
-		with open_for_reading(dictionaryfile) as f:
+		self.path = dictionaryfile
+		with open_for_reading(self.path) as f:
 			for line in f.readlines():
 				if self.caseInsensitive:
 					self.words.add(line.strip().lower())
@@ -23,6 +24,18 @@ class Dictionary(object):
 		if self.caseInsensitive:
 			word = word.lower()
 		return word in self.words
+	
+	def add(self, word):
+		if self.caseInsensitive:
+			word = word.lower()
+		self.words.add(word)
+	
+	def save(self):
+		with open(self.path, 'w', encoding='utf-8') as f:
+			f.writelines(sorted(self.words, key=str.lower))
+	
+	def set(self):
+		return self.words
 
 def extract_text_from_pdf(pdf_path):
 	# see https://www.blog.pythonlibrary.org/2018/05/03/exporting-data-from-pdfs-with-python/
@@ -74,6 +87,6 @@ def build_dictionary(settings):
 		else:
 			logging.getLogger(__name__).error('Unrecognized filetype: %s' % file)
 	
-	for word in sorted(words.keys()):
+	for word in sorted(words.keys(), key=str.lower):
 		output.write(word + '\n')
 	output.close()
