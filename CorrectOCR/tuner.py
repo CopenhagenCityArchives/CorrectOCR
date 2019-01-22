@@ -71,7 +71,7 @@ class Tuner(object):
 		k1 = kbws[0]
 
 		# number of distinct k-best words that pass the dictionary check
-		nkdict = len(set([kww for kww in kbws if self.dictionary.contains(kww)]))
+		nkdict = len(set([kww for kww in kbws if kww in self.dictionary]))
 
 		# code type of candidates' dict membership
 		if nkdict == 0:
@@ -82,12 +82,12 @@ class Tuner(object):
 		filtws = [] # filtered words - only candidates that pass dict check
 		if 0 < nkdict < len(set(kbws)):
 			dcode = 'somekd'
-			filtws = [kww for kww in kbws if self.dictionary.contains(kww)]
+			filtws = [kww for kww in kbws if kww in self.dictionary]
 			d1 = filtws[0]
 
 		# code - does orig pass dict check? does k1?
-		oind = self.dictionary.contains(orig)
-		k1ind = self.dictionary.contains(k1)
+		oind = orig in self.dictionary
+		k1ind = k1 in self.dictionary
 
 		# an evidently useful quantity for sorting out what to send to annotators
 		#  - can split any existing category across a threshold of this quantity

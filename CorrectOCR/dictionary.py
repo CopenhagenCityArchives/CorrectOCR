@@ -23,7 +23,7 @@ class Dictionary(object):
 				else:
 					self.words.add(line.strip())
 	
-	def contains(self, word):
+	def __contains__(self, word):
 		if self.caseInsensitive:
 			word = word.lower()
 		return word in self.words

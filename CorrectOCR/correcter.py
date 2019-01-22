@@ -64,7 +64,9 @@ class Correcter(object):
 					# combining it with restofword is in dictionary,
 					# and restofword doesn't start with capital letter
 					# -- this is generally approximately good enough
-					if (((not(self.dictionary.contains(self.punctuation.sub('', curw)))) & (self.dictionary.contains(self.punctuation.sub('', curw+nexw)))) & (nexw[0].islower())):
+					if (not self.punctuation.sub('', curw) in self.dictionary
+						and self.punctuation.sub('', curw+nexw) in self.dictionary
+						and nexw[0].islower()):
 						# make a new row to put combined form into the output later
 						ls[i] = {
 							'Original': curw[:-1]+nexw,
@@ -100,7 +102,7 @@ class Correcter(object):
 		kbws = [self.punctuation.sub('', l['{}-best'.format(n+1)]) for n in range(0, self.k)]
 		
 		# number of k-best that are in the dictionary
-		nkdict = len(set([kww for kww in kbws if self.dictionary.contains(kww)]))
+		nkdict = len(set([kww for kww in kbws if kww in self.dictionary]))
 		
 		# create dictionary-filtered candidate list if appropriate
 		filtws = []
@@ -110,8 +112,8 @@ class Correcter(object):
 			dcode = 'allkd'
 		if 0 < nkdict < 4:
 			dcode = 'somekd'
-			filtws = [kww for kww in kbws if self.dictionary.contains(kww)]
-			filtids = [nn for nn, kww in enumerate(kbws) if self.dictionary.contains(kww)]
+			filtws = [kww for kww in kbws if kww in self.dictionary]
+			filtids = [nn for nn, kww in enumerate(kbws) if kww in self.dictionary]
 		
 		decision = self.conv[self.heuristics.evaluate(l, dcode)[1]]
 		

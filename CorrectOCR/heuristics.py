@@ -17,8 +17,8 @@ class Heuristics(object):
 		
 		# evaluate candidates against the dictionary
 		
-		oind = self.dictionary.contains(original) #orig in dict?
-		k1ind = self.dictionary.contains(k1) #k1 in dict?
+		oind = original in self.dictionary
+		k1ind = k1 in self.dictionary
 		
 		if ((original == k1) & oind):
 			# k1 = orig and this is in dict.
