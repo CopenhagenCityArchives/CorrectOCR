@@ -5,6 +5,7 @@ from . import dictionary
 from . import model
 from . import decoder
 from . import tuner
+from . import correcter
 
 defaults = """
 [settings]
@@ -42,7 +43,7 @@ if __name__=='__main__':
 	config.read_string(defaults)
 	config.read(['CorrectOCR.ini'], encoding='utf-8')
 	
-	settings = argparse.Namespace(**dict(config.items('settings')))
+	settings = dict(config.items('settings'))
 	
 	mainparser = argparse.ArgumentParser(description='Correct OCR')
 	
@@ -51,19 +52,19 @@ if __name__=='__main__':
 	dictparser = subparsers.add_parser('build_dictionary', help='Build dictionary')
 	dictparser.add_argument('output', type=FileType('w', encoding='utf-8'))
 	dictparser.add_argument('files', nargs='*')
-	dictparser.set_defaults(func=dictionary.build_dictionary)
+	dictparser.set_defaults(func=dictionary.build_dictionary, **settings)
 	
 	alignparser = subparsers.add_parser('align', help='Create alignments')
 	alignparser.add_argument('--filepair', action='append', nargs=2, dest='filepairs', type=FileType('r'))
-	alignparser.set_defaults(func=model.align_pairs)
+	alignparser.set_defaults(func=model.align_pairs, **settings)
 	
 	alignparser = subparsers.add_parser('build_model', help='Build model')
-	alignparser.set_defaults(func=model.build_model)
+	alignparser.set_defaults(func=model.build_model, **settings)
 	
 	decodeparser = subparsers.add_parser('decode', help='Decode')
 	decodeparser.add_argument('input_file', help='text file to decode')
 	decodeparser.add_argument('--dictionary', help='dictionary')
-	decodeparser.set_defaults(func=decoder.decode)
+	decodeparser.set_defaults(func=decoder.decode, **settings)
 	
 	tunerparser = subparsers.add_parser('tune', help='Tune settings prep')
 	tunerparser.add_argument('-d', '--dictionary', help='path to dictionary file')
@@ -71,19 +72,19 @@ if __name__=='__main__':
 	tunerparser.add_argument('-k', default=4, help='number of decoded candidates in input, default 4')
 	tunerparser.add_argument('-v', '--csvdir', default='train/devDecoded', help='path for directory of decoding CSVs')
 	tunerparser.add_argument('-o', '--outfile', default='resources/report.txt', help='output file name')
-	tunerparser.set_defaults(func=tuner.tune)
+	tunerparser.set_defaults(func=tuner.tune, **settings)
 	
 	settingsparser = subparsers.add_parser('make_settings', help='Make settings')
 	settingsparser.add_argument('--report', default='resources/report.txt', type=FileType('r'))
 	settingsparser.add_argument('-o', '--outfile', default='resources/settings.txt', help='output file name')
-	settingsparser.set_defaults(func=tuner.make_settings)
+	settingsparser.set_defaults(func=tuner.make_settings, **settings)
 	
 	cleanparser = subparsers.add_parser('clean', help='Clean files')
-	cleanparser.set_defaults(func=clean)
+	cleanparser.set_defaults(func=clean, **settings)
 	
-	args = mainparser.parse_args(namespace=settings)
+	args = mainparser.parse_args()
 	
-	log.info(settings)
+	log.info(args)
 	args.func(args)
 	
 	exit() # TODO exit code?
