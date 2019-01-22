@@ -1,8 +1,9 @@
 # coding=utf-8
-import codecs, glob, regex, sys, argparse, os, random, string
+import glob, regex, sys, argparse, os, random, string
 from collections import defaultdict
 # c richter / ricca@seas.upenn.edu
 
+import csv
 import logging
 
 from . import open_for_reading
@@ -26,6 +27,7 @@ class Correcter(object):
 		self.k = k
 		self.log = logging.getLogger(__name__+'.Correcter')
 		self.dictionary = dictionary
+		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
 
 	# - - -
@@ -34,57 +36,59 @@ class Correcter(object):
 
 	# remove selected hyphens from inside a single token - postprocessing step
 	def dehyph(self, tk):
-		punctuation = regex.compile(r'\p{posix_punct}+')
-
 		o = tk
 		# if - in token, and token is not only punctuation, and - is not at end or start of token:
-		if (u'-' in tk) & ((len(punctuation.sub('', tk)) > 0) & ((tk[-1] != u'-') & (tk[0] != u'-')) ):
+		if (u'-' in tk) & ((len(self.punctuation.sub('', tk)) > 0) & ((tk[-1] != u'-') & (tk[0] != u'-')) ):
 			# if - doesn't precede capital letter, and the word including dash form isn't in dictionary:
 			if ((not tk[tk.index(u'-')+1].isupper()) & ((not tk in dws) & (not tk.lower() in dws))):
 				# if the word not including dash form is in dictionary, only then take out the dash
-				if (( punctuation.sub('', tk) in dws) or (  punctuation.sub('', tk).lower() in dws)):
+				if (( self.punctuation.sub('', tk) in dws) or (  self.punctuation.sub('', tk).lower() in dws)):
 					o = tk.replace(u'-',u'')
 		return(o)
 
 
 	# try putting together some lines that were split by hyphenation - preprocessing step
 	def linecombiner(self, ls):
-		punctuation = regex.compile(r'\p{posix_punct}+')
-
 		for i in range(len(ls) - 2):
 			if (ls[i] != u'BLANK'):
-				curw = ls[i].split('\t')[0]
-				newl = ls[i+1].split('\t')[0]
-				nexw = ls[i+2].split('\t')[0]
+				#self.log.debug(ls[i])
+				curw = ls[i]['Original']
+				newl = ls[i+1]['Original']
+				nexw = ls[i+2]['Original']
 				# look for pattern: wordstart-, newline, restofword.
 		
 				if (((newl == u'_NEWLINE_N_') or (newl == u'_NEWLINE_R_')) & ((curw[-1] == u'-') & (len(curw) > 1)) ):
-	# check that: wordstart isn't in dictionary,
-	# combining it with restofword is in dictionary,
-	# and restofword doesn't start with capital letter -- this is generally approximately good enough
-					if ( ((not(self.dictionary.contains(punctuation.sub('', curw)))) & (self.dictionary.contains(punctuation.sub('', curw+nexw)))) & (nexw[0].islower())):
-	# make a new row to put combined form into the output later
-						newrw = (u'\t').join([curw[:-1]+nexw,curw[:-1]+nexw,curw[:-1]+nexw,u'.99',u'_PRE_COMBINED_',u'1.11e-25',u'_PRE_COMBINED_',u'1.11e-25',u'_PRE_COMBINED_',u'1.11e-25'])
-						newrw += u'\r\n'
-						ls[i] = newrw
-						ls[i+1] = u'BLANK'
-						ls[i+2] = u'BLANK'
+					# check that: wordstart isn't in dictionary,
+					# combining it with restofword is in dictionary,
+					# and restofword doesn't start with capital letter
+					# -- this is generally approximately good enough
+					if ( ((not(self.dictionary.contains(self.punctuation.sub('', curw)))) & (self.dictionary.contains(self.punctuation.sub('', curw+nexw)))) & (nexw[0].islower())):
+						# make a new row to put combined form into the output later
+						ls[i] = {
+							'Original': curw[:-1]+nexw,
+							'1-best': curw[:-1]+nexw,
+							'1-best prob.': 0.99,
+							'2-best': '_PRE_COMBINED_',
+							'2-best prob.': 1.11e-25,
+							'3-best': '_PRE_COMBINED_',
+							'3-best prob.': 1.11e-25,
+							'4-best': '_PRE_COMBINED_',
+							'4-best prob.': 1.11e-25,
+						}
+						ls[i+1] = {'Original': 'BLANK'}
+						ls[i+2] = {'Original': 'BLANK'}
 		return [lin for lin in ls if lin != u'BLANK']
 
 	
-	def determine_bin(self, original, kbest):
-		punctuation = regex.compile(r'\p{posix_punct}+')
-
-	# - - -
-	# - - - check observable features of token - - -
-
-	 # punctuation is considered not relevant
+	def determine_bin(self, token):
+		# - - -
+		# - - - check observable features of token - - -
 
 		# original form
-		original = punctuation.sub('', original)
+		original = self.punctuation.sub('', token['Original'])
 
 		# k best candidate words
-		kbws = [ punctuation.sub('', kbest[ix]) for ix in range(0,(self.k*2),2)]
+		kbws = [ self.punctuation.sub('', token['{}-best'.format(n+1)]) for n in range(0,self.k)]
 
 		# top k best
 		k1 = kbws[0]
@@ -168,29 +172,27 @@ class Correcter(object):
 	# // --------------------- //
 
 
-	def codeline(self, i, ln):
-		punctuation = regex.compile(r'\p{posix_punct}+')
-
-		self.log.debug('%d: %s' % (i,str(ln)))
+	def codeline(self, i, l):
+		self.log.debug('%d: %s' % (i,str(l)))
 	# - - -
 
 		# setup
 		decision = 'UNK'
-		l = ln.replace(u'\r\n','').split('\t')
+		#l = ln.replace(u'\r\n','').split('\t')
 
 	# - - -
 
 		# this should not happen in well-formed input
-		if len(l[0]) == 0:
+		if len(l['Original']) == 0:
 			return('ZEROERROR',None)
 
 		# catch linebreaks
-		if (l[0] == u'_NEWLINE_N_') or (l[0] == u'_NEWLINE_R_'):
+		if (l['Original'] == u'_NEWLINE_N_') or (l['Original'] == u'_NEWLINE_R_'):
 			return('LN',u'\n')
 
 		# catch memorised corrections
-		if (l[0] in self.memos):
-			return('MEMO',[l[0],memodict[l[0]]])
+		if (l['Original'] in self.memos):
+			return('MEMO',[l['Original'],memodict[l['Original']]])
 
 
 
@@ -199,23 +201,20 @@ class Correcter(object):
 	 # - difference ratio of k1 and k2 decoding probabilities 
 	 #	qqh = (float(l[2])-float(l[4]))/float(l[2])
 		
-		original = l[0]
-		kbest = l[1:]
-		
-		decision = self.conv[self.binsettings[self.determine_bin(original, kbest)]]
+		decision = self.conv[self.binsettings[self.determine_bin(l)]]
 
 	# return decision codes and output token form or candidate list as appropriate
 		if decision == 'ORIG':
-			return('ORIG',l[0])
+			return('ORIG',l['Original'])
 		elif decision == 'K1':
-			return('K1',l[1])
+			return('K1',l['1-best'])
 		elif decision == 'KDICT':
 			return('KDICT',l[(2*filtids[0])+1])
 		elif decision == 'ANNOT':
-			if l[0] == l[1]:
-				return('ANNOT',l[1:len(l):2])
+			if l['Original'] == l['1-best']:
+				return('ANNOT',[l['{}-best'.format(n+1)] for n in range(0,self.k)])
 			else:
-				return('ANNOT',([l[0]] + l[1:len(l):2]))
+				return('ANNOT',([l['Original']] + [l['{}-best'.format(n+1)] for n in range(0,self.k)]))
 		elif decision == 'UNK':
 			return('NULLERROR',None)
 
@@ -228,7 +227,7 @@ class Correcter(object):
 def fetchcontext(n,dec,tokenlist):
 	lbound = max((n - 15),0)
 	ubound = min((n + 15),len(dec))
-	return (tokenlist[lbound:n], [ln.split('\t')[0] for ln in dec[(n+1):ubound]])
+	return (tokenlist[lbound:n], [ln['Original'] for ln in dec[(n+1):ubound]])
 
 def correct(settings):
 	log = logging.getLogger(__name__+'.correct')
@@ -320,10 +319,8 @@ def correct(settings):
 	# get decodings to use for correction
 	with open(decodefilename, 'r', encoding='utf-8') as f:
 		log.info('opening : '+decodefilename)
-		dec = f.readlines()[1:]
-
-	log.debug(dec[:5])
-
+		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
+	
 	dictionary = Dictionary(settings.dictionary, settings.caseInsensitive)
 	correcter = Correcter(dictionary, conv, binsettings, memos, settings.caseInsensitive, settings.k)
 	
@@ -414,14 +411,12 @@ def correct(settings):
 	o.close()
 
 	# output potential new words to review for dictionary addition
-	dictpotential = codecs.open(settings.dictpotentialname, 'w', 'utf-8')
-	dictpotential.write(u'ANNOTATOR JUDGEMENT ' + str(huct) + ' TOKENS OF ABOUT ' + str(len(dec)) + ' IN FILE.\n')
-	dictpotential.write('\n'.join(newdictwords))
-	dictpotential.close()
+	with open(settings.dictpotentialname, 'w', encoding='utf-8') as f:
+		f.write(u'ANNOTATOR JUDGEMENT ' + str(huct) + ' TOKENS OF ABOUT ' + str(len(dec)) + ' IN FILE.\n')
+		f.write('\n'.join(newdictwords))
 
 	# update tracking of annotator's actions
 	newstats = sorted(trackdict, key=trackdict.__getitem__, reverse=True)
-	trackfile = codecs.open(settings.learningfilename, 'w', 'utf-8')
-	for ent in newstats:
-		trackfile.write(ent + u'\t' + str(trackdict[ent]) + u'\n')
-	trackfile.close()
+	with open(settings.learningfilename, 'w', encoding='utf-8') as f:
+		for ent in newstats:
+			f.write(ent + u'\t' + str(trackdict[ent]) + u'\n')
