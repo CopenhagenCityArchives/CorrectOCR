@@ -249,9 +249,8 @@ def correct(settings):
 
 	# get metadata, if any
 	if settings.nheaderlines > 0:
-		mtdf = open(origfilename, 'r', encoding='utf-8')
-		mtd = mtdf.readlines()[:settings.nheaderlines]
-		mtdf.close()
+		with open_for_reading(origfilename) as f:
+			mtd = f.readlines()[:settings.nheaderlines]
 	else:
 		mtd = ''
 
@@ -261,8 +260,8 @@ def correct(settings):
 
 
 	# get decodings to use for correction
-	with open(decodefilename, 'r', encoding='utf-8') as f:
-		log.info('opening : '+decodefilename)
+	log.info('Opening decoded file: '+decodefilename)
+	with open_for_reading(decodefilename) as f:
 		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
 	
 	dictionary = Dictionary(settings.dictionaryPath, settings.caseInsensitive)
