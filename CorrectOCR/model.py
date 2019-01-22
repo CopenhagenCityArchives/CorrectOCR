@@ -241,32 +241,26 @@ def parameter_check(init, tran, emis):
 def build_model(settings):
 	# - - - Defaults - - -
 	# Settings
-	num_header_lines = 0
-	smoothing_parameter = 0.0001
 	remove_chars = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
-
-	# Inputs
-	sourcedir_hmm = 'train/HMMtrain/'
-	sourcedir_gold = 'corrected/'
 
 	# Select the gold files which correspond to the misread count files.
 	gold_files = []
 	misread_files = []
-	for filename in os.listdir(sourcedir_hmm):
-		misread_files.append(os.path.join(sourcedir_hmm,filename))
+	for filename in os.listdir(settings.hmmTrainPath):
+		misread_files.append(os.path.join(settings.hmmTrainPath,filename))
 		# [:-10] is to remove '_misread_counts' from the filename
-		gold_files.append(os.path.join(sourcedir_gold, 'c_' + os.path.splitext(filename)[0][:-15] + '.txt'))
+		gold_files.append(os.path.join(settings.correctedPath, 'c_' + os.path.splitext(filename)[0][:-15] + '.txt'))
 
 	confusion = load_misread_counts(misread_files, remove_chars)
-	char_counts = text_char_counts(gold_files, remove_chars, num_header_lines)
+	char_counts = text_char_counts(gold_files, remove_chars, settings.nheaderlines)
 
 	# Create the emission probabilities from the misread counts and the character counts
-	emis = emission_probabilities(confusion, char_counts, smoothing_parameter, remove_chars, 
+	emis = emission_probabilities(confusion, char_counts, settings.smoothingParameter, remove_chars, 
 								  extra_chars=set(list(settings.characterSet)))
 
 	# Create the initial and transition probabilities from the gold files
-	init, tran = init_tran_probabilities(gold_files, smoothing_parameter,
-										 remove_chars, num_header_lines, 
+	init, tran = init_tran_probabilities(gold_files, settings.smoothingParameter,
+										 remove_chars, settings.nheaderlines, 
 										 extra_chars=set(list(settings.characterSet)))
 
 	if parameter_check(init, tran, emis) == True:

@@ -15,6 +15,7 @@ fullAlignmentsPath = train/parallelAligned/fullAlignments/
 misreadCountsPath = train/parallelAligned/misreadCounts/
 misreadsPath = train/parallelAligned/misreads/
 hmmParamsPath = train/hmm_parameters.json
+hmmTrainPath = train/HMMtrain/
 decodedPath = ./decoded/
 devDecodedPath = ./train/devDecoded/
 originalPath = ./original/
@@ -69,6 +70,10 @@ if __name__=='__main__':
 	alignparser.set_defaults(func=model.align_pairs, **settings)
 	
 	alignparser = subparsers.add_parser('build_model', help='Build model')
+	alignparser.add_argument('-l', '--nheaderlines', type=int, help='number of header lines in original corpus texts')
+	alignparser.add_argument('--smoothingParameter', default=0.0001, help='Smoothing parameter for HMM')
+	alignparser.add_argument('--hmmTrainPath', metavar='PATH', help='Path to misread count files')
+	alignparser.add_argument('--correctedPath', metavar='PATH', help='Path to corrected files')
 	alignparser.set_defaults(func=model.build_model, **settings)
 	
 	decodeparser = subparsers.add_parser('decode', help='Decode')
