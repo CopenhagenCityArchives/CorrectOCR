@@ -61,12 +61,6 @@ def align(settings, basename, a, b, words=False):
 
 #-------------------------------------
 
-def load_text(filename, header=0):
-	with open_for_reading(filename) as f:
-		return [i for i in f][header:]
-
-
-
 # Load the files of misread counts, remove any keys which are not single
 # characters, remove specified characters, and combine into a single
 # dictionary.
@@ -104,10 +98,12 @@ def load_misread_counts(file_list, remove=[]):
 
 # Get the character counts of the training files. Used for filling in 
 # gaps in the confusion probabilities.
-def text_char_counts(file_list, remove=[], header=0):
+def text_char_counts(file_list, remove=[], nheaderlines=0):
 	char_count = collections.Counter()
 	for filename in file_list:
-		text = load_text(filename, header)
+		with open_for_reading(filename) as f:
+			f.readlines(nheaderlines)
+			text = f.readlines()
 		c = collections.Counter(''.join(text))
 		char_count.update(c)
 
@@ -167,12 +163,14 @@ def emission_probabilities(confusion, char_counts, alpha,
 # Create the initial and transition probabilities from the corrected
 # text in the training data.
 def init_tran_probabilities(file_list, alpha,
-							remove=[], header=0, extra_chars=None):
+							remove=[], nheaderlines=0, extra_chars=None):
 	tran = collections.defaultdict(lambda: collections.defaultdict(int))
 	init = collections.defaultdict(int)
 	
 	for filename in file_list:
-		text = load_text(filename, header)
+		with open_for_reading(filename) as f:
+			f.readlines(nheaderlines)
+			text = f.readlines()
 
 		for line in text:
 			for word in line.split():
@@ -239,7 +237,6 @@ def parameter_check(init, tran, emis):
 #-------------------------------------
 
 def build_model(settings):
-	# - - - Defaults - - -
 	# Settings
 	remove_chars = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
 
@@ -263,6 +260,6 @@ def build_model(settings):
 										 remove_chars, settings.nheaderlines, 
 										 extra_chars=set(list(settings.characterSet)))
 
-	if parameter_check(init, tran, emis) == True:
+	if parameter_check(init, tran, emis):
 		with open(settings.hmmParamsPath,'w', encoding='utf-8') as f:
 			json.dump((init, tran, emis), f)
