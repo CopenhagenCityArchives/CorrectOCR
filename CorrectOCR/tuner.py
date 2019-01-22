@@ -11,21 +11,25 @@ from .dictionary import Dictionary
 from .heuristics import Heuristics
 
 
+# print percents nicely
+def percc(n, x):
+	if n == 0:
+		return '00'
+	return str(round((n/x)*100, 2))
+
 class Tuner(object):
 	def __init__(self, dictionary, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
+		self.variables = [0]*35 # see report for interpretation
 		self.k = k
 		self.log = logging.getLogger(__name__+'.Tuner')
 		self.dictionary = dictionary
 		self.heuristics = Heuristics(self.dictionary, dict()) # settings not needed here and indeed may not be available yet
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
-	#-------------------------------------
-	# measure
-	# - - -
-
-	# handle one token.
-	def codeline(self, vs, l):
+	def evaluate(self, l):
+		vs = self.variables
+		
 		self.log.debug(l)
 		# strip punctuation, which is considered not relevant to evaluation
 		gold = self.punctuation.sub('', l['Gold']) # gold standard wordform
@@ -36,14 +40,17 @@ class Tuner(object):
 		# don't count any other errors here; they will be counted in the segmentation error's other line.
 		if ((l['Original'] == '') & (len(gold) > 0)):
 			vs[29] += 1 # words ran together in original / undersegmentation
-			return vs
+			vs = self.variables
+			return
 
 		if ((l['Gold'] == '') & (len(orig) > 0)):
 			vs[30] += 1 # word wrongly broken apart in original / oversegmentation
-			return vs
+			vs = self.variables
+			return
 
 		if len(gold) == 0: # after having stripped punctuation the length is 0
-			return vs # don't count it, since punctuation doesn't matter
+			vs = self.variables # don't count it, since punctuation doesn't matter
+			return
 	
 		vs[0] += 1
 		# total number of real tokens - controlled for segmentation errors
@@ -186,141 +193,133 @@ class Tuner(object):
 				vs[27] += 1
 				vs[28] += 1
 		
-		return vs
+		self.variables = vs
+	
+	def report(self):
+		vs = self.variables
+		out = []
+		
+		out.append('Tokens included in evaluation: \t n = ' + str(vs[0])+'\n\n')
+		out.append('INITIAL ERROR - ' + str(vs[2]+vs[4]+vs[6]+vs[7]+vs[9]+vs[10]+vs[12]+vs[13]+vs[15]+vs[16]+vs[17]+vs[19]+vs[20]+vs[22]+vs[23]+vs[25]+vs[26]+vs[27]) +
+				   '  (' + percc((vs[2]+vs[4]+vs[6]+vs[7]+vs[9]+vs[10]+vs[12]+vs[13]+vs[15]+vs[16]+vs[17]+vs[19]+vs[20]+vs[22]+vs[23]+vs[25]+vs[26]+vs[27]), vs[0]) + ' %) \n\n\n')
+		out.append('Choose from these options for each bin:  a (annotator), o (original), k (k1, best candidate), d (best candidate in dictionary)\n  (o and k interchangeable when original is identical to k1; d not applicable in all bins)\n\n\n\n')
 
+		out.append('BIN 1 \t\t decision?\t\n')
+		out.append(' k1 same as original, and in dictionary\n')
+		out.append(percc((vs[1]+vs[2]), vs[0]) + ' % of tokens\n')
+		out.append('tokens where k1/orig == gold? \t ' +
+				   str(vs[1]) + '  (' + percc(vs[1], vs[0]) + ' %)\n')
+		out.append('tokens where k1/orig != gold? \t ' +
+				   str(vs[2]) + '  (' + percc(vs[2], vs[0]) + ' %)\n\n\n')
 
-# print percents nicely
-def percc(n, x):
-	if n == 0:
-		return '00'
-	return str(round((n/x)*100, 2))
+		out.append('BIN 2 \t\t decision?\t\n')
+		out.append(
+			' k1 same as original and not in dict, and no lower-ranked decoding candidate in dict either\n')
+		out.append(percc((vs[3]+vs[4]), vs[0]) + ' % of tokens\n')
+		out.append('tokens where k1/orig == gold? \t ' +
+				   str(vs[3]) + '  (' + percc(vs[3], vs[0]) + ' %)\n')
+		#out.append('\tof these, tokens under threshold:\t '+ str(vs[31]) + '  (' + percc(vs[31],vs[0]) + ' %)\n') # EXAMPLE
+		#out.append('\tof these, tokens over threshold:\t '+ str(vs[32]) + '  (' + percc(vs[32],vs[0]) + ' %)\n')
+		out.append('tokens where k1/orig != gold? \t ' +
+				   str(vs[4]) + '  (' + percc(vs[4], vs[0]) + ' %)\n')
+		#out.append('\tof these, tokens under threshold:\t '+ str(vs[33]) + '  (' + percc(vs[33],vs[0]) + ' %)\n')
+		#out.append('\tof these, tokens over threshold:\t '+ str(vs[34]) + '  (' + percc(vs[34],vs[0]) + ' %)\n')
+		out.append('\n\n\n')
+
+		out.append('BIN 3 \t\t decision?\t\n')
+		out.append(
+			' k1 same as original and not in dict, but a lower-ranked candidate is in dict\n')
+		out.append(percc((vs[5]+vs[6]+vs[7]), vs[0]) + ' % of tokens\n')
+		out.append('tokens where orig == gold? \t ' +
+				   str(vs[5]) + '  (' + percc(vs[5], vs[0]) + ' %)  \n')
+		out.append('tokens where top dict-filtered candidate == gold? \t ' +
+				   str(vs[6]) + '  (' + percc(vs[6], vs[0]) + ' %)  \n')
+		out.append('tokens where gold is neither orig nor top dict-filtered? \t ' +
+				   str(vs[7]) + '  (' + percc(vs[7], vs[0]) + ' %)   \n\n\n\n')
+
+		out.append('BIN 4 \t\t decision?\t\n')
+		out.append(' k1 different from original, original not in dict but k1 is\n')
+		out.append(percc((vs[8]+vs[9]+vs[10]), vs[0]) + ' % of tokens\n')
+		out.append('tokens where orig == gold? \t ' +
+				   str(vs[8]) + '  (' + percc(vs[8], vs[0]) + ' %)\n')
+		out.append('tokens where k1 == gold? \t ' +
+				   str(vs[9]) + '  (' + percc(vs[9], vs[0]) + ' %)\n')
+		out.append('tokens where neither orig nor k1 == gold? \t ' +
+				   str(vs[10]) + '  (' + percc(vs[10], vs[0]) + ' %)\n\n\n')
+
+		out.append('BIN 5 \t\t decision?\t\n')
+		out.append(
+			' k1 different from original, neither original nor any decoding candidate is in dict\n')
+		out.append(percc((vs[11]+vs[12]+vs[13]), vs[0]) + ' % of tokens\n')
+		out.append('tokens where orig == gold? \t ' +
+				   str(vs[11]) + '  (' + percc(vs[11], vs[0]) + ' %)\n')
+		out.append('tokens where k1 == gold? \t ' +
+				   str(vs[12]) + '  (' + percc(vs[12], vs[0]) + ' %)\n')
+		out.append('tokens where neither orig nor k1 == gold? \t ' +
+				   str(vs[13]) + '  (' + percc(vs[13], vs[0]) + ' %)\n\n\n')
+
+		out.append('BIN 6 \t\t decision?\t\n')
+		out.append(
+			'  k1 different from original, neither original nor k1 are in dict but some lower candidate is\n')
+		out.append(percc((vs[14]+vs[15]+vs[16]+vs[17]), vs[0]) + ' % of tokens\n')
+		out.append('tokens where orig == gold? \t ' +
+				   str(vs[14]) + '  (' + percc(vs[14], vs[0]) + ' %)\n')
+		out.append('tokens where k1 == gold? \t ' +
+				   str(vs[15]) + '  (' + percc(vs[15], vs[0]) + ' %)\n')
+		out.append('tokens where top dict-filtered candidate == gold? \t ' +
+				   str(vs[16]) + '  (' + percc(vs[16], vs[0]) + ' %)\n')
+		out.append('tokens where gold is neither orig nor k1 nor top dict-filtered? \t ' +
+				   str(vs[17]) + '  (' + percc(vs[17], vs[0]) + ' %)\n\n\n')
+
+		out.append('BIN 7 \t\t decision?\t\n')
+		out.append(' k1 is different from original and both are in dict\n')
+		out.append(percc((vs[18]+vs[19]+vs[20]), vs[0]) + ' % of tokens\n')
+		out.append('tokens where orig == gold? \t ' +
+				   str(vs[18]) + '  (' + percc(vs[18], vs[0]) + ' %)\n')
+		out.append('tokens where k1 == gold? \t ' +
+				   str(vs[19]) + '  (' + percc(vs[19], vs[0]) + ' %)\n')
+		out.append('tokens where neither orig nor k1 == gold? \t ' +
+				   str(vs[20]) + '  (' + percc(vs[20], vs[0]) + ' %)\n\n\n')
+
+		out.append('BIN 8 \t\t decision?\t\n')
+		out.append(
+			' k1 is different from original, original is in dict while no candidates k1 or lower are in dict\n')
+		out.append(percc((vs[21]+vs[22]+vs[23]), vs[0]) + ' % of tokens\n')
+		out.append('tokens where orig == gold? \t ' +
+				   str(vs[21]) + '  (' + percc(vs[21], vs[0]) + ' %)\n')
+		out.append('tokens where k1 == gold? \t ' +
+				   str(vs[22]) + '  (' + percc(vs[22], vs[0]) + ' %)\n')
+		out.append('tokens where neither orig nor k1 == gold? \t ' +
+				   str(vs[23]) + '  (' + percc(vs[23], vs[0]) + ' %)\n\n\n')
+
+		out.append('BIN 9 \t\t decision?\t\n')
+		out.append(' k1 is different from original and is not in dict, while both original and some lower-ranked candidate are in dict\n')
+		out.append(percc((vs[24]+vs[25]+vs[26]+vs[27]), vs[0]) + ' % of tokens\n')
+		out.append('tokens where orig == gold? \t ' +
+				   str(vs[24]) + '  (' + percc(vs[24], vs[0]) + ' %)\n')
+		out.append('tokens where k1 == gold? \t ' +
+				   str(vs[25]) + '  (' + percc(vs[25], vs[0]) + ' %)\n')
+		out.append('tokens where top dict-filtered candidate == gold? \t ' +
+				   str(vs[26]) + '  (' + percc(vs[26], vs[0]) + ' %)\n')
+		out.append('tokens where none of the above == gold? \t ' +
+				   str(vs[27]) + '  (' + percc(vs[27], vs[0]) + ' %)\n')
+		
+		return out
 
 def tune(settings):
 	log = logging.getLogger(__name__+'.tune')
 	
-	#-------------------------------------
-	# gather stats on devset
-	# - - -
-	# variables to track - see output file for interpretation
-	vs = [0]*35
-	
 	tuner = Tuner(Dictionary(settings.dictionaryPath, settings.caseInsensitive), settings.caseInsensitive, settings.k)
 	
-	# read in csv data
 	for filename in glob.glob(settings.devDecodedPath + '/*.csv'):
 		log.info('Collecting stats from ' + filename)
 		with open_for_reading(filename) as f:
 			reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
-			# sort each token
 			for row in reader:
-				vs = tuner.codeline(vs, row)
+				tuner.evaluate(row)
 	
-	# write - - -
-	outf = open(settings.outfile, 'w', encoding='utf-8')
-	outf.write('Tokens included in evaluation: \t n = ' + str(vs[0])+'\n\n')
-	outf.write('INITIAL ERROR - ' + str(vs[2]+vs[4]+vs[6]+vs[7]+vs[9]+vs[10]+vs[12]+vs[13]+vs[15]+vs[16]+vs[17]+vs[19]+vs[20]+vs[22]+vs[23]+vs[25]+vs[26]+vs[27]) +
-	           '  (' + percc((vs[2]+vs[4]+vs[6]+vs[7]+vs[9]+vs[10]+vs[12]+vs[13]+vs[15]+vs[16]+vs[17]+vs[19]+vs[20]+vs[22]+vs[23]+vs[25]+vs[26]+vs[27]), vs[0]) + ' %) \n\n\n')
-	outf.write('Choose from these options for each bin:  a (annotator), o (original), k (k1, best candidate), d (best candidate in dictionary)\n  (o and k interchangeable when original is identical to k1; d not applicable in all bins)\n\n\n\n')
-
-	outf.write('BIN 1 \t\t decision?\t\n')
-	outf.write(' k1 same as original, and in dictionary\n')
-	outf.write(percc((vs[1]+vs[2]), vs[0]) + ' % of tokens\n')
-	outf.write('tokens where k1/orig == gold? \t ' +
-	           str(vs[1]) + '  (' + percc(vs[1], vs[0]) + ' %)\n')
-	outf.write('tokens where k1/orig != gold? \t ' +
-	           str(vs[2]) + '  (' + percc(vs[2], vs[0]) + ' %)\n\n\n')
-
-	outf.write('BIN 2 \t\t decision?\t\n')
-	outf.write(
-		' k1 same as original and not in dict, and no lower-ranked decoding candidate in dict either\n')
-	outf.write(percc((vs[3]+vs[4]), vs[0]) + ' % of tokens\n')
-	outf.write('tokens where k1/orig == gold? \t ' +
-	           str(vs[3]) + '  (' + percc(vs[3], vs[0]) + ' %)\n')
-	#outf.write('\tof these, tokens under threshold:\t '+ str(vs[31]) + '  (' + percc(vs[31],vs[0]) + ' %)\n') # EXAMPLE
-	#outf.write('\tof these, tokens over threshold:\t '+ str(vs[32]) + '  (' + percc(vs[32],vs[0]) + ' %)\n')
-	outf.write('tokens where k1/orig != gold? \t ' +
-	           str(vs[4]) + '  (' + percc(vs[4], vs[0]) + ' %)\n')
-	#outf.write('\tof these, tokens under threshold:\t '+ str(vs[33]) + '  (' + percc(vs[33],vs[0]) + ' %)\n')
-	#outf.write('\tof these, tokens over threshold:\t '+ str(vs[34]) + '  (' + percc(vs[34],vs[0]) + ' %)\n')
-	outf.write('\n\n\n')
-
-	outf.write('BIN 3 \t\t decision?\t\n')
-	outf.write(
-		' k1 same as original and not in dict, but a lower-ranked candidate is in dict\n')
-	outf.write(percc((vs[5]+vs[6]+vs[7]), vs[0]) + ' % of tokens\n')
-	outf.write('tokens where orig == gold? \t ' +
-	           str(vs[5]) + '  (' + percc(vs[5], vs[0]) + ' %)  \n')
-	outf.write('tokens where top dict-filtered candidate == gold? \t ' +
-	           str(vs[6]) + '  (' + percc(vs[6], vs[0]) + ' %)  \n')
-	outf.write('tokens where gold is neither orig nor top dict-filtered? \t ' +
-	           str(vs[7]) + '  (' + percc(vs[7], vs[0]) + ' %)   \n\n\n\n')
-
-	outf.write('BIN 4 \t\t decision?\t\n')
-	outf.write(' k1 different from original, original not in dict but k1 is\n')
-	outf.write(percc((vs[8]+vs[9]+vs[10]), vs[0]) + ' % of tokens\n')
-	outf.write('tokens where orig == gold? \t ' +
-	           str(vs[8]) + '  (' + percc(vs[8], vs[0]) + ' %)\n')
-	outf.write('tokens where k1 == gold? \t ' +
-	           str(vs[9]) + '  (' + percc(vs[9], vs[0]) + ' %)\n')
-	outf.write('tokens where neither orig nor k1 == gold? \t ' +
-	           str(vs[10]) + '  (' + percc(vs[10], vs[0]) + ' %)\n\n\n')
-
-	outf.write('BIN 5 \t\t decision?\t\n')
-	outf.write(
-		' k1 different from original, neither original nor any decoding candidate is in dict\n')
-	outf.write(percc((vs[11]+vs[12]+vs[13]), vs[0]) + ' % of tokens\n')
-	outf.write('tokens where orig == gold? \t ' +
-	           str(vs[11]) + '  (' + percc(vs[11], vs[0]) + ' %)\n')
-	outf.write('tokens where k1 == gold? \t ' +
-	           str(vs[12]) + '  (' + percc(vs[12], vs[0]) + ' %)\n')
-	outf.write('tokens where neither orig nor k1 == gold? \t ' +
-	           str(vs[13]) + '  (' + percc(vs[13], vs[0]) + ' %)\n\n\n')
-
-	outf.write('BIN 6 \t\t decision?\t\n')
-	outf.write(
-		'  k1 different from original, neither original nor k1 are in dict but some lower candidate is\n')
-	outf.write(percc((vs[14]+vs[15]+vs[16]+vs[17]), vs[0]) + ' % of tokens\n')
-	outf.write('tokens where orig == gold? \t ' +
-	           str(vs[14]) + '  (' + percc(vs[14], vs[0]) + ' %)\n')
-	outf.write('tokens where k1 == gold? \t ' +
-	           str(vs[15]) + '  (' + percc(vs[15], vs[0]) + ' %)\n')
-	outf.write('tokens where top dict-filtered candidate == gold? \t ' +
-	           str(vs[16]) + '  (' + percc(vs[16], vs[0]) + ' %)\n')
-	outf.write('tokens where gold is neither orig nor k1 nor top dict-filtered? \t ' +
-	           str(vs[17]) + '  (' + percc(vs[17], vs[0]) + ' %)\n\n\n')
-
-	outf.write('BIN 7 \t\t decision?\t\n')
-	outf.write(' k1 is different from original and both are in dict\n')
-	outf.write(percc((vs[18]+vs[19]+vs[20]), vs[0]) + ' % of tokens\n')
-	outf.write('tokens where orig == gold? \t ' +
-	           str(vs[18]) + '  (' + percc(vs[18], vs[0]) + ' %)\n')
-	outf.write('tokens where k1 == gold? \t ' +
-	           str(vs[19]) + '  (' + percc(vs[19], vs[0]) + ' %)\n')
-	outf.write('tokens where neither orig nor k1 == gold? \t ' +
-	           str(vs[20]) + '  (' + percc(vs[20], vs[0]) + ' %)\n\n\n')
-
-	outf.write('BIN 8 \t\t decision?\t\n')
-	outf.write(
-		' k1 is different from original, original is in dict while no candidates k1 or lower are in dict\n')
-	outf.write(percc((vs[21]+vs[22]+vs[23]), vs[0]) + ' % of tokens\n')
-	outf.write('tokens where orig == gold? \t ' +
-	           str(vs[21]) + '  (' + percc(vs[21], vs[0]) + ' %)\n')
-	outf.write('tokens where k1 == gold? \t ' +
-	           str(vs[22]) + '  (' + percc(vs[22], vs[0]) + ' %)\n')
-	outf.write('tokens where neither orig nor k1 == gold? \t ' +
-	           str(vs[23]) + '  (' + percc(vs[23], vs[0]) + ' %)\n\n\n')
-
-	outf.write('BIN 9 \t\t decision?\t\n')
-	outf.write(' k1 is different from original and is not in dict, while both original and some lower-ranked candidate are in dict\n')
-	outf.write(percc((vs[24]+vs[25]+vs[26]+vs[27]), vs[0]) + ' % of tokens\n')
-	outf.write('tokens where orig == gold? \t ' +
-	           str(vs[24]) + '  (' + percc(vs[24], vs[0]) + ' %)\n')
-	outf.write('tokens where k1 == gold? \t ' +
-	           str(vs[25]) + '  (' + percc(vs[25], vs[0]) + ' %)\n')
-	outf.write('tokens where top dict-filtered candidate == gold? \t ' +
-	           str(vs[26]) + '  (' + percc(vs[26], vs[0]) + ' %)\n')
-	outf.write('tokens where none of the above == gold? \t ' +
-	           str(vs[27]) + '  (' + percc(vs[27], vs[0]) + ' %)\n')
+	with open(settings.outfile, 'w', encoding='utf-8') as f:
+		f.writelines(tuner.report())
 
 
 def make_settings(settings):
