@@ -71,7 +71,95 @@ class Correcter(object):
 						ls[i+2] = u'BLANK'
 		return [lin for lin in ls if lin != u'BLANK']
 
+	
+	def determine_bin(self, original, kbest):
+		punctuation = regex.compile(r'\p{posix_punct}+')
 
+	# - - -
+	# - - - check observable features of token - - -
+
+	 # punctuation is considered not relevant
+
+		# original form
+		original = punctuation.sub('', original)
+
+		# k best candidate words
+		kbws = [ punctuation.sub('', kbest[ix]) for ix in range(0,(self.k*2),2)]
+
+		# top k best
+		k1 = kbws[0]
+
+
+	 # evaluate candidates against the dictionary
+
+		# number of k-best that are in the dictionary
+		nkdict = len(set([kww for kww in kbws if self.dictionary.contains(kww)]))
+
+		oind = self.dictionary.contains(original) #orig in dict?
+		k1ind = self.dictionary.contains(k1) #k1 in dict?
+
+		# create dictionary-filtered candidate list if appropriate
+		filtws = []
+		if nkdict == 0:
+			dcode = 'zerokd'
+		if nkdict == 4:
+			dcode = 'allkd'
+		if 0 < nkdict < 4:
+			dcode = 'somekd'
+			filtws = [kww for kww in kbws if self.dictionary.contains(kww)]
+			filtids = [nn for nn, kww in enumerate(kbws) if self.dictionary.contains(kww)]
+	# - - -
+	# - - - BIN SORTING - - -
+	#  sort each token into a bin
+	#  and return that bin's decision as defined in settings file
+
+
+	# bin 1
+	# k1 = orig and this is in dict.
+		if ((original == k1) & oind):
+			return 1
+
+	# bin 2
+	# k1 = orig but not in dict, and no other kbest in dict either
+		if ((original == k1) & (not oind)) & (dcode == 'zerokd'):
+			return 2
+
+	# bin 3
+	# k1 = orig but not in dict, but some lower-ranked kbest is in dict
+		if ((original == k1) & (not oind)) & (dcode == 'somekd'):
+			return 3
+
+	# bin 4
+	# k1 is different from orig, and k1 passes dict check while orig doesn't
+		if ((original != k1) & (not oind)) & k1ind:
+			return 4
+
+	# bin 5
+	# k1 is different from orig and nothing anywhere passes dict check
+		if ((original != k1) & (not oind)) & (dcode == 'zerokd'):
+			return 5
+
+	# bin 6
+	# k1 is different from orig and neither is in dict, but a lower-ranked candidate is
+		if ((original != k1) & (not oind)) & ((not k1ind) & (dcode == 'somekd')):
+			return 6
+
+	# bin 7
+	# k1 is different from orig and both are in dict
+		if ((original != k1) & oind) & k1ind:
+			return 7
+		
+	# bin 8
+	# k1 is different from orig, orig is in dict and no candidates are in dict
+		if ((original != k1) & oind) & (dcode == 'zerokd'):
+			return 8
+
+	# bin 9
+	# k1 is different from orig, k1 not in dict but a lower candidate is
+	#   and orig also in dict
+		if ((original != k1) & oind) & ((not k1ind) & (dcode == 'somekd')):
+			return 9
+		
 
 	# -----------------------------------------------------------
 
@@ -104,103 +192,17 @@ class Correcter(object):
 		if (l[0] in self.memos):
 			return('MEMO',[l[0],memodict[l[0]]])
 
-	# - - -
-	# - - - check observable features of token - - -
-
-	 # punctuation is considered not relevant
-
-		# original form
-		orig = punctuation.sub('', l[0])
-
-		# k best candidate words
-		kbws = [ punctuation.sub('', l[ix]) for ix in range(1,(self.k*2),2)]
-
-		# top k best
-		k1 = kbws[0]
-
-
-	 # evaluate candidates against the dictionary
-
-		# number of k-best that are in the dictionary
-		nkdict = len(set([kww for kww in kbws if self.dictionary.contains(kww)]))
-
-		oind = self.dictionary.contains(orig) #orig in dict?
-		k1ind = self.dictionary.contains(k1) #k1 in dict?
-
-		# create dictionary-filtered candidate list if appropriate
-		filtws = []
-		if nkdict == 0:
-			dcode = 'zerokd'
-		if nkdict == 4:
-			dcode = 'allkd'
-		if 0 < nkdict < 4:
-			dcode = 'somekd'
-			filtws = [kww for kww in kbws if self.dictionary.contains(kww)]
-			filtids = [nn for nn, kww in enumerate(kbws) if self.dictionary.contains(kww)]
 
 
 	 #	EXAMPLE
 	 #  an evidently useful quantity for sorting out what to send to annotators
 	 # - difference ratio of k1 and k2 decoding probabilities 
 	 #	qqh = (float(l[2])-float(l[4]))/float(l[2])
-
-
-
-	# - - -
-	# - - - BIN SORTING - - -
-	#  sort each token into a bin
-	#  and return that bin's decision as defined in settings file
-
-
-	# bin 1
-	# k1 = orig and this is in dict.
-		if ((orig == k1) & oind):
-			decision = self.conv[self.binsettings['1']]
-
-	# bin 2
-	# k1 = orig but not in dict, and no other kbest in dict either
-		if ((orig == k1) & (not oind)) & (dcode == 'zerokd'):
-			decision = self.conv[self.binsettings['2']]
-	#		if (qqh <= .95):				# EXAMPLE using qqh with threshold to subdivide categories:
-	#			decision = self.conv[self.binsettings['2a']]
-	#		else:
-	#			decision = self.conv[self.binsettings['2b']]
-
-	# bin 3
-	# k1 = orig but not in dict, but some lower-ranked kbest is in dict
-		if ((orig == k1) & (not oind)) & (dcode == 'somekd'):
-			decision = self.conv[self.binsettings['3']]
-
-	# bin 4
-	# k1 is different from orig, and k1 passes dict check while orig doesn't
-		if ((orig != k1) & (not oind)) & k1ind:
-			decision = self.conv[self.binsettings['4']]
-
-	# bin 5
-	# k1 is different from orig and nothing anywhere passes dict check
-		if ((orig != k1) & (not oind)) & (dcode == 'zerokd'):
-			decision = self.conv[self.binsettings['5']]
-
-	# bin 6
-	# k1 is different from orig and neither is in dict, but a lower-ranked candidate is
-		if ((orig != k1) & (not oind)) & ((not k1ind) & (dcode == 'somekd')):
-			decision = self.conv[self.binsettings['6']]
-
-	# bin 7
-	# k1 is different from orig and both are in dict
-		if ((orig != k1) & oind) & k1ind:
-			decision = self.conv[self.binsettings['7']]
 		
-	# bin 8
-	# k1 is different from orig, orig is in dict and no candidates are in dict
-		if ((orig != k1) & oind) & (dcode == 'zerokd'):
-			decision = self.conv[self.binsettings['8']]
-
-	# bin 9
-	# k1 is different from orig, k1 not in dict but a lower candidate is
-	#   and orig also in dict
-		if ((orig != k1) & oind) & ((not k1ind) & (dcode == 'somekd')):
-			decision = self.conv[self.binsettings['9']]
+		original = l[0]
+		kbest = l[1:]
+		
+		decision = self.conv[self.binsettings[self.determine_bin(original, kbest)]]
 
 	# return decision codes and output token form or candidate list as appropriate
 		if decision == 'ORIG':
@@ -261,7 +263,7 @@ def correct(settings):
 	settfile = [l[:-1] for l in settings.settingsfile.readlines()]
 	binsettings = {}
 	for l in settfile:
-		binsettings[l.split(u'\t')[0]] = l.split(u'\t')[1]
+		binsettings[int(l.split(u'\t')[0])] = l.split(u'\t')[1]
 
 	# read memorised corrections
 	try:
@@ -271,7 +273,7 @@ def correct(settings):
 			memodict[l.split(u'\t')[0]] = l.split(u'\t')[1]
 		memos = set(memodict.keys())
 	except:
-		log.info('no memorised corrections found!')
+		log.info('no memoized corrections found!')
 		memos = {}
 
 	# read corrections learning file
