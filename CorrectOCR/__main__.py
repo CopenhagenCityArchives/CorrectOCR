@@ -9,7 +9,7 @@ from . import get_encoding, clean
 from . import dictionary
 from . import model
 from . import decoder
-from . import tuner
+from . import heuristics
 from . import correcter
 
 defaults = """
@@ -79,18 +79,18 @@ decodeparser.add_argument('input_file', help='text file to decode')
 decodeparser.add_argument('--dictionary', help='dictionary')
 decodeparser.set_defaults(func=decoder.decode, **settings)
 
-tunerparser = subparsers.add_parser('tune', help='Tune settings prep')
+tunerparser = subparsers.add_parser('make_report', help='Make heuristics report')
 tunerparser.add_argument('-d', '--dictionaryPath', help='path to dictionary file')
 tunerparser.add_argument('-c', '--caseInsensitive', action='store_true', help='case sensitivity')
 tunerparser.add_argument('-k', default=4, help='number of decoded candidates in input, default 4')
 tunerparser.add_argument('-v', '--devDecodedPath', help='path for directory of decoding CSVs')
 tunerparser.add_argument('-o', '--outfile', default='resources/report.txt', help='output file name')
-tunerparser.set_defaults(func=tuner.tune, **settings)
+tunerparser.set_defaults(func=heuristics.make_report, **settings)
 
-settingsparser = subparsers.add_parser('make_settings', help='Make settings')
+settingsparser = subparsers.add_parser('make_settings', help='Make heuristics settings')
 settingsparser.add_argument('--report', default='resources/report.txt', type=FileType('r'))
 settingsparser.add_argument('-o', '--outfile', default=settings['heuristicSettingsPath'], help='output file name')
-settingsparser.set_defaults(func=tuner.make_settings, **settings)
+settingsparser.set_defaults(func=heuristics.make_settings, **settings)
 
 correctparser = subparsers.add_parser('correct', help='Make settings')
 correctparser.add_argument('fileid', help='input ID (without path or extension)')

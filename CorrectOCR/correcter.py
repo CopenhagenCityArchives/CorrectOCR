@@ -27,14 +27,14 @@ For example:
 
 
 class Correcter(object):
-	def __init__(self, dictionary, conv, heuristicSettings, memos, caseInsensitive=False, k=4):
+	def __init__(self, dictionary, conv, heuristicSettingsPath, memos, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
 		self.conv = conv
 		self.memos = memos
 		self.k = k
 		self.log = logging.getLogger(__name__+'.Correcter')
 		self.dictionary = dictionary
-		self.heuristics = Heuristics(self.dictionary, heuristicSettings)
+		self.heuristics = Heuristics(self.dictionary, self.caseInsensitive, settingsFile=heuristicSettingsPath)
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
 	# remove selected hyphens from inside a single token - postprocessing step
@@ -100,22 +100,12 @@ class Correcter(object):
 		
 		# k best candidate words
 		kbws = [self.punctuation.sub('', l['{}-best'.format(n+1)]) for n in range(0, self.k)]
+		filtws = [kww for kww in kbws if kww in self.dictionary]
+		filtids = [nn for nn, kww in enumerate(kbws) if kww in self.dictionary]
 		
-		# number of k-best that are in the dictionary
-		nkdict = len(set([kww for kww in kbws if kww in self.dictionary]))
-		
-		# create dictionary-filtered candidate list if appropriate
-		filtws = []
-		if nkdict == 0:
-			dcode = 'zerokd'
-		if nkdict == 4:
-			dcode = 'allkd'
-		if 0 < nkdict < 4:
-			dcode = 'somekd'
-			filtws = [kww for kww in kbws if kww in self.dictionary]
-			filtids = [nn for nn, kww in enumerate(kbws) if kww in self.dictionary]
-		
-		decision = self.conv[self.heuristics.evaluate(l, dcode)[1]]
+		(bin, decisioncode) = self.heuristics.evaluate(l)
+		#self.log.debug('%d %s' % (bin, decisioncode))
+		decision = self.conv[decisioncode]
 		
 		# return decision codes and output token form or candidate list as appropriate
 		if decision == 'ORIG':
@@ -162,12 +152,6 @@ def correct(settings):
 	decodefilename = settings.decodedPath + settings.fileid + decodeext
 	
 	# - - - set up files - - -
-	
-	# read heuristic settings
-	settfile = [l[:-1] for l in settings.heuristicSettingsPath.readlines()]
-	heuristicSettings = {}
-	for l in settfile:
-		heuristicSettings[int(l.split(u'\t')[0])] = l.split(u'\t')[1]
 	
 	# read memorised corrections
 	try:
@@ -222,7 +206,7 @@ def correct(settings):
 		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
 	
 	dictionary = Dictionary(settings.dictionaryPath, settings.caseInsensitive)
-	correcter = Correcter(dictionary, conv, heuristicSettings,
+	correcter = Correcter(dictionary, conv, settings.heuristicSettingsPath,
 	                      memos, settings.caseInsensitive, settings.k)
 	
 	if linecombine:
