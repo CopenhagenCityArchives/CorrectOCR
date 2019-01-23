@@ -27,14 +27,14 @@ For example:
 
 
 class Correcter(object):
-	def __init__(self, dictionary, conv, heuristicSettingsPath, memos, caseInsensitive=False, k=4):
+	def __init__(self, dictionary, conv, heuristicSettingsFile, memos, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
 		self.conv = conv
 		self.memos = memos
 		self.k = k
 		self.log = logging.getLogger(__name__+'.Correcter')
 		self.dictionary = dictionary
-		self.heuristics = Heuristics(self.dictionary, self.caseInsensitive, settingsFile=heuristicSettingsPath)
+		self.heuristics = Heuristics(self.dictionary, self.caseInsensitive, settingsFile=heuristicSettingsFile)
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
 	# remove selected hyphens from inside a single token - postprocessing step
@@ -205,8 +205,8 @@ def correct(settings):
 	with open_for_reading(decodefilename) as f:
 		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
 	
-	dictionary = Dictionary(settings.dictionaryPath, settings.caseInsensitive)
-	correcter = Correcter(dictionary, conv, settings.heuristicSettingsPath,
+	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)
+	correcter = Correcter(dictionary, conv, settings.heuristicSettingsFile,
 	                      memos, settings.caseInsensitive, settings.k)
 	
 	if linecombine:

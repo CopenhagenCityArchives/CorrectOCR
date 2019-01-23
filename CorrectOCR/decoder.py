@@ -228,7 +228,7 @@ def decode(settings):
 					prev_decodings[row['Original']] = row
 
 	# Load the rest of the parameters and create the decoder
-	decoder = Decoder(settings.hmmParamsPath, settings.dictionaryPath, prev_decodings)
+	decoder = Decoder(settings.hmmParamsFile, settings.dictionaryFile, prev_decodings)
 
 	words = load_text(settings.input_file, num_header_lines)
 	

@@ -265,5 +265,5 @@ def build_model(settings):
                                       extra_chars=set(list(settings.characterSet)))
 
 	if parameter_check(init, tran, emis):
-		with open(settings.hmmParamsPath, 'w', encoding='utf-8') as f:
+		with open(settings.hmmParamsFile, 'w', encoding='utf-8') as f:
 			json.dump((init, tran, emis), f)

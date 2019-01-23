@@ -350,7 +350,7 @@ class Heuristics(object):
 def make_report(settings):
 	log = logging.getLogger(__name__+'.tune')
 	
-	dictionary = Dictionary(settings.dictionaryPath, settings.caseInsensitive)
+	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)
 	heuristics = Heuristics(dictionary, settings.caseInsensitive, k=settings.k)
 	
 	for filename in glob.glob(settings.devDecodedPath + '/*.csv'):
