@@ -1,28 +1,34 @@
+import difflib
 import collections
 import json
 import logging
-
 from pathlib import Path
 
 from . import open_for_reading
 
 
 def align_pairs(settings):
-	for pair in settings.filepairs:
-		basename = Path(pair[0].name).stem
-		align(settings, basename, pair[0].read(), pair[1].read())
+	if settings.allPairs:
+		for correctedFile in settings.correctedPath.iterdir():
+			basename = correctedFile.stem
+			originalFile = settings.originalPath.joinpath(correctedFile.name)
+			if originalFile.is_file():
+				align(settings, basename, open_for_reading(originalFile), open_for_reading(correctedFile))
+	else:
+		for pair in settings.filepairs:
+			basename = Path(pair[0].name).stem
+			align(settings, basename, pair[0], pair[1])
 
 
-def align(settings, basename, a, b, words=False):
-	import difflib
-	import collections
-	import json
-	
+def align(settings, basename, a, b, splitOnWords=False):
 	log = logging.getLogger(__name__+'.align')
+	
+	a = a.read()
+	b = b.read()
 	
 	matcher = difflib.SequenceMatcher(autojunk=False) #isjunk=lambda x: junkre.search(x))
 	
-	if words:
+	if splitOnWords:
 		a = a.split()
 		b = b.split()
 	matcher.set_seqs(a, b)
