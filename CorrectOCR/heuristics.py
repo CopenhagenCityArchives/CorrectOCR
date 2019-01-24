@@ -3,6 +3,8 @@ import logging
 import glob
 import csv
 
+from collections import OrderedDict
+
 from . import open_for_reading
 from .dictionary import Dictionary
 
@@ -13,63 +15,62 @@ def percc(n, x):
 	return str(round((n/x)*100, 2))
 
 class Heuristics(object):
-	bins = [
-		{
-			'number': 1,
+	bins = OrderedDict({
+		1: {
 			'description': 'k1 = orig and this is in dict.',
 			'matcher': lambda o, k, d, dcode: o == k and o in d,
+			'heuristic': 'a', # send to annotator by default if no loaded settings
 		},
-		{
-			'number': 2,
+		2: {
 			'description': 'k1 = orig but not in dict, and no other kbest in dict either.',
 			'matcher': lambda o, k, d, dcode: o == k and o not in d and dcode == 'zerokd',
+			'heuristic': 'a',
 		},
-		{
-			'number': 3,
+		3: {
 			'description': 'k1 = orig but not in dict, but some lower-ranked kbest is in dict.',
 			'matcher': lambda o, k, d, dcode: o == k and o not in d and dcode == 'somekd',
+			'heuristic': 'a',
 		},
-		{
-			'number': 4,
+		4: {
 			'description': 'k1 is different from orig, and k1 passes dict check while orig doesn''t.',
 			'matcher': lambda o, k, d, dcode: o == k and o not in d and k in d,
+			'heuristic': 'a',
 		},
-		{
-			'number': 5,
+		5: {
 			'description': 'k1 is different from orig and nothing anywhere passes dict check.',
 			'matcher': lambda o, k, d, dcode: o != k and o not in d and dcode == 'zerokd',
+			'heuristic': 'a',
 		},
-		{
-			'number': 6,
+		6: {
 			'description': 'k1 is different from orig and neither is in dict, but a lower-ranked candidate is.',
 			'matcher': lambda o, k, d, dcode: o != k and o not in d and dcode == 'somekd',
+			'heuristic': 'a',
 		},
-		{
-			'number': 7,
+		7: {
 			'description': 'k1 is different from orig and both are in dict.',
 			'matcher': lambda o, k, d, dcode: o != k and o in d and k in d,
+			'heuristic': 'a',
 		},
-		{
-			'number': 8,
+		8: {
 			'description': 'k1 is different from orig, orig is in dict and no candidates are in dict.',
 			'matcher': lambda o, k, d, dcode: o != k and o in d and dcode == 'zerokd',
+			'heuristic': 'a',
 		},
-		{
-			'number': 9,
+		9: {
 			'description': 'k1 is different from orig, k1 not in dict but a lower candidate is and orig also in dict.',
 			'matcher': lambda o, k, d, dcode: o != k and o in d and k not in d and dcode == 'somekd',
+			'heuristic': 'a',
 		}
-	]
+	})
 	
-	def __init__(self, dictionary, caseInsensitive, heuristicSettings=dict(), settingsFile=None, k=4):
+	def __init__(self, dictionary, caseInsensitive, settingsDict=dict(), settingsFile=None, k=4):
 		self.caseInsensitive = caseInsensitive
 		self.dictionary = dictionary
-		self.heuristicSettings = heuristicSettings
 		if settingsFile:
 			settfile = [l[:-1] for l in settingsFile.readlines()]
-			self.heuristicSettings = {}
 			for l in settfile:
-				self.heuristicSettings[int(l.split(u'\t')[0])] = l.split(u'\t')[1]
+				(bin, code) = l.split('\t')
+				self.bins[int(bin)]['heuristic'] = code[0]
 		self.k = k
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		self.log = logging.getLogger(__name__+'.Heuristics')
@@ -96,9 +97,11 @@ class Heuristics(object):
 		elif 0 < nkdict < 4:
 			dcode = 'somekd'
 		
-		for bin in self.bins:
-			if bin['matcher'](original, k1, self.dictionary, dcode):
-				return (bin['number'], self.heuristicSettings.get(bin['number'], None))
+		#self.log.debug('{} {} {}'.format(original, kbest, dcode))
+		
+		for num, bin in self.bins.items():
+			if bin['matcher'](original, kbest[0][1][0], self.dictionary, dcode):
+				return (num, bin['heuristic'])
 		
 		self.log.critical('This shouldn''t happen: '+str(token))
 		return (0, None)

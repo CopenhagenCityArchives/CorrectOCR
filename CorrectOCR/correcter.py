@@ -1,4 +1,5 @@
 # coding=utf-8
+# c richter / ricca@seas.upenn.edu
 import glob
 import regex
 import sys
@@ -6,11 +7,10 @@ import argparse
 import os
 import random
 import string
-from collections import defaultdict
-# c richter / ricca@seas.upenn.edu
-
+import cmd
 import csv
 import logging
+from collections import defaultdict
 
 from . import open_for_reading, splitwindow
 from .dictionary import Dictionary
@@ -27,9 +27,8 @@ For example:
 
 
 class Correcter(object):
-	def __init__(self, dictionary, conv, heuristicSettingsFile, memos, caseInsensitive=False, k=4):
+	def __init__(self, dictionary, heuristicSettingsFile, memos, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
-		self.conv = conv
 		self.memos = memos
 		self.k = k
 		self.log = logging.getLogger(__name__+'.Correcter')
@@ -83,73 +82,175 @@ class Correcter(object):
 						ls[i+2] = {'Original': 'BLANK'}
 		return [lin for lin in ls if lin != u'BLANK']
 	
-	def codeline(self, l):
+	def evaluate(self, l):
 		self.log.debug(l)
 		
 		# this should not happen in well-formed input
 		if len(l['Original']) == 0:
-			return ('ZEROERROR', None)
+			return ('error', 'Input is malformed! Original is 0-length: '+l)
 		
 		# catch linebreaks
 		if (l['Original'] == u'_NEWLINE_N_') or (l['Original'] == u'_NEWLINE_R_'):
-			return ('LN', u'\n')
+			return ('linefeed', None)
 		
 		# catch memorised corrections
 		if (l['Original'] in self.memos):
-			return ('MEMO', [l['Original'], memodict[l['Original']]])
+			return ('memo', memodict[l['Original']])
 		
 		# k best candidate words
 		kbws = [self.punctuation.sub('', l['{}-best'.format(n+1)]) for n in range(0, self.k)]
 		filtws = [kww for kww in kbws if kww in self.dictionary]
 		filtids = [nn for nn, kww in enumerate(kbws) if kww in self.dictionary]
 		
-		(bin, decisioncode) = self.heuristics.evaluate(l)
+		(bin, decision) = self.heuristics.evaluate(l)
 		#self.log.debug('%d %s' % (bin, decisioncode))
-		decision = self.conv[decisioncode]
 		
 		# return decision codes and output token form or candidate list as appropriate
-		if decision == 'ORIG':
-			return ('ORIG', l['Original'])
-		elif decision == 'K1':
-			return ('K1', l['1-best'])
-		elif decision == 'KDICT':
-			return ('KDICT', l['{}-best'.format(filtids[0])])
-		elif decision == 'ANNOT':
-			if l['Original'] == l['1-best']:
-				return ('ANNOT', [l['{}-best'.format(n+1)] for n in range(0, self.k)])
+		if decision == 'o':
+			return ('original', l['Original'])
+		elif decision == 'k':
+			return ('kbest', 1)
+		elif decision == 'd':
+			return ('kdict', filtids[0])
+		elif decision == 'a':
+			return ('annotator', filtids)
+		else:
+			return ('error', 'Unknown decision returned from heuristics: ' + decision)
+
+
+class CorrectionShell(cmd.Cmd):
+	prompt = 'CorrectOCR> '
+	
+	def start(tokens, correcter, k=4, intro=None):
+		sh = CorrectionShell()
+		sh.tokenwindow = splitwindow(tokens, before=7, after=7)
+		sh.correcter = correcter
+		sh.dictionary = sh.correcter.dictionary
+		sh.memos = sh.correcter.memos
+		sh.k = k
+		sh.humanCount = 0
+		sh.tokenlist = []
+		sh.newdictwords = []
+		sh.trackdict = defaultdict(int)
+		sh.log = logging.getLogger(__name__+'.CorrectionShell')
+		sh.punctuation = regex.compile(r'\p{posix_punct}+')
+
+		sh.cmdloop(intro)
+
+		return sh.humanCount, sh.tokenlist, sh.newdictwords, sh.trackdict
+	
+	def nexttoken(self):
+		try:
+			ctxr, self.token, ctxl = next(self.tokenwindow)
+			(decision, var) = self.correcter.evaluate(self.token)
+			
+			if decision == 'annotator':
+				self.humanCount +=1 # increment human-effort count
+				
+				print('\n\n{} \033[1;7m{}\033[0m {}\n'.format(
+					' '.join([c['Original'] for c in ctxr]),
+					self.token['Original'],
+					' '.join([c['Original'] for c in ctxl])
+				))
+				print('\nSELECT for {} :\n'.format(self.token['Original']))
+				for kn in range(1, self.k+1):
+					print('\t{}. {} ({}){}\n'.format(
+						kn,
+						self.token['{}-best'.format(kn)],
+						self.token['{}-best prob.'.format(kn)],
+						' * is in dictionary' if kn in var else ''
+					))
 			else:
-				return ('ANNOT', [l['Original']] + [l['{}-best'.format(n+1)] for n in range(0, self.k)])
-		elif decision == 'UNK':
-			return ('NULLERROR', None)
+				self.onecmd('{} {}'.format(decision, var))
+			
+			return False # continue
+		except StopIteration:
+			return True # shouldStop
+	
+	def emptyline(self):
+		if self.lastcmd == 'original':
+			return self.onecmd(self.lastcmd) # repeat
+		else:
+			pass # dont repeat other commands
+	
+	def preloop(self):
+		return self.nexttoken()
+	
+	def do_original(self, arg):
+		"""Choose original"""
+		print('Selecting original: '+self.token['Original'])
+		self.tokenlist.append(arg) # add to output tokenlist
+		cleanword = self.punctuation.sub('', arg.lower())
+		self.newdictwords.append(cleanword) # add to suggestions for dictionary review
+		self.dictionary.add(cleanword) # add to temp dict for the rest of this file
+		self.trackdict[(self.token['Original'], arg)] += 1 # track annotator's choice
+	
+	def do_shell(self, arg):
+		"""Custom input to replace token""" #TODO currently !-prefix is needed, drop that?
+		print('Selecting user input: '+arg)
+		self.tokenlist.append(arg)
+		self.dictionary.add(arg)
+		self.trackdict[(self.token['Original'], arg)] += 1
+	
+	def do_kbest(self, arg):
+		"""Choose k-best"""
+		if arg:
+			k = int(arg[0]) 
+		else:
+			k = 1
+		kbest = self.token['{}-best'.format(k)]
+		print('Selecting {}-best: {}'.format(k, kbest))
+		self.tokenlist.append(kbest)
+		self.trackdict[(self.token['Original'], kbest)] += 1
+	
+	def do_kdict(self, arg):
+		print('Selecting k-best from dict: '+self.token['{}-best'.format(arg)])
+		self.tokenlist.append(self.token['{}-best'.format(arg)])
+	
+	def do_memo(self, arg):
+		print('Selecting memoized correction: '+arg)
+		self.tokenlist.append(arg)
+		self.trackdict[(self.token['Original'], arg)] += 1
+	
+	def do_error(self, arg):
+		self.log.error('ERROR: {} {}'.format(arg, str(self.token)))
+	
+	def do_linefeed(self, arg):
+		self.tokenlist.append('\n')
+	
+	def default(self, line):
+		if line == 'o':
+			return self.onecmd('original')
+		elif line.isnumeric():
+			return self.onecmd('kbest '+line)
+		else:
+			return super().default(line)
+	
+	def postcmd(self, stop, line):
+		return stop or self.nexttoken()
 
 
 def correct(settings):
 	log = logging.getLogger(__name__+'.correct')
 	
-	punctuation = regex.compile(r'\p{posix_punct}+')
-	
-	caseSens = True
-	kn = 4
-	
 	# try to combine hyphenated linebreaks before correction
 	linecombine = True
 	
-	# naming convention for HMM decoding files
-	decodeext = '_decoded.csv'
-	
-	# decision code conversion dictionary
-	conv = {'o': 'ORIG', 'a': 'ANNOT', 'k': 'K1', 'd': 'KDICT'}
-	
 	# annotator key controls
 	# can replace o, O, *, A, N with other keypress choices
-	annkey = {'orig': 'o', 'origSkipDictadd': 'O',
-           'numescape': '*', 'forceDictadd': 'A', 'newln': 'N'}
+	annkey = { #TODO
+		'orig': 'o',
+		'origSkipDictadd': 'O',
+		'numescape': '*',
+		'forceDictadd': 'A',
+		'newln': 'N'
+	}
 	
 	# - - - parse inputs - - -
 	
 	log.info('Correcting ' + settings.fileid + ' ')
 	origfilename = settings.originalPath + settings.fileid + '.txt'
-	decodefilename = settings.decodedPath + settings.fileid + decodeext
+	decodefilename = settings.decodedPath + settings.fileid + '_decoded.csv'
 	
 	# - - - set up files - - -
 	
@@ -166,7 +267,6 @@ def correct(settings):
 	
 	# read corrections learning file
 	try:
-		trackfile = settings.correctionTrackingPath
 		trackfilelines = [l[:-1] for l in settings.correctionTrackingPath.readlines()]
 		trackdict = defaultdict(int)
 		for l in trackfilelines:
@@ -206,7 +306,7 @@ def correct(settings):
 		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
 	
 	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)
-	correcter = Correcter(dictionary, conv, settings.heuristicSettingsFile,
+	correcter = Correcter(dictionary, settings.heuristicSettingsFile,
 	                      memos, settings.caseInsensitive, settings.k)
 	
 	if linecombine:
@@ -222,66 +322,11 @@ def correct(settings):
 
 	tokenlist = [] # build list of output tokens
 	newdictwords = [] # potential additions to dictionary, after review
-	
-	# - - -
-	# - - - process each token in decoded input - - -
-	for cxl, lin, cxr in splitwindow(dec, before=7, after=7):
-		# get heuristic decision for how to handle token
-		handle = correcter.codeline(lin)
 
-	 # use decision outcomes as indicated
-	
-		if handle[0] in ['LN', 'ORIG', 'K1', 'KDICT']:
-			tokenlist.append(handle[1])
-		elif handle[0] == 'MEMO': # memorised correction - keep track of how many times it is used
-			tokenlist.append(handle[1][1])
-			trackdict[u'\t'.join([handle[1][0], handle[1][1]])] += 1
-		elif 'ERROR' in handle[0]:
-			log.error('\n\n' + handle[0] + ': That should not have happened! Line:'+str(lin))
+	(humanCount, tokenlist, newdictwords, trackdict) = CorrectionShell.start(dec, correcter, settings.k)
 
-		elif handle[0] == 'ANNOT':
-			huct +=1 # increment human-effort count
-			print('\n\n'+' '.join([c['Original'] for c in cxl]) + ' \033[1;7m ' + handle[1][0] + ' \033[0m ' + ' '.join([c['Original'] for c in cxr])) # print sentence
-
-			print('\nSELECT for ' + handle[1][0] + ' :')
-			for u in range(min(kn, (len(handle[1])-1))):
-				print('\n\t' + str(u+1) + '.  ' + handle[1][u+1]) # print choices
-
-			ipt = input('> ')
-		
-			if (ipt == annkey['orig']) | (ipt == ''):
-				tokenlist.append(handle[1][0]) # add to output tokenlist
-				cleanword = punctuation.sub('', handle[1][0].lower())
-				newdictwords.append(cleanword) # add to suggestions for dictionary review
-				dictionary.add(cleanword) # add to temp dict for the rest of this file
-				trackdict[u'\t'.join([handle[1][0], handle[1][0]])] += 1 # track annotator's choice
-			
-			# DO NOT add to temp dict for the rest of this file
-			elif (ipt == annkey['origSkipDictadd']):
-				tokenlist.append(handle[1][0])
-				trackdict[u'\t'.join([handle[1][0], handle[1][0]])] += 1
-			elif ipt in [str(nb) for nb in range(1, kn+1)]: # annotator picked a number 1-k
-				tokenlist.append(handle[1][int(ipt)])
-				trackdict[u'\t'.join([handle[1][0], handle[1][int(ipt)]])] += 1
-
-			else: # annotator typed custom input
-				# escape numbers 1-k:
-				# enter '*1' to output the token '1' instead of select candidate #1
-				if ((ipt[0] == annkey['numescape']) & (ipt[1:].isdigit())):
-					ipt = ipt[1:]
-				if ipt[-1] == annkey['forceDictadd']: # add this new input form to dictionary if specified
-					ipt = ipt[:-1]
-					cleanword = punctuation.sub('', ipt.lower())
-					if ipt[-1] == annkey['newln']:
-						cleanword = punctuation.sub('', ipt[:-1].lower())
-					newdictwords.append(cleanword)
-					dws.add(cleanword)
-				if ipt[-1] == annkey['newln']: # add new linebreak following token, if specified
-					tokenlist.append(ipt[:-1] + '\n')
-					trackdict[u'\t'.join([handle[1][0][:-1], ipt[:-1]])] += 1
-				else:
-					tokenlist.append(ipt)
-					trackdict[u'\t'.join([handle[1][0], ipt])] += 1
+	log.debug(tokenlist)
+	log.debug(newdictwords)
 
 	# optionally clean up hyphenation in completed tokenlist
 	if settings.dehyphenate:
