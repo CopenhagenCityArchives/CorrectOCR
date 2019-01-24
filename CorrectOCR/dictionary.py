@@ -3,8 +3,8 @@
 import datrie
 import re
 import textract
-import os
 import logging
+from pathlib import Path
 
 from . import open_for_reading
 
@@ -81,11 +81,11 @@ def build_dictionary(settings):
 	
 	for file in files:
 		logging.getLogger(__name__).info('Getting words from '+file)
-		if os.path.splitext(file)[1] == '.pdf':
+		if Path(file).suffix == '.pdf':
 			text = extract_text_from_pdf(file)
 			for word in re.findall(r'\w+', str(text), re.IGNORECASE):
 				words[word] = 1
-		elif os.path.splitext(file)[1] == '.txt':
+		elif Path(file).suffix == '.txt':
 			with open_for_reading(file) as f:
 				for word in re.findall(r'\w+', f.read(), re.IGNORECASE):
 					words[word] = 1

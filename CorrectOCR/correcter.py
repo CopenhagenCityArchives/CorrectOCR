@@ -1,18 +1,13 @@
 # coding=utf-8
 # c richter / ricca@seas.upenn.edu
-import glob
 import regex
-import sys
-import argparse
-import os
-import random
-import string
 import cmd
 import csv
 import logging
 from collections import defaultdict
+from pathlib import Path
 
-from . import open_for_reading, splitwindow
+from . import open_for_reading, splitwindow, ensure_new_file
 from .dictionary import Dictionary
 from .heuristics import Heuristics
 
@@ -284,9 +279,7 @@ def correct(settings):
 	# open file to write corrected output
 	# don't write over finished corrections
 	correctfilename = settings.correctfilename or (settings.correctedPath + 'c_' + settings.fileid + '.txt')
-	if os.path.isfile(correctfilename):
-		correctfilename = correctfilename[:-4] + '_' + ''.join([random.choice(string.ascii_letters + string.digits) for n in range(8)]) + '.txt'
-		log.info('Corrected file already exists! Renaming to avoid overwriting.')
+	correctfilename = ensure_new_file(correctfilename)
 	o = open(correctfilename, 'w', encoding='utf-8')
 
 	# get metadata, if any

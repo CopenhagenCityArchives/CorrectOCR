@@ -1,8 +1,8 @@
 import regex
 import logging
-import glob
 import csv
 
+from pathlib import Path
 from collections import OrderedDict
 
 from . import open_for_reading
@@ -356,7 +356,7 @@ def make_report(settings):
 	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)
 	heuristics = Heuristics(dictionary, settings.caseInsensitive, k=settings.k)
 	
-	for filename in glob.glob(settings.devDecodedPath + '/*.csv'):
+	for filename in Path(settings.devDecodedPath).glob('*.csv'):
 		log.info('Collecting stats from ' + filename)
 		with open_for_reading(filename) as f:
 			reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')

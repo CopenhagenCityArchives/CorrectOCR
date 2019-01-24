@@ -3,22 +3,21 @@ import json
 import regex
 import re
 import itertools
-import os
 import logging
+from pathlib import Path
 
 from . import open_for_reading
-
+from .dictionary import Dictionary
 
 class Decoder(object):
 
 	def __init__(self, hmm_path, dict_path=None, prev_decodings=None):
 		with open(hmm_path, 'r', encoding='utf-8') as f:
 			self.hmm = HMM(*json.load(f, encoding='utf-8'))
-		if dict_path is not None and os.path.exists(dict_path):
-			with open(dict_path, 'r', encoding='utf-8') as f:
-				self.word_dict = f.readlines()
+		if dict_path:
+			self.dictionary = Dictionary(dict_path)
 		else:
-			self.word_dict = []
+			self.word_dict = set()
 		if prev_decodings is None:
 			self.prev_decodings = dict()
 		else:
@@ -36,7 +35,7 @@ class Decoder(object):
 		# make substitutions and compare probabilties of decoder results.
 		for sub in multichars:
 			# Only perform the substitution if none of the k-best decodings are present in the dictionary
-			if sub in word and all(self.strip_punctuation(x[0]) not in self.word_dict for x in k_best):
+			if sub in word and all(self.strip_punctuation(x[0]) not in self.dictionary for x in k_best):
 				variant_words = self.multichar_variants(word, sub, multichars[sub])
 				for v in variant_words:
 					if v != word:
@@ -178,7 +177,7 @@ def corrected_words(alignments):
 	corrections = dict()
 	
 	for filename in alignments:
-		if not os.path.isfile(filename):
+		if not Path(filename).is_file():
 			continue
 		
 		log.info('Getting alignments from '+filename)
@@ -206,23 +205,15 @@ def corrected_words(alignments):
 def decode(settings):
 	# - - - Defaults - - -
 	# Settings
-	num_header_lines = 0
-	kn = 4
 	use_existing_decodings = True
-	
-	# Inputs
-	multichar_file = 'resources/multicharacter_errors.txt'
-	
-	# Output
-	dir_decodings = 'decoded/'
 	
 	log = logging.getLogger(__name__+'.decode')
 	
 	# Load previously done decodings if any
 	prev_decodings = dict()
 	if use_existing_decodings == True:
-		for filename in os.listdir(dir_decodings):
-			with open_for_reading(os.path.join(dir_decodings, filename)) as f:
+		for file in Path(settings.decodedPath).iterdir():
+			with open_for_reading(file) as f:
 				reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
 				for row in reader:
 					prev_decodings[row['Original']] = row
@@ -230,16 +221,16 @@ def decode(settings):
 	# Load the rest of the parameters and create the decoder
 	decoder = Decoder(settings.hmmParamsFile, settings.dictionaryFile, prev_decodings)
 
-	words = load_text(settings.input_file, num_header_lines)
+	words = load_text(settings.input_file, settings.nheaderlines)
 	
 	# Load multichar file if there is one
-	if multichar_file is not None and os.path.exists(multichar_file):
-		with open(multichar_file, 'r', encoding='utf-8') as f:
+	if Path(settings.multiCharacterErrorFile).is_file():
+		with open_for_reading(settings.multiCharacterErrorFile) as f:
 			multichars = json.load(f)
 	else:
 		multichars = {}
 	
-	basename = os.path.splitext(os.path.basename(settings.input_file))[0]
+	basename = Path(settings.input_file).stem
 	
 	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.']
 	
@@ -254,44 +245,36 @@ def decode(settings):
 			decoded_words.append({
 				'Gold': '_NEWLINE_N_',
 				'Original': '_NEWLINE_N_',
-				'1-best': '_NEWLINE_N_',
-				'1-best prob.': 1.0,
-				'2-best': '_NEWLINE_N_',
-				'2-best prob.': 0.0,
-				'3-best': '_NEWLINE_N_',
-				'3-best prob.': 0.0,
-				'4-best': '_NEWLINE_N_',
-				'4-best prob.': 0.0,
+				'1-best': '_NEWLINE_N_', '1-best prob.': 1.0,
+				'2-best': '_NEWLINE_N_', '2-best prob.': 0.0,
+				'3-best': '_NEWLINE_N_', '3-best prob.': 0.0,
+				'4-best': '_NEWLINE_N_', '4-best prob.': 0.0,
 			})
 		elif word == '\r':
 			decoded_words.append({
 				'Gold': '_NEWLINE_R_',
 				'Original': '_NEWLINE_R_',
-				'1-best': '_NEWLINE_R_',
-				'1-best prob.': 1.0,
-				'2-best': '_NEWLINE_R_',
-				'2-best prob.': 0.0,
-				'3-best': '_NEWLINE_R_',
-				'3-best prob.': 0.0,
-				'4-best': '_NEWLINE_R_',
-				'4-best prob.': 0.0,
+				'1-best': '_NEWLINE_R_', '1-best prob.': 1.0,
+				'2-best': '_NEWLINE_R_', '2-best prob.': 0.0,
+				'3-best': '_NEWLINE_R_', '3-best prob.': 0.0,
+				'4-best': '_NEWLINE_R_', '4-best prob.': 0.0,
 			})
 		else:
 			#log.debug('decoding '+word)
-			decoded = decoder.decode_word(word, kn, multichars)
+			decoded = decoder.decode_word(word, settings.k, multichars)
 			#log.debug(decoded)
 			if 'Original' not in decoded:
 				decoded['Original'] = word
 			decoded['Gold'] = corrections.get(decoded['Original'], decoded['Original'])
 			decoded_words.append(decoded)
 	
-	with open(os.path.join(dir_decodings, basename + '_decoded.csv'), 'w', encoding='utf-8') as f:
+	with open(Path(settings.decodedPath).joinpath(basename + '_decoded.csv'), 'w', encoding='utf-8') as f:
 		writer = csv.DictWriter(f, header, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='', extrasaction='ignore')
 		writer.writeheader()
 		writer.writerows(decoded_words)
 	
 	if len(corrections) > 0:
-		with open(os.path.join('train/devDecoded/', basename + '_devDecoded.csv'), 'w', encoding='utf-8') as f:
+		with open(Path(settings.devDecodedPath).joinpath(basename + '_devDecoded.csv'), 'w', encoding='utf-8') as f:
 			writer = csv.DictWriter(f, ['Gold']+header, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
 			writer.writeheader()
 			writer.writerows(decoded_words)

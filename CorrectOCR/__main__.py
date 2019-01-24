@@ -2,7 +2,6 @@
 
 import logging
 import sys
-import os
 import configparser
 import argparse
 
@@ -23,6 +22,7 @@ originalPath = original/
 correctionTrackingFile = resources/correction_tracking.txt
 dictionaryFile = resources/dictionary.txt
 memoizedCorrectionsFile = resources/memoized_corrections.txt
+multiCharacterErrorFile = resources/multicharacter_errors.json
 newWordsPath = resources/newwords/
 reportFile = resources/report.txt
 heuristicSettingsFile = resources/settings.txt
@@ -79,6 +79,8 @@ alignparser.set_defaults(func=model.build_model, **settings)
 decodeparser = subparsers.add_parser('decode', help='Decode')
 decodeparser.add_argument('input_file', help='text file to decode')
 decodeparser.add_argument('--dictionaryFile', help='Path to dictionary file')
+decodeparser.add_argument('-k', default=4, help='number of decoded candidates in input')
+decodeparser.add_argument('-l', '--nheaderlines', type=int, help='number of header lines in original corpus texts')
 decodeparser.set_defaults(func=decoder.decode, **settings)
 
 tunerparser = subparsers.add_parser('make_report', help='Make heuristics report')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import os
 import logging
+from pathlib import Path
 from bs4 import UnicodeDammit
 from collections import deque
 
@@ -24,6 +24,17 @@ def splitwindow(l, before=3, after=3):
 		a.append(l[i])
 
 
+def ensure_new_file(path):
+	counter = 0
+	originalname = path
+	while Path(path).is_file():
+		path = originalname[:-4] + '_' + str(counter) + '.txt'
+		counter += 1
+	if counter > 0:
+		logging.getLogger(__name__+'.ensure_new_file').info('File already exists, will instead write to ' + path)
+	return path
+	
+
 def clean(settings):
-	os.remove(settings.hmmParams)
+	Path(settings.hmmParams).unlink()
 	#TODO

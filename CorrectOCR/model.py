@@ -1,14 +1,15 @@
 import collections
 import json
-import os
 import logging
+
+from pathlib import Path
 
 from . import open_for_reading
 
 
 def align_pairs(settings):
 	for pair in settings.filepairs:
-		basename = os.path.splitext(os.path.basename(pair[0].name))[0]
+		basename = Path(pair[0].name).stem
 		align(settings, basename, pair[0].read(), pair[1].read())
 
 
@@ -247,10 +248,10 @@ def build_model(settings):
 	# Select the gold files which correspond to the misread count files.
 	gold_files = []
 	misread_files = []
-	for filename in os.listdir(settings.hmmTrainPath):
-		misread_files.append(os.path.join(settings.hmmTrainPath, filename))
-		# [:-10] is to remove '_misread_counts' from the filename
-		gold_files.append(os.path.join(settings.correctedPath, 'c_' + os.path.splitext(filename)[0][:-15] + '.txt'))
+	for file in Path(settings.hmmTrainPath).iterdir():
+		misread_files.append(file)
+		# [:-15] is to remove '_misread_counts' from the filename
+		gold_files.append(Path(settings.correctedPath).joinpath('c_' + file.stem[:-15] + '.txt'))
 
 	confusion = load_misread_counts(misread_files, remove_chars)
 	char_counts = text_char_counts(gold_files, remove_chars, settings.nheaderlines)
