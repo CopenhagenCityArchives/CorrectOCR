@@ -78,7 +78,7 @@ def load_misread_counts(file_list, remove=[]):
 	# what each character was read as.
 	confusion = collections.defaultdict(collections.Counter)
 	for filename in file_list:
-		with open(filename, 'r', encoding='utf-8') as f:
+		with open_for_reading(filename) as f:
 			counts = json.load(f, encoding='utf-8')
 			for i in counts:
 				confusion[i].update(counts[i])
