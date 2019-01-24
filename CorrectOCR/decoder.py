@@ -81,7 +81,7 @@ class HMM(object):
 		#self.logger.debug('self.init: ' + str(self.init))
 		#self.logger.debug('self.tran: ' + str(self.tran))
 		#self.logger.debug('self.emis: ' + str(self.emis))
-		#self.logger.debug('self.states: ' + str(self.states))
+		self.logger.debug('self.states: ' + str(self.states))
 		#self.symbols = emission[self.states[0]].keys() # Not used ?!
 	
 	def viterbi(self, char_seq):
@@ -112,17 +112,20 @@ class HMM(object):
 		return ''.join(selected_states)
 	
 	def k_best_beam(self, word, k):
+		#self.logger.debug('word: '+word)
 		# Single symbol input is just initial * emission.
 		if len(word) == 1:
-			#self.logger.debug('word: '+word)
 			paths = [(i, self.init[i] * self.emis[i][word[0]])
                             for i in self.states]
 			paths = sorted(paths, key=lambda x: x[1], reverse=True)
 		else:
 			# Create the N*N sequences for the first two characters
 			# of the word.
-			paths = [((i, j), (self.init[i] * self.emis[i][word[0]] * self.tran[i][j] * self.emis[j][word[1]]))
-                            for i in self.states for j in self.states]
+			try:
+				paths = [((i, j), (self.init[i] * self.emis[i][word[0]] * self.tran[i][j] * self.emis[j][word[1]]))
+								for i in self.states for j in self.states]
+			except KeyError as e:
+				self.log.error('[word: {}] Model is missing character: {} ({})'.format(word, character, character.encode('utf-8')))
 			
 			# Keep the k best sequences.
 			paths = sorted(paths, key=lambda x: x[1], reverse=True)[:k]
@@ -224,7 +227,7 @@ def decode(settings):
 	words = load_text(settings.input_file, settings.nheaderlines)
 	
 	# Load multichar file if there is one
-	if Path(settings.multiCharacterErrorFile.name).is_file():
+	if settings.multiCharacterErrorFile.is_file():
 		with open_for_reading(settings.multiCharacterErrorFile) as f:
 			multichars = json.load(f)
 	else:
