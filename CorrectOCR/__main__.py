@@ -17,21 +17,21 @@ defaults = """
 [settings]
 characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 nheaderlines = 0
+correctedPath = corrected/
+decodedPath = decoded/
+originalPath = original/
+correctionTrackingFile = resources/correction_tracking.txt
+dictionaryFile = resources/dictionary.txt
+memoizedCorrectionsFile = resources/memoized_corrections.txt
+newWordsPath = resources/newwords/
+reportFile = resources/report.txt
+heuristicSettingsFile = resources/settings.txt
+devDecodedPath = train/devDecoded/
+hmmParamsFile = train/hmm_parameters.json
+hmmTrainPath = train/HMMtrain/
 fullAlignmentsPath = train/parallelAligned/fullAlignments/
 misreadCountsPath = train/parallelAligned/misreadCounts/
 misreadsPath = train/parallelAligned/misreads/
-hmmParamsFile = train/hmm_parameters.json
-hmmTrainPath = train/HMMtrain/
-decodedPath = ./decoded/
-devDecodedPath = ./train/devDecoded/
-originalPath = ./original/
-dictionaryFile = ./resources/dictionary.txt
-correctedPath = ./corrected/
-newWordsPath = ./resources/newwords/
-reportFile = ./resources/report.txt
-heuristicSettingsFile = ./resources/settings.txt
-memoizedCorrectionsFile =  ./resources/memoized_corrections.txt
-correctionTrackingFile = ./resources/correction_tracking.txt
 """
 
 logging.basicConfig(
