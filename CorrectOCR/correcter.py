@@ -84,7 +84,7 @@ class Correcter(object):
 		
 		# this should not happen in well-formed input
 		if len(l['Original']) == 0:
-			return ('error', 'Input is malformed! Original is 0-length: '+l)
+			return ('error', 'Input is malformed! Original is 0-length: {}'.format(l))
 		
 		# catch linebreaks
 		if (l['Original'] == u'_NEWLINE_N_') or (l['Original'] == u'_NEWLINE_R_'):
@@ -95,8 +95,7 @@ class Correcter(object):
 			return ('memo', memodict[l['Original']])
 		
 		# k best candidate words
-		kbws = [self.punctuation.sub('', l['{}-best'.format(n+1)]) for n in range(0, self.k)]
-		filtws = [kww for kww in kbws if kww in self.dictionary]
+		kbws = [self.punctuation.sub('', l['{}-best'.format(n)]) for n in range(1, self.k+1)]
 		filtids = [nn for nn, kww in enumerate(kbws) if kww in self.dictionary]
 		
 		(bin, decision) = self.heuristics.evaluate(l)
@@ -112,7 +111,7 @@ class Correcter(object):
 		elif decision == 'a':
 			return ('annotator', filtids)
 		else:
-			return ('error', 'Unknown decision returned from heuristics: ' + decision)
+			return ('error', 'Unknown decision returned from heuristics: {}'.format(decision))
 
 
 class CorrectionShell(cmd.Cmd):
@@ -128,13 +127,13 @@ class CorrectionShell(cmd.Cmd):
 		sh.humanCount = 0
 		sh.tokenTotal = len(tokens)
 		sh.newdictwords = []
-		sh.trackdict = defaultdict(int)
+		sh.tracking = defaultdict(int)
 		sh.log = logging.getLogger(__name__+'.CorrectionShell')
 		sh.punctuation = regex.compile(r'\p{posix_punct}+')
 
 		sh.cmdloop(intro)
 
-		return tokens, sh.humanCount, sh.newdictwords, sh.trackdict
+		return tokens, sh.humanCount, sh.tracking
 	
 	def preloop(self):
 		return self.nexttoken()
@@ -172,11 +171,11 @@ class CorrectionShell(cmd.Cmd):
 	
 	def select(self, word):
 		self.token['Gold'] = word
-		cleanword = self.punctuation.sub('', word.lower())
+		cleanword = self.punctuation.sub('', word)
 		if cleanword not in self.dictionary:
 			self.newdictwords.append(cleanword) # add to suggestions for dictionary review
-		self.dictionary.add(word)
-		self.trackdict[(self.token['Original'], word)] += 1
+		self.dictionary.add(cleanword)
+		self.tracking[(self.token['Original'], cleanword)] += 1
 	
 	def emptyline(self):
 		if self.lastcmd == 'original':
@@ -267,9 +266,9 @@ def correct(settings):
 	# read corrections learning file
 	with Path(settings.correctionTrackingFile.name) as p:
 		if p.is_file() and p.stat().st_size > 0:
-			trackdict = json.load(settings.correctionTrackingFile)
+			tracking = json.load(settings.correctionTrackingFile)
 		else:
-			trackdict = defaultdict(int)
+			tracking = defaultdict(int)
 
 	# -----------------------------------------------------------
 	# // -------------------------------------------- //
@@ -308,13 +307,10 @@ def correct(settings):
 	log.info(' file ' + settings.fileid + '  contains about ' + str(len(dec)) + ' words')
 	for l in metadata:
 		log.info(l)
+	
+	(tokenlist, humanCount, newstats) = CorrectionShell.start(dec, correcter, settings.k)
 
-	# track count of tokens seen by human
-	huct = 0
-
-	(tokenlist, humanCount, newdictwords, trackdict) = CorrectionShell.start(dec, correcter, settings.k)
-
-	log.debug(tokenlist)
+	#log.debug(tokenlist)
 	log.debug(newdictwords)
 
 	# optionally clean up hyphenation in completed tokenlist
@@ -322,7 +318,7 @@ def correct(settings):
 		tokenlist = [dehyph(tk) for tk in tokenlist]
 
 	# make print-ready text
-	spaced = u' '.join([token.get('Gold', '') for token in tokenlist])
+	spaced = u' '.join([token.get('Gold', token['Original']) for token in tokenlist])
 	despaced = spaced.replace(u' \n ', u'\n')
 
 	# write corrected output
@@ -332,12 +328,11 @@ def correct(settings):
 	json.dump(memos, open(settings.memoizedCorrectionsFile.name, 'w'))
 
 	# output potential new words to review for dictionary addition
-	with open(settings.newWordsPath, 'w', encoding='utf-8') as f:
-		f.write(u'ANNOTATOR JUDGEMENT ' + str(huct) + ' TOKENS OF ABOUT ' + str(len(dec)) + ' IN FILE.\n')
+	with open(settings.newWordsPath.joinpath(settings.fileid + '.txt'), 'w', encoding='utf-8') as f:
+		f.write(u'ANNOTATOR JUDGEMENT ' + str(humanCount) + ' TOKENS OF ABOUT ' + str(len(dec)) + ' IN FILE.\n')
 		f.write('\n'.join(newdictwords))
 
 	# update tracking of annotator's actions
-	newstats = sorted(trackdict, key=trackdict.__getitem__, reverse=True)
 	with open(settings.correctionTrackingFile.name, 'w', encoding='utf-8') as f:
-		for ent in newstats:
-			f.write(ent + u'\t' + str(trackdict[ent]) + u'\n')
+		for (original, gold), count in sorted(newstats.items(), key=lambda x: x[1], reverse=True):
+			f.write('{}\t{}\t{}\n'.format(original, gold, count))
