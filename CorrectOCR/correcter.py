@@ -7,6 +7,7 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 
+from . import decoder
 from . import open_for_reading, splitwindow, ensure_new_file
 from .dictionary import Dictionary
 from .heuristics import Heuristics
@@ -246,6 +247,11 @@ def correct(settings):
 	log.info('Correcting ' + settings.fileid + ' ')
 	origfilename = settings.originalPath + settings.fileid + '.txt'
 	decodefilename = settings.decodedPath + settings.fileid + '_decoded.csv'
+	
+	if not Path(decodefilename).is_file():
+		log.info('Going to decode the corrected file first')
+		settings.input_file = origfilename
+		decoder.decode(settings)
 	
 	# - - - set up files - - -
 	
