@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+import argparse
 from pathlib import Path
 from bs4 import UnicodeDammit
 from collections import deque
@@ -15,6 +16,15 @@ def get_encoding(file):
 
 def open_for_reading(file):
 	return open(file, 'r', encoding=get_encoding(file))
+
+
+class FileType(argparse.FileType):
+	def __call__(self, string):
+		if self._mode == 'r' and string != '-':
+			self._encoding = get_encoding(string)
+			return super().__call__(string)
+		else:
+			return super().__call__(string)
 
 
 def splitwindow(l, before=3, after=3):
@@ -44,8 +54,3 @@ def ensure_new_file(path):
 	if counter > 0:
 		logging.getLogger(__name__+'.ensure_new_file').info('File already exists, will instead use {}'.format(path))
 	return path
-	
-
-def clean(settings):
-	Path(settings.hmmParams).unlink()
-	#TODO
