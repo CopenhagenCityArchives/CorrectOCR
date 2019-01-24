@@ -5,7 +5,7 @@ import sys
 import configparser
 import argparse
 
-from . import get_encoding, clean
+from . import get_encoding, ensure_directories, clean
 from . import dictionary
 from . import model
 from . import decoder
@@ -116,6 +116,8 @@ cleanparser = subparsers.add_parser('clean', help='Clean files')
 cleanparser.set_defaults(func=clean, **settings)
 
 args = mainparser.parse_args()
+
+ensure_directories(args)
 
 log.info('Settings for this invocation: ' + str(vars(args)))
 args.func(args)

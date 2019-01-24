@@ -24,6 +24,17 @@ def splitwindow(l, before=3, after=3):
 		a.append(l[i])
 
 
+def ensure_directories(settings):
+	for k, v in vars(settings).items():
+		if k[-4:] == 'Path':
+			p = Path(v)
+			if not p.exists():
+				p.mkdir()
+			elif not p.is_dir():
+				print('Error: {} is set to {}, however this is not a directory!'.format(k, v))
+				raise SystemExit(-1)
+
+
 def ensure_new_file(path):
 	counter = 0
 	originalname = path
