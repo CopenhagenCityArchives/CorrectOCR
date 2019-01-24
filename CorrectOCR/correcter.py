@@ -278,7 +278,7 @@ def correct(settings):
 
 	# open file to write corrected output
 	# don't write over finished corrections
-	correctfilename = settings.correctfilename or (settings.correctedPath + 'c_' + settings.fileid + '.txt')
+	correctfilename = settings.correctfilename or (settings.correctedPath + settings.fileid + '.txt')
 	correctfilename = ensure_new_file(correctfilename)
 	o = open(correctfilename, 'w', encoding='utf-8')
 
