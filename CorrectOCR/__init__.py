@@ -37,12 +37,12 @@ def ensure_directories(settings):
 
 def ensure_new_file(path):
 	counter = 0
-	originalname = path
+	originalpath = path
 	while Path(path).is_file():
-		path = originalname[:-4] + '_' + str(counter) + '.txt'
+		path = Path(path.parent, originalpath.stem + '_' + str(counter) + '.txt')
 		counter += 1
 	if counter > 0:
-		logging.getLogger(__name__+'.ensure_new_file').info('File already exists, will instead write to ' + path)
+		logging.getLogger(__name__+'.ensure_new_file').info('File already exists, will instead use {}'.format(path))
 	return path
 	
 

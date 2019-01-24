@@ -48,16 +48,16 @@ def align(settings, basename, a, b, words=False):
 	#	if char in reads and len(reads) == 1: # remove characters that were read 100% correctly
 	#		del misreadCounts[char]
 	
-	with open(settings.fullAlignmentsPath + basename + '_full_alignments.json', 'w', encoding='utf-8') as f:
+	with open(settings.fullAlignmentsPath.joinpath(basename + '_full_alignments.json'), 'w', encoding='utf-8') as f:
 		json.dump(fullAlignments, f)
 		f.close()
 	
-	with open(settings.misreadCountsPath + basename + '_misread_counts.json', 'w', encoding='utf-8') as f:
+	with open(settings.misreadCountsPath.joinpath(basename + '_misread_counts.json'), 'w', encoding='utf-8') as f:
 		json.dump(misreadCounts, f)
 		log.debug(misreadCounts)
 		f.close()
 	
-	with open(settings.misreadsPath + basename + '_misreads.json', 'w', encoding='utf-8') as f:
+	with open(settings.misreadsPath.joinpath(basename + '_misreads.json'), 'w', encoding='utf-8') as f:
 		json.dump(misreads, f)
 		f.close()
 
@@ -248,10 +248,10 @@ def build_model(settings):
 	# Select the gold files which correspond to the misread count files.
 	gold_files = []
 	misread_files = []
-	for file in Path(settings.hmmTrainPath).iterdir():
+	for file in settings.hmmTrainPath.iterdir():
 		misread_files.append(file)
 		# [:-15] is to remove '_misread_counts' from the filename
-		gold_files.append(Path(settings.correctedPath).joinpath('c_' + file.stem[:-15] + '.txt'))
+		gold_files.append(settings.correctedPath.joinpath(file.stem[:-15] + '.txt'))
 
 	confusion = load_misread_counts(misread_files, remove_chars)
 	char_counts = text_char_counts(gold_files, remove_chars, settings.nheaderlines)

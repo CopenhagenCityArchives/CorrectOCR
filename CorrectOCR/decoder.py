@@ -212,7 +212,7 @@ def decode(settings):
 	# Load previously done decodings if any
 	prev_decodings = dict()
 	if use_existing_decodings == True:
-		for file in Path(settings.decodedPath).iterdir():
+		for file in settings.decodedPath.iterdir():
 			with open_for_reading(file) as f:
 				reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
 				for row in reader:
@@ -224,7 +224,7 @@ def decode(settings):
 	words = load_text(settings.input_file, settings.nheaderlines)
 	
 	# Load multichar file if there is one
-	if Path(settings.multiCharacterErrorFile).is_file():
+	if Path(settings.multiCharacterErrorFile.name).is_file():
 		with open_for_reading(settings.multiCharacterErrorFile) as f:
 			multichars = json.load(f)
 	else:
@@ -234,7 +234,7 @@ def decode(settings):
 	
 	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.']
 	
-	corrections = corrected_words([settings.fullAlignmentsPath + basename + '_full_alignments.json'])
+	corrections = corrected_words([settings.fullAlignmentsPath.joinpath(basename + '_full_alignments.json')])
 	
 	decoded_words = []
 	

@@ -246,10 +246,10 @@ def correct(settings):
 	# - - - parse inputs - - -
 	
 	log.info('Correcting ' + settings.fileid + ' ')
-	origfilename = settings.originalPath + settings.fileid + '.txt'
-	decodefilename = settings.decodedPath + settings.fileid + '_decoded.csv'
+	origfilename = settings.originalPath.joinpath(settings.fileid + '.txt')
+	decodefilename = settings.decodedPath.joinpath(settings.fileid + '_decoded.csv')
 	
-	if not Path(decodefilename).is_file():
+	if not decodefilename.is_file():
 		log.info('Going to decode the corrected file first')
 		settings.input_file = origfilename
 		decoder.decode(settings)
@@ -278,8 +278,7 @@ def correct(settings):
 
 	# open file to write corrected output
 	# don't write over finished corrections
-	correctfilename = settings.correctfilename or (settings.correctedPath + settings.fileid + '.txt')
-	correctfilename = ensure_new_file(correctfilename)
+	correctfilename = ensure_new_file(settings.correctedPath.joinpath(settings.fileid + '.txt'))
 	o = open(correctfilename, 'w', encoding='utf-8')
 
 	# get metadata, if any
@@ -294,7 +293,7 @@ def correct(settings):
 		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
 
 	# get decodings to use for correction
-	log.info('Opening decoded file: '+decodefilename)
+	log.info('Opening decoded file: {}'.format(decodefilename))
 	with open_for_reading(decodefilename) as f:
 		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
 	

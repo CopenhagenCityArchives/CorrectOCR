@@ -2,7 +2,6 @@ import regex
 import logging
 import csv
 
-from pathlib import Path
 from collections import OrderedDict
 
 from . import open_for_reading
@@ -356,9 +355,9 @@ def make_report(settings):
 	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)
 	heuristics = Heuristics(dictionary, settings.caseInsensitive, k=settings.k)
 	
-	for filename in Path(settings.devDecodedPath).glob('*.csv'):
-		log.info('Collecting stats from ' + filename)
-		with open_for_reading(filename) as f:
+	for file in settings.devDecodedPath.glob('*.csv'):
+		log.info('Collecting stats from {}'.format(file))
+		with open_for_reading(file) as f:
 			reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
 			for row in reader:
 				heuristics.add_to_report(row)
@@ -369,7 +368,7 @@ def make_report(settings):
 
 def make_settings(settings):
 	# read report
-	bins = [ln for ln in settings.reportPath.readlines() if "BIN" in ln]
+	bins = [ln for ln in settings.reportFile.readlines() if "BIN" in ln]
 	
 	# write settings
 	with open(settings.outfile, 'w', encoding='utf-8') as outf:

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import datrie
 import re
 import textract
 import logging
@@ -13,15 +12,16 @@ class Dictionary(object):
 	def __init__(self, file, caseInsensitive=False):
 		self.caseInsensitive = caseInsensitive
 		self.words = set()
-		self.path = file
+		self.file = file
 		self.log = logging.getLogger(__name__+'.Dictionary')
-		self.log.info('Loading dictionary from ' + self.path)
-		with open_for_reading(self.path) as f:
-			for line in f.readlines():
+		if Path(self.file.name).exists():
+			self.log.info('Loading dictionary from {}'.format(self.file.name))
+			for line in self.file.readlines():
 				if self.caseInsensitive:
 					self.words.add(line.strip().lower())
 				else:
 					self.words.add(line.strip())
+		self.log.info('{} words in dictionary'.format(len(self.words)))
 	
 	def __contains__(self, word):
 		if self.caseInsensitive:
@@ -34,8 +34,10 @@ class Dictionary(object):
 		self.words.add(word)
 	
 	def save(self):
-		with open(self.path, 'w', encoding='utf-8') as f:
-			f.writelines(sorted(self.words, key=str.lower))
+		self.log.info('Saving dictionary to {}'.format(self.file.name))
+		with open(self.file.name, 'w', encoding='utf-8') as f:
+			for word in sorted(self.words, key=str.lower):
+				f.write(word + '\n')
 	
 	def set(self):
 		return self.words
@@ -76,22 +78,21 @@ def extract_text_from_pdf(pdf_path):
 
 
 def build_dictionary(settings):
-	(charset, output, files) = (re.sub(r'\W+', r'', settings.characterSet), settings.output, settings.files) # TODO option to add to existing dictionary?
-	words = datrie.BaseTrie(charset)
+	charset = re.sub(r'\W+', r'', settings.characterSet)
 	
-	for file in files:
-		logging.getLogger(__name__).info('Getting words from '+file)
-		if Path(file).suffix == '.pdf':
+	newdict = Dictionary(settings.dictionaryFile)
+	
+	for file in settings.files:
+		logging.getLogger(__name__).info('Getting words from {}'.format(file))
+		if file.suffix == '.pdf':
 			text = extract_text_from_pdf(file)
 			for word in re.findall(r'\w+', str(text), re.IGNORECASE):
-				words[word] = 1
-		elif Path(file).suffix == '.txt':
+				newdict.add(word)
+		elif file.suffix == '.txt':
 			with open_for_reading(file) as f:
 				for word in re.findall(r'\w+', f.read(), re.IGNORECASE):
-					words[word] = 1
+					newdict.add(word)
 		else:
-			logging.getLogger(__name__).error('Unrecognized filetype: %s' % file)
+			logging.getLogger(__name__).error('Unrecognized filetype:{}'.format(file))
 	
-	for word in sorted(words.keys(), key=str.lower):
-		output.write(word + '\n')
-	output.close()
+	newdict.save()
