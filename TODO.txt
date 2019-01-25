@@ -1,0 +1,24 @@
+general:
+	strip/replace character method so model doesnt have to be updated constantly
+	log config
+	unified Path/FileType -- rename from FileType
+	argparse help descriptions
+	readme
+	clean generated files for fileid
+
+dictionary:
+	--save flag?
+
+all:
+	init from fileid & return generated/memoized alignments/decodings/etc
+
+CorrectionShell:
+	redirect log during cmdloop()
+	currently !-prefix is required for selecting user input, is this desirable?
+	docstrings
+	get tokens from hocr also
+	sort out memo/track/newwords
+	proper split into (punct, word, punct) tuple instead of stripping punctuation so it can be put back after dictionary lookup
+
+decoder:
+	better name (tokenize?)
