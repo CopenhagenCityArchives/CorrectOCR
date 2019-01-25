@@ -179,6 +179,7 @@ class CorrectionShell(cmd.Cmd):
 				self.tracking['newWords'].append(cleanword) # add to suggestions for dictionary review
 			self.dictionary.add(cleanword) # add to current dictionary for subsequent heuristic decisions
 			self.tracking['correctionTracking'][(self.punctuation.sub('', self.token['Original']), cleanword)] += 1
+		return self.nexttoken()
 	
 	def emptyline(self):
 		if self.lastcmd == 'original':
@@ -189,14 +190,12 @@ class CorrectionShell(cmd.Cmd):
 	def do_original(self, arg):
 		"""Choose original"""
 		print('Selecting original: '+self.token['Original'])
-		self.select(self.token['Original'])
-		return self.nexttoken()
+		return self.select(self.token['Original'])
 	
 	def do_shell(self, arg):
 		"""Custom input to replace token"""
 		print('Selecting user input: '+arg)
-		self.select(arg)
-		return self.nexttoken()
+		return self.select(arg)
 	
 	def do_kbest(self, arg):
 		"""Choose k-best"""
@@ -206,26 +205,22 @@ class CorrectionShell(cmd.Cmd):
 			k = 1
 		kbest = self.token['{}-best'.format(k)]
 		print('Selecting {}-best: {}'.format(k, kbest))
-		self.select(kbest)
-		return self.nexttoken()
+		return self.select(kbest)
 	
 	def do_kdict(self, arg):
 		kbest = self.token['{}-best'.format(arg)]
 		print('Selecting k-best from dict: '+kbest)
-		self.select(kbest)
-		return self.nexttoken()
+		return self.select(kbest)
 	
 	def do_memo(self, arg):
 		print('Selecting memoized correction: '+arg)
-		self.select(arg)
-		return self.nexttoken()
+		return self.select(arg)
 	
 	def do_error(self, arg):
 		self.log.error('ERROR: {} {}'.format(arg, str(self.token)))
 	
 	def do_linefeed(self, arg):
-		self.select('\n', save=False)
-		return self.nexttoken()
+		return self.select('\n', save=False)
 	
 	def do_defer(self, arg):
 		print('Deferring decision...')
