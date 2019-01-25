@@ -5,7 +5,7 @@ import textract
 import logging
 from pathlib import Path
 
-from . import open_for_reading
+from . import open_for_reading, ensure_new_file
 
 
 class Dictionary(object):
@@ -34,8 +34,11 @@ class Dictionary(object):
 		self.words.add(word)
 	
 	def save(self):
-		self.log.info('Saving dictionary to {}'.format(self.file.name))
-		with open(self.file.name, 'w', encoding='utf-8') as f:
+		name = self.file.name
+		newname = ensure_new_file(Path(self.file.name))
+		self.log.info('Backed up original dictionary file to {}'.format(newname))
+		self.log.info('Saving dictionary (words: {}) to {}'.format(len(self.words), name))
+		with open(name, 'w', encoding='utf-8') as f:
 			for word in sorted(self.words, key=str.lower):
 				f.write(word + '\n')
 	
@@ -94,5 +97,6 @@ def build_dictionary(settings):
 					newdict.add(word)
 		else:
 			logging.getLogger(__name__).error('Unrecognized filetype:{}'.format(file))
+		logging.getLogger(__name__).info('Wordcount {}'.format(len(newdict.set())))
 	
 	newdict.save()
