@@ -18,8 +18,15 @@ def open_for_reading(file):
 	return open(file, 'r', encoding=get_encoding(file))
 
 
-class FileType(argparse.FileType):
+class PathType(argparse.FileType):
 	def __call__(self, string):
+		if self._mode == 'd':
+			return Path(string)
+		if self._mode == 'rc':
+			p = Path(string)
+			if not p.is_file():
+				p.touch()
+			self._mode = 'r'
 		if self._mode == 'r' and string != '-':
 			self._encoding = get_encoding(string)
 			return super().__call__(string)
