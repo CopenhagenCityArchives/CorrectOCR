@@ -22,6 +22,7 @@ class Decoder(object):
 			self.prev_decodings = dict()
 		else:
 			self.prev_decodings = prev_decodings
+		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
 	def decode_word(self, word, k, multichars={}):
 		if len(word) == 0:
@@ -35,7 +36,7 @@ class Decoder(object):
 		# make substitutions and compare probabilties of decoder results.
 		for sub in multichars:
 			# Only perform the substitution if none of the k-best decodings are present in the dictionary
-			if sub in word and all(self.strip_punctuation(x[0]) not in self.dictionary for x in k_best):
+			if sub in word and all(self.punctuation.sub('', x[0]) not in self.dictionary for x in k_best):
 				variant_words = self.multichar_variants(word, sub, multichars[sub])
 				for v in variant_words:
 					if v != word:
@@ -63,10 +64,6 @@ class Decoder(object):
 				pieces, x, fillvalue='') for elem in pair]))
 			
 		return variant_words
-	
-	def strip_punctuation(self, word):
-		# Everything from string.punctuation
-		return regex.sub('\p{punct}+', '', word)
 
 
 class HMM(object):
