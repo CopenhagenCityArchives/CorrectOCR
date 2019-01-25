@@ -5,6 +5,7 @@ import cmd
 import json
 import csv
 import logging
+import readline
 from collections import defaultdict
 from pathlib import Path
 
@@ -20,6 +21,7 @@ For example:
 > export LANG=is_IS.UTF-8
 > export LC_ALL=is_IS.UTF-8
 > locale
+> export PYTHONIOENCODING=utf8
 '''
 
 
@@ -132,7 +134,8 @@ class CorrectionShell(cmd.Cmd):
 		}
 		sh.log = logging.getLogger(__name__+'.CorrectionShell')
 		sh.punctuation = regex.compile(r'\p{posix_punct}+')
-
+		sh.use_rawinput = True
+		
 		sh.cmdloop(intro)
 
 		return tokens, sh.tracking
@@ -143,10 +146,10 @@ class CorrectionShell(cmd.Cmd):
 	def nexttoken(self):
 		try:
 			ctxr, self.token, ctxl = next(self.tokenwindow)
-			(decision, var) = self.correcter.evaluate(self.token)
+			(self.decision, self.var) = self.correcter.evaluate(self.token)
 			
 			self.tracking['tokenCount'] += 1
-			if decision == 'annotator':
+			if self.decision == 'annotator':
 				self.tracking['humanCount'] +=1 # increment human-effort count
 				
 				print('\n\n{} \033[1;7m{}\033[0m {}\n'.format(
@@ -160,16 +163,15 @@ class CorrectionShell(cmd.Cmd):
 						kn,
 						self.token['{}-best'.format(kn)],
 						self.token['{}-best prob.'.format(kn)],
-						' * is in dictionary' if kn in var else ''
+						' * is in dictionary' if kn in self.var else ''
 					))
 				
-				self.prompt = 'CorrectOCR {}({})/{} > '.format(self.tracking['tokenCount'], self.tracking['humanCount'], self.tracking['tokenTotal'])
-				
-				return False # continue
+				self.prompt = 'CorrectOCR {}/{} ({}) > '.format(self.tracking['tokenCount'], self.tracking['tokenTotal'], self.tracking['humanCount'])
 			else:
-				return self.onecmd('{} {}'.format(decision, var))
+				self.cmdqueue.insert(0, '{} {}'.format(self.decision, self.var))
 		except StopIteration:
-			return True # shouldStop
+			print('Reached end of tokens, going to quit...')
+			return self.onecmd('quit')
 	
 	def select(self, word, save=True):
 		self.token['Gold'] = word
@@ -239,6 +241,8 @@ class CorrectionShell(cmd.Cmd):
 			return self.onecmd('kbest '+line)
 		elif line == 'q':
 			return self.onecmd('quit')
+		elif line == 'p':
+			print(self.decision, self.var, self.token) # for debugging
 		else:
 			return super().default(line)
 
@@ -276,7 +280,7 @@ def correct(settings):
 		if p.is_file() and p.stat().st_size > 0:
 			with open_for_reading(p) as f:
 				for key, count in json.load(f).items():
-					(original, gold) = key.split()
+					(original, gold) = key.split('\t')
 					correctionTracking[(original, gold)] = int(count)
 				correctionTracking.update()
 	
