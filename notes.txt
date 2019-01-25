@@ -1,3 +1,0 @@
-workflow:
-
-tesseract > output hocr > correctocr > hocr-pdf
