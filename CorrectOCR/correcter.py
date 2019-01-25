@@ -227,6 +227,11 @@ class CorrectionShell(cmd.Cmd):
 		self.select('\n', save=False)
 		return self.nexttoken()
 	
+	def do_defer(self, arg):
+		print('Deferring decision...')
+		# do nothing; defer decision until next invocation...
+		return self.nexttoken()
+	
 	def do_quit(self, arg):
 		return True
 	
@@ -332,7 +337,7 @@ def correct(settings):
 
 	# make print-ready text
 	spaced = u' '.join([token.get('Gold', token['Original']) for token in tokenlist])
-	despaced = spaced.replace(u' \n ', u'\n')
+	despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
 	# write corrected output
 	o.write(despaced)
