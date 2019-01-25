@@ -16,7 +16,6 @@ CorrectionShell:
 	currently !-prefix is required for selecting user input, is this desirable?
 	docstrings
 	get tokens from hocr also
-	sort out memo/track/newwords
 	proper split into (punct, word, punct) tuple instead of stripping punctuation so it can be put back after dictionary lookup
 
 decoder:

@@ -80,7 +80,7 @@ class Correcter(object):
 		return [lin for lin in ls if lin != u'BLANK']
 	
 	def evaluate(self, l):
-		self.log.debug(l)
+		#self.log.debug(l)
 		
 		# this should not happen in well-formed input
 		if len(l['Original']) == 0:
@@ -91,8 +91,8 @@ class Correcter(object):
 			return ('linefeed', None)
 		
 		# catch memorised corrections
-		if (l['Original'] in self.memos):
-			return ('memo', memodict[l['Original']])
+		if self.punctuation.sub('', l['Original']) in self.memos:
+			return ('memo', self.punctuation.sub('', self.memos[self.punctuation.sub('', l['Original'])]))
 		
 		# k best candidate words
 		kbws = [self.punctuation.sub('', l['{}-best'.format(n)]) for n in range(1, self.k+1)]
@@ -117,23 +117,25 @@ class Correcter(object):
 class CorrectionShell(cmd.Cmd):
 	prompt = 'CorrectOCR> '
 	
-	def start(tokens, correcter, k=4, intro=None):
+	def start(tokens, correcter, correctionTracking=defaultdict(int), intro=None):
 		sh = CorrectionShell()
 		sh.tokenwindow = splitwindow(tokens, before=7, after=7)
 		sh.correcter = correcter
 		sh.dictionary = sh.correcter.dictionary
-		sh.k = k
-		sh.tokenCount = 0
-		sh.humanCount = 0
-		sh.tokenTotal = len(tokens)
-		sh.newdictwords = []
-		sh.tracking = defaultdict(int)
+		sh.k = sh.correcter.k
+		sh.tracking = {
+			'tokenCount': 0,
+			'humanCount': 0,
+			'tokenTotal': len(tokens),
+			'newWords': [],
+			'correctionTracking': correctionTracking,
+		}
 		sh.log = logging.getLogger(__name__+'.CorrectionShell')
 		sh.punctuation = regex.compile(r'\p{posix_punct}+')
 
 		sh.cmdloop(intro)
 
-		return tokens, sh.humanCount, sh.tracking
+		return tokens, sh.tracking
 	
 	def preloop(self):
 		return self.nexttoken()
@@ -143,12 +145,12 @@ class CorrectionShell(cmd.Cmd):
 			ctxr, self.token, ctxl = next(self.tokenwindow)
 			(decision, var) = self.correcter.evaluate(self.token)
 			
-			self.tokenCount += 1
+			self.tracking['tokenCount'] += 1
 			if decision == 'annotator':
-				self.humanCount +=1 # increment human-effort count
+				self.tracking['humanCount'] +=1 # increment human-effort count
 				
 				print('\n\n{} \033[1;7m{}\033[0m {}\n'.format(
-					' '.join([c['Original'] for c in ctxr]),
+					' '.join([c.get('Gold', 'Original') for c in ctxr]),
 					self.token['Original'],
 					' '.join([c['Original'] for c in ctxl])
 				))
@@ -161,7 +163,7 @@ class CorrectionShell(cmd.Cmd):
 						' * is in dictionary' if kn in var else ''
 					))
 				
-				self.prompt = 'CorrectOCR {}({})/{} > '.format(self.tokenCount, self.humanCount, self.tokenTotal)
+				self.prompt = 'CorrectOCR {}({})/{} > '.format(self.tracking['tokenCount'], self.tracking['humanCount'], self.tracking['tokenTotal'])
 				
 				return False # continue
 			else:
@@ -169,13 +171,14 @@ class CorrectionShell(cmd.Cmd):
 		except StopIteration:
 			return True # shouldStop
 	
-	def select(self, word):
+	def select(self, word, save=True):
 		self.token['Gold'] = word
-		cleanword = self.punctuation.sub('', word)
-		if cleanword not in self.dictionary:
-			self.newdictwords.append(cleanword) # add to suggestions for dictionary review
-		self.dictionary.add(cleanword)
-		self.tracking[(self.token['Original'], cleanword)] += 1
+		if save:
+			cleanword = self.punctuation.sub('', word)
+			if cleanword not in self.dictionary:
+				self.tracking['newWords'].append(cleanword) # add to suggestions for dictionary review
+			self.dictionary.add(cleanword) # add to current dictionary for subsequent heuristic decisions
+			self.tracking['correctionTracking'][(self.punctuation.sub('', self.token['Original']), cleanword)] += 1
 	
 	def emptyline(self):
 		if self.lastcmd == 'original':
@@ -214,14 +217,14 @@ class CorrectionShell(cmd.Cmd):
 	
 	def do_memo(self, arg):
 		print('Selecting memoized correction: '+arg)
-		self.select(kbest)
+		self.select(arg)
 		return self.nexttoken()
 	
 	def do_error(self, arg):
 		self.log.error('ERROR: {} {}'.format(arg, str(self.token)))
 	
 	def do_linefeed(self, arg):
-		self.select('\n')
+		self.select('\n', save=False)
 		return self.nexttoken()
 	
 	def do_quit(self, arg):
@@ -230,8 +233,12 @@ class CorrectionShell(cmd.Cmd):
 	def default(self, line):
 		if line == 'o':
 			return self.onecmd('original')
+		elif line == 'k':
+			return self.onecmd('kbest 1')
 		elif line.isnumeric():
 			return self.onecmd('kbest '+line)
+		elif line == 'q':
+			return self.onecmd('quit')
 		else:
 			return super().default(line)
 
@@ -249,7 +256,7 @@ def correct(settings):
 	decodefilename = settings.decodedPath.joinpath(settings.fileid + '_decoded.csv')
 	
 	if not decodefilename.is_file():
-		log.info('Going to decode the corrected file first')
+		log.info('{} doesn''t exist. Going to decode the corrected file first'.format(decodefilename))
 		settings.input_file = origfilename
 		decoder.decode(settings)
 	
@@ -264,12 +271,17 @@ def correct(settings):
 			memos = {}
 	
 	# read corrections learning file
+	correctionTracking = defaultdict(int)
 	with Path(settings.correctionTrackingFile.name) as p:
 		if p.is_file() and p.stat().st_size > 0:
-			tracking = json.load(settings.correctionTrackingFile)
-		else:
-			tracking = defaultdict(int)
-
+			with open_for_reading(p) as f:
+				for key, count in json.load(f).items():
+					(original, gold) = key.split()
+					correctionTracking[(original, gold)] = int(count)
+				correctionTracking.update()
+	
+	log.debug(correctionTracking)
+	
 	# -----------------------------------------------------------
 	# // -------------------------------------------- //
 	# //  Interactively handle corrections in a file  //
@@ -308,10 +320,11 @@ def correct(settings):
 	for l in metadata:
 		log.info(l)
 	
-	(tokenlist, humanCount, newstats) = CorrectionShell.start(dec, correcter, settings.k)
+	(tokenlist, tracking) = CorrectionShell.start(dec, correcter, correctionTracking)
 
 	#log.debug(tokenlist)
-	log.debug(newdictwords)
+	log.debug(tracking['newWords'])
+	log.debug(tracking['correctionTracking'])
 
 	# optionally clean up hyphenation in completed tokenlist
 	if settings.dehyphenate:
@@ -324,15 +337,13 @@ def correct(settings):
 	# write corrected output
 	o.write(despaced)
 	o.close()
-
-	json.dump(memos, open(settings.memoizedCorrectionsFile.name, 'w'))
-
-	# output potential new words to review for dictionary addition
-	with open(settings.newWordsPath.joinpath(settings.fileid + '.txt'), 'w', encoding='utf-8') as f:
-		f.write(u'ANNOTATOR JUDGEMENT ' + str(humanCount) + ' TOKENS OF ABOUT ' + str(len(dec)) + ' IN FILE.\n')
-		f.write('\n'.join(newdictwords))
-
-	# update tracking of annotator's actions
+	
+	# update tracking & memos of annotator's actions
+	memos = dict()
+	track = dict()
+	for (original, gold), count in sorted(tracking['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
+		memos[original] = gold
+		track[original +'\t'+ gold] = count
 	with open(settings.correctionTrackingFile.name, 'w', encoding='utf-8') as f:
-		for (original, gold), count in sorted(newstats.items(), key=lambda x: x[1], reverse=True):
-			f.write('{}\t{}\t{}\n'.format(original, gold, count))
+		json.dump(track, f)
+	json.dump(memos, open(settings.memoizedCorrectionsFile.name, 'w'))
