@@ -190,7 +190,7 @@ class CorrectionShell(cmd.Cmd):
 			pass # dont repeat other commands
 	
 	def do_original(self, arg):
-		"""Choose original"""
+		"""Choose original (abbreviation: o)"""
 		print('Selecting original: '+self.token['Original'])
 		return self.select(self.token['Original'])
 	
@@ -200,7 +200,7 @@ class CorrectionShell(cmd.Cmd):
 		return self.select(arg)
 	
 	def do_kbest(self, arg):
-		"""Choose k-best"""
+		"""Choose k-best by number (abbreviation: just the number)"""
 		if arg:
 			k = int(arg[0]) 
 		else:
@@ -210,6 +210,7 @@ class CorrectionShell(cmd.Cmd):
 		return self.select(kbest)
 	
 	def do_kdict(self, arg):
+		"""Choose k-best which is in dictionary"""
 		kbest = self.token['{}-best'.format(arg)]
 		print('Selecting k-best from dict: '+kbest)
 		return self.select(kbest)
@@ -225,8 +226,8 @@ class CorrectionShell(cmd.Cmd):
 		return self.select('\n', save=False)
 	
 	def do_defer(self, arg):
+		"""Defer decision for another time."""
 		print('Deferring decision...')
-		# do nothing; defer decision until next invocation...
 		return self.nexttoken()
 	
 	def do_quit(self, arg):

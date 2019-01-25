@@ -6,15 +6,14 @@ general:
 	clean generated files for fileid
 
 dictionary:
-	--save flag?
+	specialcase for isnumeric (dont put in dict, always match)
 
 all:
 	init from fileid & return generated/memoized alignments/decodings/etc
 
 CorrectionShell:
 	redirect log during cmdloop()
-	currently !-prefix is required for selecting user input, is this desirable?
-	docstrings
+	 -- https://docs.python.org/3.7/howto/logging-cookbook.html#using-a-context-manager-for-selective-logging
 	get tokens from hocr also
 	proper split into (punct, word, punct) tuple instead of stripping punctuation so it can be put back after dictionary lookup
 
