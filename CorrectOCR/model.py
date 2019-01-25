@@ -245,6 +245,78 @@ def parameter_check(init, tran, emis):
 	return all_match
 
 
+class HMM(object):
+	
+	def __init__(self, initial, transition, emission):
+		self.init = initial
+		self.tran = transition
+		self.emis = emission
+		self.logger = logging.getLogger(__name__ + '.HMM')
+		
+		self.states = initial.keys()
+		#self.logger.debug('self.init: ' + str(self.init))
+		#self.logger.debug('self.tran: ' + str(self.tran))
+		#self.logger.debug('self.emis: ' + str(self.emis))
+		self.logger.debug('self.states: ' + str(self.states))
+		#self.symbols = emission[self.states[0]].keys() # Not used ?!
+	
+	def viterbi(self, char_seq):
+		# delta[t][j] is probability of max probability path to state j
+		# at time t given the observation sequence up to time t.
+		delta = [None] * len(char_seq)
+		back_pointers = [None] * len(char_seq)
+		
+		delta[0] = {i: self.init[i] * self.emis[i][char_seq[0]]
+                    for i in self.states}
+		
+		for t in range(1, len(char_seq)):
+			# (preceding state with max probability, value of max probability)
+			d = {j: max({i: delta[t-1][i] * self.tran[i][j] for i in self.states}.items(),
+                            key=lambda x: x[1]) for j in self.states}
+			
+			delta[t] = {i: d[i][1] * self.emis[i][char_seq[t]] for i in self.states}
+			
+			back_pointers[t] = {i: d[i][0] for i in self.states}
+		
+		best_state = max(delta[-1], key=lambda x: delta[-1][x])
+		
+		selected_states = [best_state] * len(char_seq)
+		for t in range(len(char_seq) - 1, 0, -1):
+			best_state = back_pointers[t][best_state]
+			selected_states[t-1] = best_state
+		
+		return ''.join(selected_states)
+	
+	def k_best_beam(self, word, k):
+		#self.logger.debug('word: '+word)
+		# Single symbol input is just initial * emission.
+		if len(word) == 1:
+			paths = [(i, self.init[i] * self.emis[i][word[0]])
+                            for i in self.states]
+			paths = sorted(paths, key=lambda x: x[1], reverse=True)
+		else:
+			# Create the N*N sequences for the first two characters
+			# of the word.
+			try:
+				paths = [((i, j), (self.init[i] * self.emis[i][word[0]] * self.tran[i][j] * self.emis[j][word[1]]))
+								for i in self.states for j in self.states]
+			except KeyError as e:
+				self.log.error('[word: {}] Model is missing character: {} ({})'.format(word, character, character.encode('utf-8')))
+			
+			# Keep the k best sequences.
+			paths = sorted(paths, key=lambda x: x[1], reverse=True)[:k]
+			
+			# Continue through the input word, only keeping k sequences at
+			# each time step.
+			for t in range(2, len(word)):
+				temp = [(x[0] + (j,), (x[1] * self.tran[x[0][-1]][j] * self.emis[j][word[t]]))
+                                    for j in self.states for x in paths]
+				paths = sorted(temp, key=lambda x: x[1], reverse=True)[:k]
+				#print(t, len(temp), temp[:5], len(paths), temp[:5])
+		
+		return [(''.join(seq), prob) for seq, prob in paths[:k]]
+
+
 #-------------------------------------
 
 def build_model(settings):
