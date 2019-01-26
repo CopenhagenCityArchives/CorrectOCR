@@ -25,6 +25,8 @@ class Aligner(object):
 			# presume correctness, user may clean the files to rerun
 			self.log.info('Alignment files exist, will read and return. Clean files to rerun.')
 			return (json.load(open_for_reading(self.faPath)), json.load(open_for_reading(self.mcPath)), json.load(open_for_reading(self.mPath)))
+		else:
+			self.log.info('Creating alignment files for {}'.format(self.fileid))
 		
 		a = open_for_reading(self.originalFile).read()
 		b = open_for_reading(self.correctedFile).read()
@@ -246,7 +248,7 @@ def parameter_check(init, tran, emis):
 	if set(init) != set(emis):
 		all_match = False
 		keys = set(init).symmetric_difference(set(emis))
-		log.error('Initial keys do not match emission keys:', [k for k in keys], [init.get(k, None) for k in keys], [emis.get(k, None) for k in keys])
+		log.error('Initial keys do not match emission keys: {} {} {}'.format([k for k in keys], [init.get(k, None) for k in keys], [emis.get(k, None) for k in keys]))
 	for key in tran:
 		if set(tran[key]) != set(tran):
 			all_match = False
@@ -317,6 +319,7 @@ class HMM(object):
 				paths = [((i, j), (self.init[i] * self.emis[i][word[0]] * self.tran[i][j] * self.emis[j][word[1]]))
 								for i in self.states for j in self.states]
 			except KeyError as e:
+				character = e.args[0]
 				self.log.error('[word: {}] Model is missing character: {} ({})'.format(word, character, character.encode('utf-8')))
 			
 			# Keep the k best sequences.
