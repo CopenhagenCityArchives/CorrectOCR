@@ -69,6 +69,7 @@ commonparser.add_argument('--decodedPath', type=PathType('d'), metavar='PATH', h
 commonparser.add_argument('--fullAlignmentsPath', type=PathType('d'), metavar='PATH', help='Path to output full alignments')
 commonparser.add_argument('--misreadCountsPath', type=PathType('d'), metavar='PATH', help='Path to output misread counts')
 commonparser.add_argument('--misreadsPath', type=PathType('d'), metavar='PATH', help='Path to output misreads')
+commonparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
 
 if sys.version_info >= (3, 7):
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command', required=True)

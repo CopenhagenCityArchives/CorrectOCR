@@ -68,12 +68,12 @@ class Aligner(object):
 def align(settings):
 	if settings.fileid:
 		a = Aligner(settings.fileid, settings.originalPath, settings.correctedPath, settings.fullAlignmentsPath, settings.misreadCountsPath, settings.misreadsPath)
-		a.alignments(settings.force)
+		a.alignments(force=settings.force)
 	elif settings.allPairs:
 		for correctedFile in settings.correctedPath.iterdir():
 			basename = correctedFile.stem
 			a = Aligner(basename, settings.originalPath, settings.correctedPath, settings.fullAlignmentsPath, settings.misreadCountsPath, settings.misreadsPath)
-			a.alignments(settings.force)
+			a.alignments(force=settings.force)
 		
 
 
