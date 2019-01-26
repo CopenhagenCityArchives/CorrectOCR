@@ -149,7 +149,7 @@ class Heuristics(object):
 
 		# an evidently useful quantity for sorting out what to send to annotators
 		#  - can split any existing category across a threshold of this quantity
-		#	(based on probabilities of best and 2nd-best decoded candidates)
+		#	(based on probabilities of best and 2nd-best candidates)
 		qqh = (float(l['1-best prob.'])-float(l['2-best prob.']))/float(l['1-best prob.'])
 
 		# ---------- tracked categories (bins)
@@ -260,7 +260,7 @@ class Heuristics(object):
 
 		out.append('BIN 2 \t\t decision?\t\n')
 		out.append(
-			' k1 same as original and not in dict, and no lower-ranked decoding candidate in dict either\n')
+			' k1 same as original and not in dict, and no lower-ranked candidate in dict either\n')
 		out.append(percc((vs[3]+vs[4]), vs[0]) + ' % of tokens\n')
 		out.append('tokens where k1/orig == gold? \t ' +
 				   str(vs[3]) + '  (' + percc(vs[3], vs[0]) + ' %)\n')
@@ -291,7 +291,7 @@ class Heuristics(object):
 
 		out.append('BIN 5 \t\t decision?\t\n')
 		out.append(
-			' k1 different from original, neither original nor any decoding candidate is in dict\n')
+			' k1 different from original, neither original nor any candidate is in dict\n')
 		out.append(percc((vs[11]+vs[12]+vs[13]), vs[0]) + ' % of tokens\n')
 		out.append('tokens where orig == gold? \t ' +
 				   str(vs[11]) + '  (' + percc(vs[11], vs[0]) + ' %)\n')
@@ -355,7 +355,7 @@ def make_report(settings):
 	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)
 	heuristics = Heuristics(dictionary, settings.caseInsensitive, k=settings.k)
 	
-	for file in settings.devDecodedPath.glob('*.csv'):
+	for file in settings.goldTokenPath.glob('*.csv'):
 		log.info('Collecting stats from {}'.format(file))
 		with open_for_reading(file) as f:
 			reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')

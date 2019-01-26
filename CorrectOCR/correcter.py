@@ -9,7 +9,7 @@ import readline
 from collections import defaultdict
 from pathlib import Path
 
-from . import decoder
+from . import tokenizer
 from . import open_for_reading, splitwindow, ensure_new_file
 from .dictionary import Dictionary
 from .heuristics import Heuristics
@@ -258,12 +258,12 @@ def correct(settings):
 	
 	log.info('Correcting ' + settings.fileid + ' ')
 	origfilename = settings.originalPath.joinpath(settings.fileid + '.txt')
-	decodefilename = settings.decodedPath.joinpath(settings.fileid + '_decoded.csv')
+	tokenfilename = settings.tokenPath.joinpath(settings.fileid + '_tokens.csv')
 	
-	if not decodefilename.is_file():
-		log.info('{} doesn''t exist. Going to decode the corrected file first'.format(decodefilename))
+	if not tokenfilename.is_file():
+		log.info('{} doesn''t exist. Going to tokenize the corrected file first'.format(tokenfilename))
 		settings.input_file = origfilename
-		decoder.decode(settings)
+		tokenizer.tokenize(settings)
 	
 	# - - - set up files - - -
 	
@@ -308,9 +308,9 @@ def correct(settings):
 	for l in metadata:
 		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
 
-	# get decodings to use for correction
-	log.info('Opening decoded file: {}'.format(decodefilename))
-	with open_for_reading(decodefilename) as f:
+	# get tokens to use for correction
+	log.info('Opening token file: {}'.format(tokenfilename))
+	with open_for_reading(tokenfilename) as f:
 		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
 	
 	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)

@@ -266,14 +266,14 @@ class HMM(object):
 		self.init = initial
 		self.tran = transition
 		self.emis = emission
-		self.logger = logging.getLogger(__name__ + '.HMM')
+		self.log = logging.getLogger(__name__ + '.HMM')
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		
 		self.states = initial.keys()
-		#self.logger.debug('self.init: ' + str(self.init))
-		#self.logger.debug('self.tran: ' + str(self.tran))
-		#self.logger.debug('self.emis: ' + str(self.emis))
-		self.logger.debug('self.states: ' + str(self.states))
+		#self.log.debug('self.init: ' + str(self.init))
+		#self.log.debug('self.tran: ' + str(self.tran))
+		#self.log.debug('self.emis: ' + str(self.emis))
+		self.log.debug('self.states: ' + str(self.states))
 		#self.symbols = emission[self.states[0]].keys() # Not used ?!
 	
 	def viterbi(self, char_seq):
@@ -304,7 +304,7 @@ class HMM(object):
 		return ''.join(selected_states)
 	
 	def k_best_beam(self, word, k):
-		#self.logger.debug('word: '+word)
+		#self.log.debug('word: '+word)
 		# Single symbol input is just initial * emission.
 		if len(word) == 1:
 			paths = [(i, self.init[i] * self.emis[i][word[0]])
@@ -339,9 +339,9 @@ class HMM(object):
 
 		k_best = self.k_best_beam(word, k)
 		# Check for common multi-character errors. If any are present,
-		# make substitutions and compare probabilties of decoder results.
+		# make substitutions and compare probabilties of results.
 		for sub in multichars:
-			# Only perform the substitution if none of the k-best decodings are present in the dictionary
+			# Only perform the substitution if none of the k-best candidates are present in the dictionary
 			if sub in word and all(self.punctuation.sub('', x[0]) not in dictionary for x in k_best):
 				variant_words = multichar_variants(word, sub, multichars[sub])
 				for v in variant_words:
@@ -349,14 +349,8 @@ class HMM(object):
 						k_best.extend(self.hmm.k_best_beam(v, k))
 				# Keep the k best
 				k_best = sorted(k_best, key=lambda x: x[1], reverse=True)[:k]
-				   
-		k_best = [element for subsequence in k_best for element in subsequence]
-		k_best_dict = dict()
-		for n in range(0, k):
-			k_best_dict['{}-best'.format(n+1)] = k_best[n*2]
-			k_best_dict['{}-best prob.'.format(n+1)] = k_best[n*2+1]
 		
-		return k_best_dict
+		return k_best
 	
 	def multichar_variants(word, original, replacements):
 		variants = [original] + replacements

@@ -3,7 +3,6 @@ general:
 	log config
 	argparse help descriptions
 	readme
-	clean generated files for fileid
 
 dictionary:
 	specialcase for isnumeric (dont put in dict, always match)
@@ -15,7 +14,6 @@ CorrectionShell:
 	redirect log during cmdloop()
 	 -- https://docs.python.org/3.7/howto/logging-cookbook.html#using-a-context-manager-for-selective-logging
 	get tokens from hocr also
-	proper split into (punct, word, punct) tuple instead of stripping punctuation so it can be put back after dictionary lookup
 
-decoder:
-	better name (tokenize?)
+tokenizer:
+	squish abbreviations?

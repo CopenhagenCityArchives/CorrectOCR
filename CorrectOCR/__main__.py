@@ -10,7 +10,7 @@ from pathlib import Path
 from . import get_encoding, ensure_directories, PathType
 from . import dictionary
 from . import model
-from . import decoder
+from . import tokenizer
 from . import heuristics
 from . import correcter
 
@@ -20,7 +20,7 @@ characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 nheaderlines = 0
 k = 4
 correctedPath = corrected/
-decodedPath = decoded/
+tokenPath = tokens/
 originalPath = original/
 correctionTrackingFile = resources/correction_tracking.json
 dictionaryFile = resources/dictionary.txt
@@ -29,7 +29,7 @@ multiCharacterErrorFile = resources/multicharacter_errors.json
 newWordsPath = resources/newwords/
 reportFile = resources/report.txt
 heuristicSettingsFile = resources/settings.txt
-devDecodedPath = train/devDecoded/
+goldTokenPath = train/goldTokens/
 hmmParamsFile = train/hmm_parameters.json
 hmmTrainPath = train/HMMtrain/
 fullAlignmentsPath = train/parallelAligned/fullAlignments/
@@ -41,6 +41,8 @@ misreadsPath = train/parallelAligned/misreads/
 if os.name == 'nt':
 	import io
 	sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
+
+progressbar.streams.wrap_stderr()
 
 logging.basicConfig(
 	stream=sys.stdout,
@@ -59,17 +61,25 @@ settings = dict(config.items('settings'))
 rootparser = argparse.ArgumentParser(description='Correct OCR')
 
 commonparser = argparse.ArgumentParser(add_help=False)
-commonparser.add_argument('--dictionaryFile', metavar='FILE', type=PathType('rc'), help='Path to dictionary file')
 commonparser.add_argument('--caseInsensitive', action='store_true', default=False, help='Use case insensitive dictionary comparisons')
 commonparser.add_argument('-k', type=int, default=4, help='Number of k-best candidates')
-commonparser.add_argument('--nheaderlines', type=int, metavar='N', help='number of header lines in original corpus texts')
-commonparser.add_argument('--originalPath', type=PathType('d'), metavar='PATH', help='original plain text corpus directory location')
-commonparser.add_argument('--correctedPath', type=PathType('d'), metavar='PATH', help='Path to output corrected files')
-commonparser.add_argument('--decodedPath', type=PathType('d'), metavar='PATH', help='directory containing HMM decodings')
-commonparser.add_argument('--fullAlignmentsPath', type=PathType('d'), metavar='PATH', help='Path to output full alignments')
-commonparser.add_argument('--misreadCountsPath', type=PathType('d'), metavar='PATH', help='Path to output misread counts')
-commonparser.add_argument('--misreadsPath', type=PathType('d'), metavar='PATH', help='Path to output misreads')
+commonparser.add_argument('--nheaderlines', metavar='N', type=int, help='number of header lines in original corpus texts')
 commonparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
+
+commonparser.add_argument('--correctedPath', metavar='PATH', type=PathType('d'), help='Path to output corrected files')
+commonparser.add_argument('--correctionTrackingFile', metavar='FILE', type=PathType('rc'), help='file to track annotations')
+commonparser.add_argument('--dictionaryFile', metavar='FILE', type=PathType('rc'), help='Path to dictionary file')
+commonparser.add_argument('--fullAlignmentsPath', metavar='PATH', type=PathType('d'), help='Path to output full alignments')
+commonparser.add_argument('--goldTokenPath', metavar='PATH', type=PathType('d'), help='Path for directory containing tokens with added k-best')
+commonparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=PathType('r'), help='path to heuristic settings file')
+commonparser.add_argument('--hmmTrainPath', type=PathType('d'), metavar='PATH', help='Path to misread count files')
+commonparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=PathType('rc'), help='file of memorised deterministic corrections')
+commonparser.add_argument('--misreadCountsPath', metavar='PATH', type=PathType('d'), help='Path to output misread counts')
+commonparser.add_argument('--misreadsPath', metavar='PATH', type=PathType('d'), help='Path to output misreads')
+commonparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=PathType('rc'), help='Path to multichar file')
+commonparser.add_argument('--newWordsPath', metavar='PATH', type=PathType('d'), help='path for file of new words to consider for dictionary')
+commonparser.add_argument('--originalPath', metavar='PATH', type=PathType('d'), help='original plain text corpus directory location')
+commonparser.add_argument('--tokenPath', metavar='PATH', type=PathType('d'), help='directory containing tokens')
 
 if sys.version_info >= (3, 7):
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command', required=True)
@@ -88,17 +98,14 @@ alignparser.set_defaults(func=model.align, **settings)
 
 alignparser = subparsers.add_parser('build_model', parents=[commonparser], help='Build model')
 alignparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameter for HMM')
-alignparser.add_argument('--hmmTrainPath', type=PathType('d'), metavar='PATH', help='Path to misread count files')
 alignparser.set_defaults(func=model.build_model, **settings)
 
-decodeparser = subparsers.add_parser('decode', parents=[commonparser], help='Decode')
-decodeparser.add_argument('input_file', help='text file to decode')
-decodeparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=PathType('d'), help='Path to multichar file')
-decodeparser.set_defaults(func=decoder.decode, **settings)
+tokenizerparser = subparsers.add_parser('tokenize', parents=[commonparser], help='Tokenize and add k-best guesses')
+tokenizerparser.add_argument('input_file', help='text file to tokenize')
+tokenizerparser.set_defaults(func=tokenizer.tokenize, **settings)
 
 tunerparser = subparsers.add_parser('make_report', parents=[commonparser], help='Make heuristics report')
-tunerparser.add_argument('--devDecodedPath', type=PathType('d'), metavar='PATH', help='path for directory of decoding CSVs')
-tunerparser.add_argument('--outfile', default=settings['reportFile'], help='output file name')
+tunerparser.add_argument('reportFile', default=settings['reportFile'], help='output file name')
 tunerparser.set_defaults(func=heuristics.make_report, **settings)
 
 settingsparser = subparsers.add_parser('make_settings', parents=[commonparser], help='Make heuristics settings')
@@ -108,11 +115,7 @@ settingsparser.set_defaults(func=heuristics.make_settings, **settings)
 
 correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Make settings')
 correctparser.add_argument('fileid', help='input ID (without path or extension)')
-correctparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=PathType('r'), help='path to heuristic settings file')
 correctparser.add_argument('--dehyphenate', action='store_true', help='repair hyphenation')
-correctparser.add_argument('--newWordsPath', type=PathType('d'), metavar='PATH', help='path for file of new words to consider for dictionary')
-correctparser.add_argument('--correctionTrackingFile', metavar='FILE', type=PathType('rc'), help='file to track annotations')
-correctparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=PathType('rc'), help='file of memorised deterministic corrections')
 correctparser.set_defaults(func=correcter.correct, **settings)
 
 args = rootparser.parse_args()
