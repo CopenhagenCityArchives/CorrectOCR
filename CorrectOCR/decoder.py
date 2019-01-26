@@ -10,62 +10,6 @@ from . import open_for_reading
 from .dictionary import Dictionary
 from .model import HMM
 
-class Decoder(object):
-
-	def __init__(self, hmm_path, dict_path=None, prev_decodings=None):
-		with open(hmm_path, 'r', encoding='utf-8') as f:
-			self.hmm = HMM(*json.load(f, encoding='utf-8'))
-		if dict_path:
-			self.dictionary = Dictionary(dict_path)
-		else:
-			self.word_dict = set()
-		if prev_decodings is None:
-			self.prev_decodings = dict()
-		else:
-			self.prev_decodings = prev_decodings
-		self.punctuation = regex.compile(r'\p{posix_punct}+')
-	
-	def decode_word(self, word, k, multichars={}):
-		if len(word) == 0:
-			return [''] + ['', 0.0] * k
-
-		if word in self.prev_decodings:
-			return self.prev_decodings[word]
-
-		k_best = self.hmm.k_best_beam(word, k)
-		# Check for common multi-character errors. If any are present,
-		# make substitutions and compare probabilties of decoder results.
-		for sub in multichars:
-			# Only perform the substitution if none of the k-best decodings are present in the dictionary
-			if sub in word and all(self.punctuation.sub('', x[0]) not in self.dictionary for x in k_best):
-				variant_words = self.multichar_variants(word, sub, multichars[sub])
-				for v in variant_words:
-					if v != word:
-						k_best.extend(self.hmm.k_best_beam(v, k))
-				# Keep the k best
-				k_best = sorted(k_best, key=lambda x: x[1], reverse=True)[:k]
-				   
-		k_best = [element for subsequence in k_best for element in subsequence]
-		k_best_dict = dict()
-		for n in range(0, k):
-			k_best_dict['{}-best'.format(n+1)] = k_best[n*2]
-			k_best_dict['{}-best prob.'.format(n+1)] = k_best[n*2+1]
-		self.prev_decodings[word] = k_best_dict
-		
-		return k_best_dict
-	
-	def multichar_variants(self, word, original, replacements):
-		variants = [original] + replacements
-		variant_words = set()
-		pieces = re.split(original, word)
-		
-		# Reassemble the word using original or replacements
-		for x in itertools.product(variants, repeat=word.count(original)):
-			variant_words.add(''.join([elem for pair in itertools.izip_longest(
-				pieces, x, fillvalue='') for elem in pair]))
-			
-		return variant_words
-
 
 def load_text(filename, header=0):
 	f = open_for_reading(filename)
@@ -109,7 +53,7 @@ def corrected_words(alignments):
 		if not Path(filename).is_file():
 			continue
 		
-		log.info('Getting alignments from '+filename)
+		log.info('Getting alignments from '.format(filename))
 		
 		alignments = None
 		with open(filename, encoding='utf-8') as f:
@@ -131,12 +75,12 @@ def corrected_words(alignments):
 	return corrections
 
 
-def decode(settings):
-	# - - - Defaults - - -
-	# Settings
-	use_existing_decodings = True
+def decode(settings, use_existing_decodings=False):
+	log = logging.getLogger(__name__+'.tokenize')
 	
-	log = logging.getLogger(__name__+'.decode')
+	hmm = HMM.fromParamsFile(settings.hmmParamsFile)
+
+	dictionary = Dictionary(settings.dictionaryFile)
 	
 	# Load previously done decodings if any
 	prev_decodings = dict()
@@ -146,9 +90,6 @@ def decode(settings):
 				reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
 				for row in reader:
 					prev_decodings[row['Original']] = row
-
-	# Load the rest of the parameters and create the decoder
-	decoder = Decoder(settings.hmmParamsFile, settings.dictionaryFile, prev_decodings)
 
 	words = load_text(settings.input_file, settings.nheaderlines)
 	
@@ -190,12 +131,17 @@ def decode(settings):
 			})
 		else:
 			#log.debug('decoding '+word)
-			decoded = decoder.decode_word(word, settings.k, multichars)
+			if word in prev_decodings:
+				decoded = prev_decodings[word]
+			else:
+				decoded = hmm.kbest_for_word(word, settings.k, dictionary, multichars)
 			#log.debug(decoded)
+				prev_decodings[word] = decoded
 			if 'Original' not in decoded:
 				decoded['Original'] = word
 			decoded['Gold'] = corrections.get(decoded['Original'], decoded['Original'])
 			decoded_words.append(decoded)
+			prev_decodings[word] = decoded
 	
 	with open(Path(settings.decodedPath).joinpath(basename + '_decoded.csv'), 'w', encoding='utf-8') as f:
 		writer = csv.DictWriter(f, header, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='', extrasaction='ignore')

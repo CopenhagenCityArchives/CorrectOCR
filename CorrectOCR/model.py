@@ -4,6 +4,8 @@ import json
 import logging
 from pathlib import Path
 
+import regex
+
 from . import open_for_reading
 
 
@@ -256,11 +258,16 @@ def parameter_check(init, tran, emis):
 
 class HMM(object):
 	
+	def fromParamsFile(path):
+		with open(path, 'r', encoding='utf-8') as f:
+			return HMM(*json.load(f, encoding='utf-8'))
+	
 	def __init__(self, initial, transition, emission):
 		self.init = initial
 		self.tran = transition
 		self.emis = emission
 		self.logger = logging.getLogger(__name__ + '.HMM')
+		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		
 		self.states = initial.keys()
 		#self.logger.debug('self.init: ' + str(self.init))
@@ -324,6 +331,44 @@ class HMM(object):
 				#print(t, len(temp), temp[:5], len(paths), temp[:5])
 		
 		return [(''.join(seq), prob) for seq, prob in paths[:k]]
+	
+	
+	def kbest_for_word(self, word, k, dictionary, multichars={}):
+		if len(word) == 0:
+			return [''] + ['', 0.0] * k
+
+		k_best = self.k_best_beam(word, k)
+		# Check for common multi-character errors. If any are present,
+		# make substitutions and compare probabilties of decoder results.
+		for sub in multichars:
+			# Only perform the substitution if none of the k-best decodings are present in the dictionary
+			if sub in word and all(self.punctuation.sub('', x[0]) not in dictionary for x in k_best):
+				variant_words = multichar_variants(word, sub, multichars[sub])
+				for v in variant_words:
+					if v != word:
+						k_best.extend(self.hmm.k_best_beam(v, k))
+				# Keep the k best
+				k_best = sorted(k_best, key=lambda x: x[1], reverse=True)[:k]
+				   
+		k_best = [element for subsequence in k_best for element in subsequence]
+		k_best_dict = dict()
+		for n in range(0, k):
+			k_best_dict['{}-best'.format(n+1)] = k_best[n*2]
+			k_best_dict['{}-best prob.'.format(n+1)] = k_best[n*2+1]
+		
+		return k_best_dict
+	
+	def multichar_variants(word, original, replacements):
+		variants = [original] + replacements
+		variant_words = set()
+		pieces = re.split(original, word)
+		
+		# Reassemble the word using original or replacements
+		for x in itertools.product(variants, repeat=word.count(original)):
+			variant_words.add(''.join([elem for pair in itertools.izip_longest(
+				pieces, x, fillvalue='') for elem in pair]))
+			
+		return variant_words
 
 
 #-------------------------------------
