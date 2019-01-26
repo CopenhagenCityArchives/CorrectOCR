@@ -21,7 +21,13 @@ def open_for_reading(file):
 class PathType(argparse.FileType):
 	def __call__(self, string):
 		if self._mode == 'd':
-			return Path(string)
+			p = Path(string)
+			if not p.exists():
+				p.mkdir()
+			elif not p.is_dir():
+				print('Error: {} is set to {}, however this is not a directory!'.format(k, v))
+				raise SystemExit(-1)
+			return p
 		if self._mode == 'rc':
 			p = Path(string)
 			if not p.is_file():
@@ -39,17 +45,6 @@ def splitwindow(l, before=3, after=3):
 	for i in range(len(l)):
 		yield list(a), l[i], l[i+1:i+1+after]
 		a.append(l[i])
-
-
-def ensure_directories(settings):
-	for k, v in vars(settings).items():
-		if k[-4:] == 'Path':
-			p = Path(v)
-			if not p.exists():
-				p.mkdir()
-			elif not p.is_dir():
-				print('Error: {} is set to {}, however this is not a directory!'.format(k, v))
-				raise SystemExit(-1)
 
 
 def ensure_new_file(path):

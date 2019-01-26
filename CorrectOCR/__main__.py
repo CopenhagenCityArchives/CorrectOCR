@@ -7,7 +7,9 @@ import configparser
 import argparse
 from pathlib import Path
 
-from . import get_encoding, ensure_directories, PathType
+import progressbar
+
+from . import get_encoding, PathType
 from . import dictionary
 from . import model
 from . import tokenizer
@@ -119,8 +121,6 @@ correctparser.add_argument('--dehyphenate', action='store_true', help='repair hy
 correctparser.set_defaults(func=correcter.correct, **settings)
 
 args = rootparser.parse_args()
-
-ensure_directories(args)
 
 log.info(u'Settings for this invocation: {}'.format(vars(args)))
 args.func(args)
