@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+import os
 import sys
 import configparser
 import argparse
@@ -37,8 +38,9 @@ misreadsPath = train/parallelAligned/misreads/
 """
 
 # windows/mobaxterm/py3.6 fix:
-import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
+if os.name == 'nt':
+	import io
+	sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
 
 logging.basicConfig(
 	stream=sys.stdout,
@@ -79,9 +81,9 @@ dictparser.set_defaults(func=dictionary.build_dictionary, **settings)
 
 alignparser = subparsers.add_parser('align', parents=[commonparser], help='Create alignments')
 group = alignparser.add_mutually_exclusive_group(required=True)
-group.add_argument('--filePair', action='append', metavar='FILE', nargs=2, dest='filepairs', type=PathType('r'), help='Align pair of files')
+group.add_argument('--fileid', help='input ID (without path or extension)')
 group.add_argument('--allPairs', action='store_true', help='Align all pairs in original/corrected paths')
-alignparser.set_defaults(func=model.align_pairs, **settings)
+alignparser.set_defaults(func=model.align, **settings)
 
 alignparser = subparsers.add_parser('build_model', parents=[commonparser], help='Build model')
 alignparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameter for HMM')
