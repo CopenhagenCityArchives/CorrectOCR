@@ -52,9 +52,9 @@ class Correcter(object):
 		for i in range(len(ls) - 2):
 			if (ls[i] != u'BLANK'):
 				#self.log.debug(ls[i])
-				curw = ls[i]['Original']
-				newl = ls[i+1]['Original']
-				nexw = ls[i+2]['Original']
+				curw = ls[i].original
+				newl = ls[i+1].original
+				nexw = ls[i+2].original
 				# look for pattern: wordstart-, newline, restofword.
 				
 				if (((newl == u'_NEWLINE_N_') or (newl == u'_NEWLINE_R_')) & ((curw[-1] == u'-') & (len(curw) > 1))):
@@ -81,39 +81,37 @@ class Correcter(object):
 						ls[i+2] = {'Original': 'BLANK'}
 		return [lin for lin in ls if lin != u'BLANK']
 	
-	def evaluate(self, l):
-		#self.log.debug(l)
+	def evaluate(self, token):
+		#self.log.debug(token)
 		
 		# this should not happen in well-formed input
-		if len(l['Original']) == 0:
-			return ('error', 'Input is malformed! Original is 0-length: {}'.format(l))
+		if len(token.original) == 0:
+			return ('error', 'Input is malformed! Original is 0-length: {}'.format(token))
 		
 		# catch linebreaks
-		if (l['Original'] == u'_NEWLINE_N_') or (l['Original'] == u'_NEWLINE_R_'):
+		if (token.original in [u'_NEWLINE_N_', u'_NEWLINE_R_']):
 			return ('linefeed', None)
 		
 		# catch memorised corrections
-		if self.punctuation.sub('', l['Original']) in self.memos:
-			return ('memo', self.punctuation.sub('', self.memos[self.punctuation.sub('', l['Original'])]))
+		if not token.is_punctuation() and token.original in self.memos:
+			return ('memo', self.memos[token.original])
 		
 		# k best candidate words
-		kbws = [self.punctuation.sub('', l['{}-best'.format(n)]) for n in range(1, self.k+1)]
-		filtids = [nn for nn, kww in enumerate(kbws) if kww in self.dictionary]
+		filtids = [k for k, (c,p) in token.kbest() if c in self.dictionary]
 		
-		(bin, decision) = self.heuristics.evaluate(l)
+		(bin, decision) = self.heuristics.evaluate(token)
 		#self.log.debug('%d %s' % (bin, decisioncode))
 		
 		# return decision codes and output token form or candidate list as appropriate
 		if decision == 'o':
-			return ('original', l['Original'])
+			return ('original', token.original)
 		elif decision == 'k':
 			return ('kbest', 1)
 		elif decision == 'd':
 			return ('kdict', filtids[0])
-		elif decision == 'a':
-			return ('annotator', filtids)
 		else:
-			return ('error', 'Unknown decision returned from heuristics: {}'.format(decision))
+			# decision is 'a' or undefined
+			return ('annotator', filtids)
 
 
 class CorrectionShell(cmd.Cmd):
@@ -138,7 +136,7 @@ class CorrectionShell(cmd.Cmd):
 		
 		sh.cmdloop(intro)
 
-		return tokens, sh.tracking
+		return sh.tracking
 	
 	def preloop(self):
 		return self.nexttoken()
@@ -152,18 +150,15 @@ class CorrectionShell(cmd.Cmd):
 			if self.decision == 'annotator':
 				self.tracking['humanCount'] +=1 # increment human-effort count
 				
-				print('\n\n{} \033[1;7m{}\033[0m {}\n'.format(
-					' '.join([c.get('Gold', 'Original') for c in ctxr]),
-					self.token['Original'],
-					' '.join([c['Original'] for c in ctxl])
+				print('\n\n...{} \033[1;7m{}\033[0m {}...\n'.format(
+					' '.join([c.gold or c.original for c in ctxr]),
+					self.token.original,
+					' '.join([c.original for c in ctxl])
 				))
-				print('\nSELECT for {} :\n'.format(self.token['Original']))
-				for kn in range(1, self.k+1):
-					print('\t{}. {} ({}){}\n'.format(
-						kn,
-						self.token['{}-best'.format(kn)],
-						self.token['{}-best prob.'.format(kn)],
-						' * is in dictionary' if kn in self.var else ''
+				print('\nSELECT for {} :\n'.format(self.token.original))
+				for k, (candidate, probability) in self.token.kbest():
+					print('\t{}. {} ({}){}\n'.format(k, candidate, probability,
+						' * is in dictionary' if k in self.var else ''
 					))
 				
 				self.prompt = 'CorrectOCR {}/{} ({}) > '.format(self.tracking['tokenCount'], self.tracking['tokenTotal'], self.tracking['humanCount'])
@@ -174,13 +169,13 @@ class CorrectionShell(cmd.Cmd):
 			return self.onecmd('quit')
 	
 	def select(self, word, save=True):
-		self.token['Gold'] = word
+		self.token.gold = word
 		if save:
 			cleanword = self.punctuation.sub('', word)
 			if cleanword not in self.dictionary:
 				self.tracking['newWords'].append(cleanword) # add to suggestions for dictionary review
 			self.dictionary.add(cleanword) # add to current dictionary for subsequent heuristic decisions
-			self.tracking['correctionTracking'][(self.punctuation.sub('', self.token['Original']), cleanword)] += 1
+			self.tracking['correctionTracking'][(self.punctuation.sub('', self.token.original), cleanword)] += 1
 		return self.nexttoken()
 	
 	def emptyline(self):
@@ -191,8 +186,8 @@ class CorrectionShell(cmd.Cmd):
 	
 	def do_original(self, arg):
 		"""Choose original (abbreviation: o)"""
-		print('Selecting original: '+self.token['Original'])
-		return self.select(self.token['Original'])
+		print('Selecting original: '+self.token.original)
+		return self.select(self.token.original)
 	
 	def do_shell(self, arg):
 		"""Custom input to replace token"""
@@ -205,15 +200,15 @@ class CorrectionShell(cmd.Cmd):
 			k = int(arg[0]) 
 		else:
 			k = 1
-		kbest = self.token['{}-best'.format(k)]
-		print('Selecting {}-best: {}'.format(k, kbest))
-		return self.select(kbest)
+		(candidate, _) = self.token.kbest(k)
+		print('Selecting {}-best: {}'.format(k, candidate))
+		return self.select(candidate)
 	
 	def do_kdict(self, arg):
 		"""Choose k-best which is in dictionary"""
-		kbest = self.token['{}-best'.format(arg)]
-		print('Selecting k-best from dict: '+kbest)
-		return self.select(kbest)
+		(candidate, _) = self.token.kbest(int(arg))
+		print('Selecting k-best from dict: '+candidate)
+		return self.select(candidate)
 	
 	def do_memo(self, arg):
 		print('Selecting memoized correction: '+arg)
@@ -245,6 +240,7 @@ class CorrectionShell(cmd.Cmd):
 		elif line == 'p':
 			print(self.decision, self.var, self.token) # for debugging
 		else:
+			self.log.error('bad command: "{}"'.format(line))
 			return super().default(line)
 
 
@@ -258,12 +254,6 @@ def correct(settings):
 	
 	log.info('Correcting ' + settings.fileid + ' ')
 	origfilename = settings.originalPath.joinpath(settings.fileid + '.txt')
-	tokenfilename = settings.tokenPath.joinpath(settings.fileid + '_tokens.csv')
-	
-	if not tokenfilename.is_file():
-		log.info('{} doesn''t exist. Going to tokenize the corrected file first'.format(tokenfilename))
-		settings.input_file = origfilename
-		tokenizer.tokenize(settings)
 	
 	# - - - set up files - - -
 	
@@ -309,34 +299,32 @@ def correct(settings):
 		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
 
 	# get tokens to use for correction
-	log.info('Opening token file: {}'.format(tokenfilename))
-	with open_for_reading(tokenfilename) as f:
-		dec = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar=''))
+	tokens = tokenizer.tokenize(settings)
 	
 	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)
 	correcter = Correcter(dictionary, settings.heuristicSettingsFile,
 	                      memos, settings.caseInsensitive, settings.k)
 	
 	if linecombine:
-		dec = correcter.linecombiner(dec)
+		tokens = correcter.linecombiner(tokens)
 
 	# print info to annotator
-	log.info(' file ' + settings.fileid + '  contains about ' + str(len(dec)) + ' words')
+	log.info(' file ' + settings.fileid + '  contains about ' + str(len(tokens)) + ' words')
 	for l in metadata:
 		log.info(l)
 	
-	(tokenlist, tracking) = CorrectionShell.start(dec, correcter, correctionTracking)
+	tracking = CorrectionShell.start(tokens, correcter, correctionTracking)
 
-	#log.debug(tokenlist)
+	#log.debug(tokens)
 	log.debug(tracking['newWords'])
 	log.debug(tracking['correctionTracking'])
 
-	# optionally clean up hyphenation in completed tokenlist
+	# optionally clean up hyphenation in completed tokens
 	if settings.dehyphenate:
-		tokenlist = [dehyph(tk) for tk in tokenlist]
+		tokens = [dehyph(tk) for tk in tokens]
 
 	# make print-ready text
-	spaced = u' '.join([token.get('Gold', token['Original']) for token in tokenlist])
+	spaced = u' '.join([token.gold or token.original for token in tokens])
 	despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
 	# write corrected output

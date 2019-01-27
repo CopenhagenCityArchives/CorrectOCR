@@ -11,12 +11,10 @@ import progressbar
 
 from . import open_for_reading
 from .dictionary import Dictionary
-from .model import HMM
+from .model import HMM, get_alignments
 
 
 class Token(object):
-	punctuationRE = regex.compile(r'^\p{posix_punct}+$')
-	
 	def __init__(self, original, gold=None, kbest=[]):
 		self.original = original
 		self.log = logging.getLogger(__name__+'.Token')
@@ -38,9 +36,36 @@ class Token(object):
 				('_NEWLINE_R_', 0.0),
 				('_NEWLINE_R_', 0.0)
 			]
+		elif self.is_punctuation():
+			#self.log.debug('{}: is_punctuation'.format(self))
+			self.gold = self.original
+			self._kbest = []
 		else:
 			self.gold = gold
 			self._kbest = kbest
+	
+	def __repr__(self):
+		#return '<{}>'.format(self.original)
+		return '<Token: {}{}{}>'.format(self.original, '/'+self.gold if self.gold else '', ' ({})'.format(self._kbest) if self._kbest else '')
+	
+	def __eq__(self, other):
+		if isinstance(other, self.__class__):
+			return self.original.__eq__(other.original)
+		elif isinstance(other, str):
+			return self.original.__eq__(other)
+		else:
+			return False
+	
+	def __lt__(self, other):
+		if isinstance(other, self.__class__):
+			return self.original.__lt__(other.original)
+		elif isinstance(other, str):
+			return self.original.__lt__(other)
+		else:
+			return False
+	
+	def __hash__(self):
+		return self.original.__hash__()
 	
 	def update(self, other=None, kbest=None, d=None, k=4):
 		if other:
@@ -50,13 +75,14 @@ class Token(object):
 		elif kbest:
 			self._kbest = kbest
 		elif d:
-			self.original=d['Original']
-			self.gold=d.get('Gold', None)
-			self._kbest = [(d['%d-best'%k], d['%d-best prob.'%k]) for k in range(1, k+1)]
+			original=d['Original']
+			gold=d.get('Gold', None)
+			kbest = [(d['%d-best'%k], d['%d-best prob.'%k]) for k in range(1, k+1)]
+			self.__init__(original, gold, kbest)
 	
 	def from_dict(d, k=4):
-		t = Token(None)
-		t.update(d, k)
+		t = Token('')
+		t.update(d=d, k=k)
 		return t
 	
 	def as_dict(self):
@@ -69,60 +95,46 @@ class Token(object):
 			output['%d-best prob.'%k] = probability
 		return output
 	
-	def kbest(self, k):
-		if k >= len(self._kbest):
-			return ('', 0.0)
-		else:
+	def kbest(self, k=0):
+		if k > 0:
 			return self._kbest[k-1]
+		else:
+			return enumerate(self._kbest, 1)
+	
+	punctuationRE = regex.compile(r'^\p{punct}+|``$')
 	
 	def is_punctuation(self):
-		return RE.match(self.original)
+		return Token.punctuationRE.match(self.original)
+	
+	def is_numeric(self):
+		return self.original.isnumeric()
 
 
-def load_text(filename, header=0):
+def tokenize_file(filename, header=0, objectify=True):
 	with open_for_reading(filename) as f:
 		data = str.join('\n', [l for l in f.readlines()][header:])
 	
 	words = nltk.tokenize.word_tokenize(data, 'danish')
 	
+	if not objectify:
+		return words
+	
 	return [Token(w) for w in words]
-
-
-def corrected_words(alignments):
-	nonword = re.compile(r'\W+')
-	
-	log = logging.getLogger(__name__+'.corrected_words')
-	
-	corrections = dict()
-	
-	for filename in alignments:
-		if not Path(filename).is_file():
-			continue
-		
-		log.info('Getting alignments from {}'.format(filename))
-		
-		alignments = None
-		with open(filename, encoding='utf-8') as f:
-			alignments = json.load(f)
-	
-		pair = ["", ""]
-		for a in alignments:
-			if nonword.match(a[0]) or nonword.match(a[1]):
-				if pair[0] != pair[1]:
-					log.debug(pair)
-					corrections[pair[0]] = pair[1]
-				pair = ["", ""]
-			else:
-				pair[0] += a[0]
-				pair[1] += a[1]
-	
-	log.debug(corrections)
-	
-	return corrections
 
 
 def tokenize(settings, useExisting=False):
 	log = logging.getLogger(__name__+'.tokenize')
+	
+	tokenFilePath = settings.tokenPath.joinpath(settings.fileid + '_tokens.csv')
+
+	if not settings.force and tokenFilePath.is_file():
+		log.info('{} exists and will be returned as Token objects.'.format(tokenFilePath))
+		tokens = []
+		with open_for_reading(tokenFilePath) as f:
+			reader = csv.DictReader(f, delimiter='\t')
+			for row in reader:
+				tokens.append(Token.from_dict(row, settings.k))
+		return tokens
 	
 	hmm = HMM.fromParamsFile(settings.hmmParamsFile)
 
@@ -133,42 +145,49 @@ def tokenize(settings, useExisting=False):
 	if useExisting == True:
 		for file in settings.tokenPath.iterdir():
 			with open_for_reading(file) as f:
-				reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
+				reader = csv.DictReader(f, delimiter='\t')
 				for row in reader:
 					previousTokens[row['Original']] = Token.fromDict(row, settings.k)
 
 	multichars = json.load(settings.multiCharacterErrorFile)
 	
-	basename = Path(settings.input_file).stem
+	(_, wordAlignments, _) = get_alignments(settings.fileid, settings)
 	
-	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.']
+	log.debug('wordAlignments: {}'.format(wordAlignments))
 	
-	corrections = corrected_words([settings.fullAlignmentsPath.joinpath(basename + '_full_alignments.json')])
-	
-	tokens = load_text(settings.input_file, settings.nheaderlines)
-	log.debug('Found {} tokens'.format(len(tokens)))
+	origfilename = settings.originalPath.joinpath(settings.fileid + '.txt')
+	tokens = tokenize_file(origfilename, settings.nheaderlines)
+	log.debug('Found {} tokens, first 10: {}'.format(len(tokens), tokens[:10]))
 	
 	log.info('Generating {} k-best suggestions for each token'.format(settings.k))
-	for token in progressbar.progressbar(tokens):
+	for i, token in enumerate(progressbar.progressbar(tokens)):
 		if token in previousTokens:
-			token.update(other=previousTokens[word])
+			token.update(other=previousTokens[token])
 		else:
 			token.update(kbest=hmm.kbest_for_word(token.original, settings.k, dictionary, multichars))
-		token.gold = corrections.get(token.original, token.original)
+		if not token.gold and token.original in wordAlignments:
+			wa = wordAlignments.get(token.original, dict())
+			closest = sorted(wa.items(), key=lambda x: x[0], reverse=True)
+			#log.debug('{} {} {}'.format(i, token.original, closest))
+			token.gold = closest[0][1]
 		previousTokens[token.original] = token
 		#log.debug(token.as_dict())
 	
-	tokenPath = Path(settings.tokenPath).joinpath(basename + '_tokens.csv')
+	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.']
+	
+	tokenPath = Path(settings.tokenPath).joinpath(settings.fileid + '_tokens.csv')
 	with open(tokenPath, 'w', encoding='utf-8') as f:
 		log.info('Writing tokens to {}'.format(tokenPath))
-		writer = csv.DictWriter(f, header, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='', extrasaction='ignore')
+		writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
 		writer.writeheader()
 		writer.writerows([t.as_dict() for t in tokens])
 	
-	goldTokenPath = Path(settings.goldTokenPath).joinpath(basename + '_goldTokens.csv')
-	if len(corrections) > 0:
+	goldTokenPath = Path(settings.goldTokenPath).joinpath(settings.fileid + '_goldTokens.csv')
+	if len(wordAlignments) > 0:
 		with open(goldTokenPath, 'w', encoding='utf-8') as f:
 			log.info('Writing tokens to {}'.format(goldTokenPath))
-			writer = csv.DictWriter(f, ['Gold']+header, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
+			writer = csv.DictWriter(f, ['Gold']+header, delimiter='\t')
 			writer.writeheader()
 			writer.writerows([t.as_dict() for t in tokens])
+	
+	return tokens

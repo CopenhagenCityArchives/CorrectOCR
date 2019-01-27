@@ -1,84 +1,168 @@
-import difflib
 import collections
 import json
 import logging
+import itertools
+from difflib import SequenceMatcher
 from pathlib import Path
+from collections import defaultdict
 
 import regex
 
 from . import open_for_reading
-
+from .dictionary import Dictionary
 
 class Aligner(object):
-	def __init__(self, fileid, originalPath, correctedPath, fullAlignmentsPath, misreadCountsPath, misreadsPath, splitOnWords=False):
-		self.fileid = fileid
-		self.splitOnWords = splitOnWords
-		self.faPath = fullAlignmentsPath.joinpath(self.fileid + '_full_alignments.json')
-		self.mcPath = misreadCountsPath.joinpath(self.fileid + '_misread_counts.json')
-		self.mPath = misreadsPath.joinpath(self.fileid + '_misreads.json')
-		self.originalFile = originalPath.joinpath(self.fileid + '.txt')
-		self.correctedFile = correctedPath.joinpath(self.fileid + '.txt')
+	def __init__(self, originalPath, correctedPath, fullAlignmentsPath, wordAlignmentsPath, misreadCountsPath):
+		self.originalPath = originalPath
+		self.correctedPath = correctedPath
+		self.fullAlignmentsPath = fullAlignmentsPath
+		self.wordAlignmentsPath = wordAlignmentsPath
+		self.misreadCountsPath = misreadCountsPath
 		self.log = logging.getLogger(__name__+'.align')
-	
-	def alignments(self, force=False):
-		if not force and (self.faPath.is_file() and self.mcPath.is_file() and self.mPath.is_file()):
+
+	def align_words(self, left, right, index):
+		(aPos, bPos, aStr, bStr) = (0, 0, '', '')
+		#matcher.set_seq1(best.original)
+		m = SequenceMatcher(None, left, right)
+		for (a,b,c) in m.get_matching_blocks():
+			if a > aPos:
+				aStr += left[aPos:a]
+			if b > bPos:
+				bStr += right[bPos:b]
+			if len(aStr) > 0 or len(bStr) > 0:
+				self.fullAlignments.append([aStr, bStr])
+				self.misreadCounts[aStr][bStr] += 1
+			for char in left[a:c]:
+				self.fullAlignments.append([char, char])
+				self.misreadCounts[char][char] += 1
+			(aPos, bPos, aStr, bStr) = (a+c, b+c, '', '')
+
+	def align_tokens(self, left, right, index):
+		remove = set()
+		
+		for i, leftToken in enumerate(left, index):
+			matcher = SequenceMatcher(None, None, leftToken.original, autojunk=None)
+			(best, bestRatio) = (None, 0.0)
+			for rightToken in right:
+				matcher.set_seq1(rightToken.original)
+				ratio = matcher.ratio()
+				if ratio > bestRatio:
+					best = rightToken
+					bestRatio = ratio
+				if ratio == 1.0:
+					continue # no reason to compare further
+			if best and bestRatio > 0.7 or (len(leftToken.original) > 4 and bestRatio > 0.6):
+				#self.log.debug('\t{} -> {} {}'.format(leftToken, best, bestRatio))
+				self.align_words(leftToken.original, best.original, i)
+				self.wordAlignments[leftToken.original][i] = best.original
+				remove.add(leftToken)
+			else:
+				#self.log.debug('\tbestRatio: {} & {} = {}'.format(leftToken, best, bestRatio))
+				pass
+		
+		return [t for t in left if t not in remove], right
+
+	def alignments(self, fileid, force=False):
+		from .tokenizer import tokenize_file
+		
+		self.fullAlignments = []
+		self.wordAlignments = defaultdict(dict)
+		self.misreadCounts = collections.defaultdict(collections.Counter)
+		
+		faPath = self.fullAlignmentsPath.joinpath(fileid + '.json')
+		waPath = self.wordAlignmentsPath.joinpath(fileid + '.json')
+		mcPath = self.misreadCountsPath.joinpath(fileid + '.json')
+		originalFile = self.originalPath.joinpath(fileid + '.txt')
+		correctedFile = self.correctedPath.joinpath(fileid + '.txt')
+		
+		if not force and (faPath.is_file() and waPath.is_file() and mcPath.is_file()):
 			# presume correctness, user may clean the files to rerun
-			self.log.info('Alignment files exist, will read and return. Clean files to rerun.')
-			return (json.load(open_for_reading(self.faPath)), json.load(open_for_reading(self.mcPath)), json.load(open_for_reading(self.mPath)))
-		else:
-			self.log.info('Creating alignment files for {}'.format(self.fileid))
+			self.log.info('Alignment files exist, will read and return. Use --force og clean files to rerun a subset.')
+			return (
+				json.load(open_for_reading(faPath)),
+				{o: {int(k): v for k,v in i.items()} for o, i in json.load(open_for_reading(waPath)).items()},
+				json.load(open_for_reading(mcPath))
+			)
+		if force:
+			self.log.info('Creating alignment files for {}'.format(fileid))
 		
-		a = open_for_reading(self.originalFile).read()
-		b = open_for_reading(self.correctedFile).read()
+		#nopunct = lambda t: not t.is_punctuation()
+		#
+		#a = list(filter(nopunct, tokenize_file(originalFile)))
+		#b = list(filter(nopunct, tokenize_file(goldFile)))
+		a = tokenize_file(originalFile)
+		b = tokenize_file(goldFile)
 		
-		matcher = difflib.SequenceMatcher(autojunk=False)
-		if self.splitOnWords:
-			a = a.split()
-			b = b.split()
+		matcher = SequenceMatcher(isjunk=lambda t: t.is_punctuation(), autojunk=False)
 		matcher.set_seqs(a, b)
 		
-		fullAlignments = []
-		misreadCounts = collections.defaultdict(collections.Counter)
-		misreads = []
-	
+		leftRest = []
+		rightRest = []
+		
 		for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-			if tag != 'equal':
-				if max(j2-j1, i2-i1) > 4:							# skip moved lines from overeager contributors :)
-					continue
-				fullAlignments.append([a[i1:i2], b[j1:j2]])
-				misreadCounts[b[j1:j2]][a[i1:i2]] += 1
-				misreads.append([b[j1:j2], a[i1:i2], j1, i1])
-				self.log.debug('{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}'.format(tag, i1, i2, j1, j2, a[i1:i2], b[j1:j2]))
-			else:
-				for char in a[i1:i2]:
-					fullAlignments.append([char, char])
-					misreadCounts[char][char] += 1
+			if tag == 'equal':
+				for token in a[i1:i2]:
+					for char in token.original:
+						self.fullAlignments.append([char, char])
+						self.misreadCounts[char][char] += 1
+				self.wordAlignments[token.original][i1] = token.original
+			elif tag == 'replace':
+				if i2-i1 == j2-j1:
+					for leftToken, rightToken in zip(a[i1:i2], b[j1:j2]):
+						for leftChar, rightChar in zip(leftToken.original, rightToken.original):
+							self.fullAlignments.append([leftChar, rightChar])
+							self.misreadCounts[leftChar][rightChar] += 1
+						self.wordAlignments[leftToken.original][i1] = rightToken.original
+				else:
+					#self.log.debug('{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}'.format(tag, i1, i2, j1, j2, a[i1:i2], b[j1:j2]))
+					(left, right) = self.align_tokens(a[i1:i2], b[j1:j2], i1)
+					leftRest.extend(left)
+					rightRest.extend(right)
+			elif tag == 'delete':
+				leftRest.extend(a[i1:i2])
+			elif tag == 'insert':
+				rightRest.extend(b[j1:j2])
+		
+		(left, right) = self.align_tokens(leftRest, rightRest, int(len(a)/3))
+		
+		#self.log.debug('unmatched tokens left {}: {}'.format(len(left), sorted(left)))
+		#self.log.debug('unmatched tokens right {}: {}'.format(len(right), sorted(right)))
 	
-		with open(self.faPath, 'w', encoding='utf-8') as f:
-			json.dump(fullAlignments, f)
+		with open(faPath, 'w', encoding='utf-8') as f:
+			json.dump(self.fullAlignments, f)
 			f.close()
-	
-		with open(self.mcPath, 'w', encoding='utf-8') as f:
-			json.dump(misreadCounts, f)
-			self.log.debug(misreadCounts)
-			f.close()
-	
-		with open(self.mPath, 'w', encoding='utf-8') as f:
-			json.dump(misreads, f)
+
+		with open(waPath, 'w', encoding='utf-8') as f:
+			json.dump(self.wordAlignments, f)
+			self.log.debug(self.wordAlignments)
 			f.close()
 		
-		return (fullAlignments, misreadCounts, misreads)
+		with open(mcPath, 'w', encoding='utf-8') as f:
+			json.dump(self.misreadCounts, f)
+			f.close()
+		
+		#self.log.debug('æ: {}'.format(self.misreadCounts['æ']))
+		#self.log.debug('cr: {}'.format(self.misreadCounts.get('cr', None)))
+		#self.log.debug('c: {}'.format(self.misreadCounts.get('c', None)))
+		#self.log.debug('r: {}'.format(self.misreadCounts.get('r', None)))
+		
+		return (self.fullAlignments, self.wordAlignments, self.misreadCounts)
+
 
 def align(settings):
+	a = Aligner(settings.originalPath, settings.correctedPath, settings.fullAlignmentsPath, settings.wordAlignmentsPath, settings.misreadCountsPath)
 	if settings.fileid:
-		a = Aligner(settings.fileid, settings.originalPath, settings.correctedPath, settings.fullAlignmentsPath, settings.misreadCountsPath, settings.misreadsPath)
-		a.alignments(force=settings.force)
+		a.alignments(settings.fileid, force=settings.force)
 	elif settings.allPairs:
 		for correctedFile in settings.correctedPath.iterdir():
 			basename = correctedFile.stem
-			a = Aligner(basename, settings.originalPath, settings.correctedPath, settings.fullAlignmentsPath, settings.misreadCountsPath, settings.misreadsPath)
-			a.alignments(force=settings.force)
-		
+			a.alignments(basename, force=settings.force)
+
+
+def get_alignments(fileid, settings, force=False):
+	a = Aligner(settings.originalPath, settings.goldPath, settings.fullAlignmentsPath, settings.wordAlignmentsPath, settings.misreadCountsPath)
+
+	return a.alignments(fileid, force=force)
 
 
 #-------------------------------------
@@ -86,12 +170,13 @@ def align(settings):
 # Load the files of misread counts, remove any keys which are not single
 # characters, remove specified characters, and combine into a single
 # dictionary.
-def load_misread_counts(file_list, remove=[]):
+def load_misread_counts(files, remove=[]):
 	# Outer keys are the correct characters. Inner keys are the counts of
 	# what each character was read as.
 	confusion = collections.defaultdict(collections.Counter)
-	for filename in file_list:
-		with open_for_reading(filename) as f:
+	for file in files:
+		# TODO use get_alignments
+		with open_for_reading(file) as f:
 			counts = json.load(f, encoding='utf-8')
 			for i in counts:
 				confusion[i].update(counts[i])
@@ -115,21 +200,23 @@ def load_misread_counts(file_list, remove=[]):
 			if unwanted in confusion[outer]:
 				del confusion[outer][unwanted]
 	
-	logging.getLogger(__name__+'.load_misread_counts').debug(confusion)
+	#logging.getLogger(__name__+'.load_misread_counts').debug(confusion)
 	return confusion
 
 # Get the character counts of the training files. Used for filling in
 # gaps in the confusion probabilities.
 
 
-def text_char_counts(file_list, remove=[], nheaderlines=0):
+def text_char_counts(files, dictionary, remove=[], nheaderlines=0):
 	char_count = collections.Counter()
-	for filename in file_list:
-		with open_for_reading(filename) as f:
+	for file in files:
+		with open_for_reading(file) as f:
 			f.readlines(nheaderlines)
 			text = f.readlines()
-		c = collections.Counter(''.join(text))
-		char_count.update(c)
+		char_count.update(list(text))
+
+	for word in dictionary:
+		char_count.update(list(word))
 
 	for unwanted in remove:
 		if unwanted in char_count:
@@ -166,47 +253,52 @@ def emission_probabilities(confusion, char_counts, alpha,
 
 	# Add characters that are expected to occur in the texts.
 	# Get the characters which aren't already present.
-	extra_chars = extra_chars.difference(set(confusion))
-	extra_chars = extra_chars.difference(set(remove))
+	extra_chars = extra_chars - set(remove)
 
 	# Add them as new states.
 	for char in extra_chars:
-		confusion[char] = {i: 0 for i in charset}
+		if char not in confusion:
+			confusion[char] = {i: 0 for i in charset}
 	# Add them with 0 probability to every state.
 	for i in confusion:
 		for char in extra_chars:
-			confusion[i][char] = 0.0
+			if char not in confusion[i]:
+				confusion[i][char] = 0.0
 	# Set them to emit themselves
 	for char in extra_chars:
 		confusion[char][char] = 1.0
 	
 	#logging.getLogger(__name__+'.emission_probabilities').debug(confusion)
 	return confusion
-	
-	
-# Create the initial and transition probabilities from the corrected
+
+
+# Create the initial and transition probabilities from the gold
 # text in the training data.
-def init_tran_probabilities(file_list, alpha,
+def init_tran_probabilities(goldfiles, dictionary, alpha,
                             remove=[], nheaderlines=0, extra_chars=None):
 	tran = collections.defaultdict(lambda: collections.defaultdict(int))
 	init = collections.defaultdict(int)
 	
-	for filename in file_list:
-		with open_for_reading(filename) as f:
-			f.readlines(nheaderlines)
-			text = f.readlines()
+	def add_word(word):
+		if len(word) > 0:
+			init[word[0]] += 1
+			# Record each occurrence of character pair ij in tran[i][j]
+			for i, j in zip(word[0:], word[1:]):
+				tran[i][j] += 1
+	
+	from .tokenizer import tokenize_file
+	
+	for file in goldfiles:
+		words = tokenize_file(file, header=nheaderlines, objectify=False)
+		
+		for word in words:
+			add_word(word)
 
-		for line in text:
-			for word in line.split():
-				if len(word) > 0:
-					init[word[0]] += 1
-					# Record each occurrence of character pair ij in tran[i][j]
-					for i in range(len(word)-1):
-						tran[word[i]][word[i+1]] += 1
+	for word in dictionary:
+		add_word(word)
 
 	# Create a set of all the characters that have been seen.
-	charset = set(tran.keys())
-	charset.update(set(init.keys()))
+	charset = set(tran.keys()) & set(init.keys())
 	for key in tran:
 		charset.update(set(tran[key].keys()))
 
@@ -232,10 +324,6 @@ def init_tran_probabilities(file_list, alpha,
 		for j in charset:
 			tran[i][j] = (tran[i][j] + alpha) / tran_denom
 
-	# Change the parameter dictionaries into normal dictionaries.
-	init = {i: init[i] for i in init}
-	tran = {i: {j: tran[i][j] for j in tran[i]} for i in tran}
-
 	return init, tran
 
 
@@ -248,7 +336,7 @@ def parameter_check(init, tran, emis):
 	if set(init) != set(emis):
 		all_match = False
 		keys = set(init).symmetric_difference(set(emis))
-		log.error('Initial keys do not match emission keys: {} {} {}'.format([k for k in keys], [init.get(k, None) for k in keys], [emis.get(k, None) for k in keys]))
+		log.error('Initial keys do not match emission keys: diff: {} init: {} emis: {}'.format([k for k in keys], [init.get(k, None) for k in keys], [emis.get(k, None) for k in keys]))
 	for key in tran:
 		if set(tran[key]) != set(tran):
 			all_match = False
@@ -261,7 +349,7 @@ def parameter_check(init, tran, emis):
 class HMM(object):
 	
 	def fromParamsFile(path):
-		with open(path, 'r', encoding='utf-8') as f:
+		with open_for_reading(path) as f:
 			return HMM(*json.load(f, encoding='utf-8'))
 	
 	def __init__(self, initial, transition, emission):
@@ -272,13 +360,13 @@ class HMM(object):
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		
 		self.states = initial.keys()
-		#self.log.debug('self.init: ' + str(self.init))
+		self.log.debug('self.init: ' + str(self.init))
 		#self.log.debug('self.tran: ' + str(self.tran))
 		#self.log.debug('self.emis: ' + str(self.emis))
 		self.log.debug('self.states: ' + str(self.states))
 		#self.symbols = emission[self.states[0]].keys() # Not used ?!
 	
-	def viterbi(self, char_seq):
+	def viterbi(self, char_seq): # UNUSED!!
 		# delta[t][j] is probability of max probability path to state j
 		# at time t given the observation sequence up to time t.
 		delta = [None] * len(char_seq)
@@ -320,7 +408,7 @@ class HMM(object):
 								for i in self.states for j in self.states]
 			except KeyError as e:
 				character = e.args[0]
-				self.log.error('[word: {}] Model is missing character: {} ({})'.format(word, character, character.encode('utf-8')))
+				self.log.critical('[word: {}] Model is missing character: {} ({})'.format(word, character, character.encode('utf-8')))
 			
 			# Keep the k best sequences.
 			paths = sorted(paths, key=lambda x: x[1], reverse=True)[:k]
@@ -346,10 +434,10 @@ class HMM(object):
 		for sub in multichars:
 			# Only perform the substitution if none of the k-best candidates are present in the dictionary
 			if sub in word and all(self.punctuation.sub('', x[0]) not in dictionary for x in k_best):
-				variant_words = multichar_variants(word, sub, multichars[sub])
+				variant_words = HMM.multichar_variants(word, sub, multichars[sub])
 				for v in variant_words:
 					if v != word:
-						k_best.extend(self.hmm.k_best_beam(v, k))
+						k_best.extend(self.k_best_beam(v, k))
 				# Keep the k best
 				k_best = sorted(k_best, key=lambda x: x[1], reverse=True)[:k]
 		
@@ -358,11 +446,11 @@ class HMM(object):
 	def multichar_variants(word, original, replacements):
 		variants = [original] + replacements
 		variant_words = set()
-		pieces = re.split(original, word)
+		pieces = regex.split(original, word)
 		
 		# Reassemble the word using original or replacements
 		for x in itertools.product(variants, repeat=word.count(original)):
-			variant_words.add(''.join([elem for pair in itertools.izip_longest(
+			variant_words.add(''.join([elem for pair in itertools.zip_longest(
 				pieces, x, fillvalue='') for elem in pair]))
 			
 		return variant_words
@@ -371,28 +459,34 @@ class HMM(object):
 #-------------------------------------
 
 def build_model(settings):
+	log = logging.getLogger(__name__+'.build_model')
+	
 	# Settings
 	remove_chars = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
 
 	# Select the gold files which correspond to the misread count files.
-	gold_files = []
 	misread_files = []
-	for file in settings.hmmTrainPath.iterdir():
+	gold_files = []
+	for file in settings.misreadCountsPath.iterdir():
 		misread_files.append(file)
-		# [:-15] is to remove '_misread_counts' from the filename
-		gold_files.append(settings.correctedPath.joinpath(file.stem[:-15] + '.txt'))
-
+		gold_files.append(settings.goldPath.joinpath(file.stem + '.txt'))
+	
+	dictionary = Dictionary(settings.dictionaryFile)
+	
 	confusion = load_misread_counts(misread_files, remove_chars)
-	char_counts = text_char_counts(gold_files, remove_chars, settings.nheaderlines)
+	char_counts = text_char_counts(gold_files, dictionary, remove_chars, settings.nheaderlines)
+
+	charset = set(settings.characterSet) | set(char_counts) | set(confusion)
+
+	log.debug(sorted(charset))
 
 	# Create the emission probabilities from the misread counts and the character counts
 	emis = emission_probabilities(confusion, char_counts, settings.smoothingParameter, remove_chars,
-                               extra_chars=set(list(settings.characterSet)))
+                               extra_chars=charset)
 
 	# Create the initial and transition probabilities from the gold files
-	init, tran = init_tran_probabilities(gold_files, settings.smoothingParameter,
-                                      remove_chars, settings.nheaderlines,
-                                      extra_chars=set(list(settings.characterSet)))
+	init, tran = init_tran_probabilities(gold_files, dictionary, settings.smoothingParameter,
+                                         remove_chars, settings.nheaderlines, extra_chars=charset)
 
 	if parameter_check(init, tran, emis):
 		with open(settings.hmmParamsFile, 'w', encoding='utf-8') as f:

@@ -77,23 +77,20 @@ class Heuristics(object):
 	
 	def evaluate(self, token):
 		# original form
-		original = self.punctuation.sub('', token['Original'])
+		original = self.punctuation.sub('', token.original)
 		
 		# top k best
-		k1 = token['1-best']
+		kbest = list(token.kbest())
 		
 		# k best candidate words
-		kbws = [self.punctuation.sub('', token['{}-best'.format(n+1)]) for n in range(0, self.k)]
-		
-		# number of k-best that are in the dictionary
-		nkdict = len(set([kww for kww in kbws if kww in self.dictionary]))
+		nkdict = [c for k, (c,p) in token.kbest() if c in self.dictionary]
 		
 		# create dictionary-filtered candidate list if appropriate
-		if nkdict == 0:
+		if len(nkdict) == 0:
 			dcode = 'zerokd'
-		elif nkdict == 4:
+		elif len(nkdict) == self.k:
 			dcode = 'allkd'
-		elif 0 < nkdict < 4:
+		elif 0 < len(nkdict) < self.k:
 			dcode = 'somekd'
 		
 		#self.log.debug('{} {} {}'.format(original, kbest, dcode))
@@ -102,7 +99,7 @@ class Heuristics(object):
 			if bin['matcher'](original, kbest[0][1][0], self.dictionary, dcode):
 				return (num, bin['heuristic'])
 		
-		self.log.critical('This shouldn''t happen: '+str(token))
+		self.log.critical('Unable to make decision for token: '+str(token))
 		return (0, None)
 
 	def add_to_report(self, l):
@@ -110,18 +107,18 @@ class Heuristics(object):
 		
 		self.log.debug(l)
 		# strip punctuation, which is considered not relevant to evaluation
-		gold = self.punctuation.sub('', l['Gold']) # gold standard wordform
-		orig = self.punctuation.sub('', l['Original']) # original uncorrected wordform
+		gold = self.punctuation.sub('', l.gold) # gold standard wordform
+		orig = self.punctuation.sub('', l.original) # original uncorrected wordform
 
 		# if the 1st or 2nd input column is empty, a word segmentation error probably occurred in the original
 		# (though possibly a deletion)
 		# don't count any other errors here; they will be counted in the segmentation error's other line.
-		if ((l['Original'] == '') & (len(gold) > 0)):
+		if ((l.original == '') & (len(gold) > 0)):
 			vs[29] += 1 # words ran together in original / undersegmentation
 			vs = self.reportVariables
 			return
 
-		if ((l['Gold'] == '') & (len(orig) > 0)):
+		if ((l.gold == '') & (len(orig) > 0)):
 			vs[30] += 1 # word wrongly broken apart in original / oversegmentation
 			vs = self.reportVariables
 			return
@@ -358,7 +355,7 @@ def make_report(settings):
 	for file in settings.goldTokenPath.glob('*.csv'):
 		log.info('Collecting stats from {}'.format(file))
 		with open_for_reading(file) as f:
-			reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, quotechar='')
+			reader = csv.DictReader(f, delimiter='\t')
 			for row in reader:
 				heuristics.add_to_report(row)
 	

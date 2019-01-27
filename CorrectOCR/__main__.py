@@ -33,10 +33,9 @@ reportFile = resources/report.txt
 heuristicSettingsFile = resources/settings.txt
 goldTokenPath = train/goldTokens/
 hmmParamsFile = train/hmm_parameters.json
-hmmTrainPath = train/HMMtrain/
 fullAlignmentsPath = train/parallelAligned/fullAlignments/
 misreadCountsPath = train/parallelAligned/misreadCounts/
-misreadsPath = train/parallelAligned/misreads/
+wordAlignmentsPath = train/parallelAligned/wordAlignments/
 """
 
 # windows/mobaxterm/py3.6 fix:
@@ -74,14 +73,13 @@ commonparser.add_argument('--dictionaryFile', metavar='FILE', type=PathType('rc'
 commonparser.add_argument('--fullAlignmentsPath', metavar='PATH', type=PathType('d'), help='Path to output full alignments')
 commonparser.add_argument('--goldTokenPath', metavar='PATH', type=PathType('d'), help='Path for directory containing tokens with added k-best')
 commonparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=PathType('r'), help='path to heuristic settings file')
-commonparser.add_argument('--hmmTrainPath', type=PathType('d'), metavar='PATH', help='Path to misread count files')
 commonparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=PathType('rc'), help='file of memorised deterministic corrections')
 commonparser.add_argument('--misreadCountsPath', metavar='PATH', type=PathType('d'), help='Path to output misread counts')
-commonparser.add_argument('--misreadsPath', metavar='PATH', type=PathType('d'), help='Path to output misreads')
 commonparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=PathType('rc'), help='Path to multichar file')
 commonparser.add_argument('--newWordsPath', metavar='PATH', type=PathType('d'), help='path for file of new words to consider for dictionary')
 commonparser.add_argument('--originalPath', metavar='PATH', type=PathType('d'), help='original plain text corpus directory location')
 commonparser.add_argument('--tokenPath', metavar='PATH', type=PathType('d'), help='directory containing tokens')
+commonparser.add_argument('--wordAlignmentsPath', type=PathType('d'), metavar='PATH', help='Path to word-level alignments')
 
 if sys.version_info >= (3, 7):
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command', required=True)
@@ -103,7 +101,7 @@ alignparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]'
 alignparser.set_defaults(func=model.build_model, **settings)
 
 tokenizerparser = subparsers.add_parser('tokenize', parents=[commonparser], help='Tokenize and add k-best guesses')
-tokenizerparser.add_argument('input_file', help='text file to tokenize')
+tokenizerparser.add_argument('fileid', help='input ID (without path or extension)')
 tokenizerparser.set_defaults(func=tokenizer.tokenize, **settings)
 
 tunerparser = subparsers.add_parser('make_report', parents=[commonparser], help='Make heuristics report')
