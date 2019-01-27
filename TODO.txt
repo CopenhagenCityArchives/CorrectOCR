@@ -17,4 +17,3 @@ CorrectionShell:
 
 tokenizer:
 	squish abbreviations?
-	move tokenfolder to train

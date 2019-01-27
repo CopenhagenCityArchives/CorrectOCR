@@ -22,20 +22,20 @@ characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 nheaderlines = 0
 k = 4
 correctedPath = corrected/
-tokenPath = tokens/
+goldPath = gold/
 originalPath = original/
 correctionTrackingFile = resources/correction_tracking.json
 dictionaryFile = resources/dictionary.txt
 memoizedCorrectionsFile = resources/memoized_corrections.json
 multiCharacterErrorFile = resources/multicharacter_errors.json
-newWordsPath = resources/newwords/
 reportFile = resources/report.txt
 heuristicSettingsFile = resources/settings.txt
-goldTokenPath = train/goldTokens/
-hmmParamsFile = train/hmm_parameters.json
-fullAlignmentsPath = train/parallelAligned/fullAlignments/
-misreadCountsPath = train/parallelAligned/misreadCounts/
-wordAlignmentsPath = train/parallelAligned/wordAlignments/
+goldTokenPath = training/goldTokens/
+hmmParamsFile = training/hmm_parameters.json
+fullAlignmentsPath = training/parallelAligned/fullAlignments/
+misreadCountsPath = training/parallelAligned/misreadCounts/
+wordAlignmentsPath = training/parallelAligned/wordAlignments/
+tokenPath = training/tokens/
 """
 
 # windows/mobaxterm/py3.6 fix:
@@ -71,12 +71,12 @@ commonparser.add_argument('--correctedPath', metavar='PATH', type=PathType('d'),
 commonparser.add_argument('--correctionTrackingFile', metavar='FILE', type=PathType('rc'), help='file to track annotations')
 commonparser.add_argument('--dictionaryFile', metavar='FILE', type=PathType('rc'), help='Path to dictionary file')
 commonparser.add_argument('--fullAlignmentsPath', metavar='PATH', type=PathType('d'), help='Path to output full alignments')
+commonparser.add_argument('--goldPath', metavar='PATH', type=PathType('d'), help='Path to known correct files (aka. "gold" files)')
 commonparser.add_argument('--goldTokenPath', metavar='PATH', type=PathType('d'), help='Path for directory containing tokens with added k-best')
 commonparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=PathType('r'), help='path to heuristic settings file')
 commonparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=PathType('rc'), help='file of memorised deterministic corrections')
 commonparser.add_argument('--misreadCountsPath', metavar='PATH', type=PathType('d'), help='Path to output misread counts')
 commonparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=PathType('rc'), help='Path to multichar file')
-commonparser.add_argument('--newWordsPath', metavar='PATH', type=PathType('d'), help='path for file of new words to consider for dictionary')
 commonparser.add_argument('--originalPath', metavar='PATH', type=PathType('d'), help='original plain text corpus directory location')
 commonparser.add_argument('--tokenPath', metavar='PATH', type=PathType('d'), help='directory containing tokens')
 commonparser.add_argument('--wordAlignmentsPath', type=PathType('d'), metavar='PATH', help='Path to word-level alignments')

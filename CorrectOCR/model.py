@@ -12,9 +12,9 @@ from . import open_for_reading
 from .dictionary import Dictionary
 
 class Aligner(object):
-	def __init__(self, originalPath, correctedPath, fullAlignmentsPath, wordAlignmentsPath, misreadCountsPath):
+	def __init__(self, originalPath, goldPath, fullAlignmentsPath, wordAlignmentsPath, misreadCountsPath):
 		self.originalPath = originalPath
-		self.correctedPath = correctedPath
+		self.goldPath = goldPath
 		self.fullAlignmentsPath = fullAlignmentsPath
 		self.wordAlignmentsPath = wordAlignmentsPath
 		self.misreadCountsPath = misreadCountsPath
@@ -73,7 +73,7 @@ class Aligner(object):
 		waPath = self.wordAlignmentsPath.joinpath(fileid + '.json')
 		mcPath = self.misreadCountsPath.joinpath(fileid + '.json')
 		originalFile = self.originalPath.joinpath(fileid + '.txt')
-		correctedFile = self.correctedPath.joinpath(fileid + '.txt')
+		goldFile = self.goldPath.joinpath(fileid + '.txt')
 		
 		if not force and (faPath.is_file() and waPath.is_file() and mcPath.is_file()):
 			# presume correctness, user may clean the files to rerun
@@ -150,12 +150,12 @@ class Aligner(object):
 
 
 def align(settings):
-	a = Aligner(settings.originalPath, settings.correctedPath, settings.fullAlignmentsPath, settings.wordAlignmentsPath, settings.misreadCountsPath)
+	a = Aligner(settings.originalPath, settings.goldPath, settings.fullAlignmentsPath, settings.wordAlignmentsPath, settings.misreadCountsPath)
 	if settings.fileid:
 		a.alignments(settings.fileid, force=settings.force)
 	elif settings.allPairs:
-		for correctedFile in settings.correctedPath.iterdir():
-			basename = correctedFile.stem
+		for goldFile in settings.goldPath.iterdir():
+			basename = goldFile.stem
 			a.alignments(basename, force=settings.force)
 
 
