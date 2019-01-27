@@ -54,5 +54,6 @@ def ensure_new_file(path):
 		path = Path(path.parent, originalpath.stem + '_' + str(counter) + '.txt')
 		counter += 1
 	if counter > 0:
-		logging.getLogger(__name__+'.ensure_new_file').info('File already exists, will instead use {}'.format(path))
-	return path
+		logging.getLogger(__name__+'.ensure_new_file').info('Existing file moved to {}'.format(path))
+		originalpath.rename(path)
+	return originalpath
