@@ -101,11 +101,11 @@ alignparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]'
 alignparser.set_defaults(func=model.build_model, **settings)
 
 tokenizerparser = subparsers.add_parser('tokenize', parents=[commonparser], help='Tokenize and add k-best guesses')
-tokenizerparser.add_argument('fileid', help='input ID (without path or extension)')
+tokenizerparser.add_argument('--fileid', help='input ID (without path or extension)')
 tokenizerparser.set_defaults(func=tokenizer.tokenize, **settings)
 
 tunerparser = subparsers.add_parser('make_report', parents=[commonparser], help='Make heuristics report')
-tunerparser.add_argument('reportFile', default=settings['reportFile'], help='output file name')
+tunerparser.add_argument('--reportFile', default=settings['reportFile'], help='output file name')
 tunerparser.set_defaults(func=heuristics.make_report, **settings)
 
 settingsparser = subparsers.add_parser('make_settings', parents=[commonparser], help='Make heuristics settings')
@@ -114,7 +114,7 @@ settingsparser.add_argument('--outfile', default=settings['heuristicSettingsFile
 settingsparser.set_defaults(func=heuristics.make_settings, **settings)
 
 correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Make settings')
-correctparser.add_argument('fileid', help='input ID (without path or extension)')
+correctparser.add_argument('--fileid', help='input ID (without path or extension)')
 correctparser.add_argument('--dehyphenate', action='store_true', help='repair hyphenation')
 correctparser.set_defaults(func=correcter.correct, **settings)
 
