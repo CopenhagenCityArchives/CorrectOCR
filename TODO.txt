@@ -4,9 +4,6 @@ general:
 	argparse help descriptions
 	readme
 
-dictionary:
-	specialcase for isnumeric (dont put in dict, always match)
-
 all:
 	init from fileid & return generated/memoized alignments/decodings/etc
 

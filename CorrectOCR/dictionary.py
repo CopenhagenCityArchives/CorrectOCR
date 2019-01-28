@@ -24,11 +24,21 @@ class Dictionary(object):
 		self.log.info('{} words in dictionary'.format(len(self.words)))
 	
 	def __contains__(self, word):
+		if word.isnumeric():
+			return True
 		if self.caseInsensitive:
 			word = word.lower()
 		return word in self.words
 	
+	def __iter__(self):
+		return self.words.__iter__()
+	
+	def __len__(self):
+		return self.words.__len__()
+	
 	def add(self, word):
+		if word.isnumeric():
+			return
 		if self.caseInsensitive:
 			word = word.lower()
 		self.words.add(word)
@@ -41,9 +51,6 @@ class Dictionary(object):
 		with open(name, 'w', encoding='utf-8') as f:
 			for word in sorted(self.words, key=str.lower):
 				f.write(word + '\n')
-	
-	def set(self):
-		return self.words
 
 
 def extract_text_from_pdf(pdf_path):
@@ -97,6 +104,6 @@ def build_dictionary(settings):
 					newdict.add(word)
 		else:
 			logging.getLogger(__name__).error('Unrecognized filetype:{}'.format(file))
-		logging.getLogger(__name__).info('Wordcount {}'.format(len(newdict.set())))
+		logging.getLogger(__name__).info('Wordcount {}'.format(len(newdict)))
 	
 	newdict.save()
