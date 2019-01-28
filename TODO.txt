@@ -7,6 +7,9 @@ all:
 	normalize regex usage (function in __init__?)
 	more progressbars where possible
 
+dictionary:
+	use tokenization to build dict
+
 CorrectionShell:
 	redirect log during cmdloop()
 	 -- https://docs.python.org/3.7/howto/logging-cookbook.html#using-a-context-manager-for-selective-logging
@@ -25,6 +28,7 @@ tokenizer:
 	words = mwe.tokenize(words)
 
 heuristics:
+	default bin decisions?
 	make make_settings interactive
 	bin for this case:
 2019-01-28 08:29:53,570 - CRITICAL - CorrectOCR.heuristics.Heuristics - Unable to make decision for token: <Token: er ([('er', '0.002766673385068717'), ('or', '7.485843673347349e-05'), ('cr', '1.0753875022367074e-05'), ('kr', '4.350111140270214e-06')])>
