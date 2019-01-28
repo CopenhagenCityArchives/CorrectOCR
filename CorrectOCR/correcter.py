@@ -168,7 +168,8 @@ class CorrectionShell(cmd.Cmd):
 			print('Reached end of tokens, going to quit...')
 			return self.onecmd('quit')
 	
-	def select(self, word, save=True):
+	def select(self, word, decision, save=True):
+		print('Selecting {} for "{}": "{}"'.format(decision, self.token.original, word))
 		self.token.gold = word
 		if save:
 			cleanword = self.punctuation.sub('', word)
@@ -186,13 +187,11 @@ class CorrectionShell(cmd.Cmd):
 	
 	def do_original(self, arg):
 		"""Choose original (abbreviation: o)"""
-		print('Selecting original: '+self.token.original)
-		return self.select(self.token.original)
+		return self.select(self.token.original, 'original')
 	
 	def do_shell(self, arg):
 		"""Custom input to replace token"""
-		print('Selecting user input: '+arg)
-		return self.select(arg)
+		return self.select(arg, 'user input')
 	
 	def do_kbest(self, arg):
 		"""Choose k-best by number (abbreviation: just the number)"""
@@ -201,24 +200,21 @@ class CorrectionShell(cmd.Cmd):
 		else:
 			k = 1
 		(candidate, _) = self.token.kbest(k)
-		print('Selecting {}-best: {}'.format(k, candidate))
-		return self.select(candidate)
+		return self.select(candidate, '{}-best'.format(k))
 	
 	def do_kdict(self, arg):
 		"""Choose k-best which is in dictionary"""
 		(candidate, _) = self.token.kbest(int(arg))
-		print('Selecting k-best from dict: '+candidate)
-		return self.select(candidate)
+		return self.select(candidate, 'k-best from dict')
 	
 	def do_memo(self, arg):
-		print('Selecting memoized correction: '+arg)
-		return self.select(arg)
+		return self.select(arg, 'memoized correction')
 	
 	def do_error(self, arg):
 		self.log.error('ERROR: {} {}'.format(arg, str(self.token)))
 	
 	def do_linefeed(self, arg):
-		return self.select('\n', save=False)
+		return self.select('\n', 'linefeed', save=False)
 	
 	def do_defer(self, arg):
 		"""Defer decision for another time."""
