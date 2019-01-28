@@ -77,7 +77,7 @@ class Token(object):
 		elif d:
 			original=d['Original']
 			gold=d.get('Gold', None)
-			kbest = [(d['%d-best'%k], d['%d-best prob.'%k]) for k in range(1, k+1)]
+			kbest = [(d['%d-best'%k], float(d['%d-best prob.'%k])) for k in range(1, k+1)]
 			self.__init__(original, gold, kbest)
 	
 	def from_dict(d, k=4):
@@ -97,9 +97,15 @@ class Token(object):
 	
 	def kbest(self, k=0):
 		if k > 0:
-			return self._kbest[k-1]
-		else:
+			if k <= len(self._kbest):
+				return self._kbest[k-1]
+			else:
+				return ('n/a', 0.0)
+		elif self._kbest and len(self._kbest) > 0:
 			return enumerate(self._kbest, 1)
+		else:
+			o = self.original
+			return enumerate([(o, 1.0), (o, 0.0), (o, 0.0), (o, 0.0)], 1)
 	
 	punctuationRE = regex.compile(r'^\p{punct}+|``$')
 	
