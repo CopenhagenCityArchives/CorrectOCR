@@ -77,7 +77,7 @@ class Aligner(object):
 		
 		if not force and (faPath.is_file() and waPath.is_file() and mcPath.is_file()):
 			# presume correctness, user may clean the files to rerun
-			self.log.info('Alignment files exist, will read and return. Use --force og clean files to rerun a subset.')
+			self.log.info('Alignment files for {} exist, will read and return. Use --force og clean files to rerun a subset.'.format(fileid))
 			return (
 				json.load(open_for_reading(faPath)),
 				{o: {int(k): v for k,v in i.items()} for o, i in json.load(open_for_reading(waPath)).items()},
@@ -167,19 +167,15 @@ def get_alignments(fileid, settings, force=False):
 
 #-------------------------------------
 
-# Load the files of misread counts, remove any keys which are not single
+# Start with misread counts, remove any keys which are not single
 # characters, remove specified characters, and combine into a single
 # dictionary.
-def load_misread_counts(files, remove=[]):
+def generate_confusion(misreadCounts, remove=[]):
 	# Outer keys are the correct characters. Inner keys are the counts of
 	# what each character was read as.
 	confusion = collections.defaultdict(collections.Counter)
-	for file in files:
-		# TODO use get_alignments
-		with open_for_reading(file) as f:
-			counts = json.load(f, encoding='utf-8')
-			for i in counts:
-				confusion[i].update(counts[i])
+
+	confusion.update(misreadCounts)
 
 	# Strip out any outer keys that aren't a single character
 	confusion = {key: value for key, value in confusion.items()
@@ -465,15 +461,16 @@ def build_model(settings):
 	remove_chars = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
 
 	# Select the gold files which correspond to the misread count files.
-	misread_files = []
+	misreadCounts = collections.defaultdict(collections.Counter)
 	gold_files = []
 	for file in settings.misreadCountsPath.iterdir():
-		misread_files.append(file)
+		(_, _, counts) = get_alignments(file.stem, settings)
+		misreadCounts.update(counts)
 		gold_files.append(settings.goldPath.joinpath(file.stem + '.txt'))
 	
 	dictionary = Dictionary(settings.dictionaryFile)
 	
-	confusion = load_misread_counts(misread_files, remove_chars)
+	confusion = generate_confusion(misreadCounts, remove_chars)
 	char_counts = text_char_counts(gold_files, dictionary, remove_chars, settings.nheaderlines)
 
 	charset = set(settings.characterSet) | set(char_counts) | set(confusion)
