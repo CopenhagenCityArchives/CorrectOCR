@@ -45,13 +45,6 @@ if os.name == 'nt':
 
 progressbar.streams.wrap_stderr()
 
-logging.basicConfig(
-	stream=sys.stdout,
-	format='%(asctime)s - %(levelname)8s - %(name)s - %(message)s',
-	level=logging.DEBUG
-)
-log = logging.getLogger(__name__)
-
 config = configparser.RawConfigParser()
 config.optionxform = lambda option: option
 config.read_string(defaults)
@@ -64,6 +57,8 @@ rootparser = argparse.ArgumentParser(description='Correct OCR')
 commonparser = argparse.ArgumentParser(add_help=False)
 commonparser.add_argument('--caseInsensitive', action='store_true', default=False, help='Use case insensitive dictionary comparisons')
 commonparser.add_argument('-k', type=int, default=4, help='Number of k-best candidates')
+loglevels = logging._nameToLevel
+commonparser.add_argument('--loglevel', type=str, help='Log level', choices=loglevels.keys(), default='INFO')
 commonparser.add_argument('--nheaderlines', metavar='N', type=int, help='number of header lines in original corpus texts')
 commonparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
 
@@ -119,6 +114,13 @@ correctparser.add_argument('--dehyphenate', action='store_true', help='repair hy
 correctparser.set_defaults(func=correcter.correct, **settings)
 
 args = rootparser.parse_args()
+
+logging.basicConfig(
+	stream=sys.stdout,
+	format='%(asctime)s - %(levelname)8s - %(name)s - %(message)s',
+	level=loglevels[args.loglevel],
+)
+log = logging.getLogger(__name__)
 
 log.info(u'Settings for this invocation: {}'.format(vars(args)))
 args.func(args)
