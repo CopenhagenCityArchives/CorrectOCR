@@ -144,6 +144,8 @@ class CorrectionShell(cmd.Cmd):
 	def nexttoken(self):
 		try:
 			ctxr, self.token, ctxl = next(self.tokenwindow)
+			if self.token.gold:
+				return self.nexttoken()
 			(self.decision, self.var) = self.correcter.evaluate(self.token)
 			
 			self.tracking['tokenCount'] += 1
