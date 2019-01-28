@@ -20,20 +20,27 @@ def open_for_reading(file):
 
 class PathType(argparse.FileType):
 	def __call__(self, string):
+		if not self._encoding:
+			self._encoding = 'utf-8'
 		if self._mode == 'd':
 			p = Path(string)
 			if not p.exists():
 				p.mkdir()
 			elif not p.is_dir():
-				print('Error: {} is set to {}, however this is not a directory!'.format(k, v))
+				print('Error: Path {} exists but is not a directory!'.format(string))
 				raise SystemExit(-1)
 			return p
-		if self._mode == 'rc':
+		elif self._mode == 'rc':
 			p = Path(string)
 			if not p.is_file():
 				p.touch()
 			self._mode = 'r'
-		if self._mode == 'r' and string != '-':
+			return super().__call__(string)
+		elif self._mode == 'r' and string != '-':
+			if not Path(string).exists():
+				log = logging.getLogger(__name__)
+				log.critical('Required file does not exist! Should be at: {}'.format(string))
+				raise SystemExit(-1)
 			self._encoding = get_encoding(string)
 			return super().__call__(string)
 		else:

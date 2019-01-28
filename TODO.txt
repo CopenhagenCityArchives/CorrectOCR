@@ -1,6 +1,5 @@
 general:
 	strip/replace character method so model doesnt have to be updated constantly
-	argparse help descriptions
 	readme
 
 all:

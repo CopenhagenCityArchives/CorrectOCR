@@ -87,12 +87,12 @@ def extract_text_from_pdf(pdf_path):
 		return text
 
 
-def build_dictionary(settings):
-	charset = re.sub(r'\W+', r'', settings.characterSet)
+def build_dictionary(config):
+	charset = re.sub(r'\W+', r'', config.characterSet)
 	
-	newdict = Dictionary(settings.dictionaryFile)
+	newdict = Dictionary(config.dictionaryFile)
 	
-	for file in settings.files:
+	for file in config.files:
 		logging.getLogger(__name__).info('Getting words from {}'.format(file))
 		if file.suffix == '.pdf':
 			text = extract_text_from_pdf(file)

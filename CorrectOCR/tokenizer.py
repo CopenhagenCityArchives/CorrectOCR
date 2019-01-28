@@ -122,49 +122,53 @@ def tokenize_file(filename, header=0, objectify=True):
 	return [Token(w) for w in words]
 
 
-def tokenize(settings, useExisting=False):
+def tokenize(config, useExisting=False):
 	log = logging.getLogger(__name__+'.tokenize')
 	
-	tokenFilePath = settings.tokenPath.joinpath(settings.fileid + '_tokens.csv')
+	tokenFilePath = config.trainingPath.joinpath(config.fileid + '_tokens.csv')
 
-	if not settings.force and tokenFilePath.is_file():
+	if not config.force and tokenFilePath.is_file():
 		log.info('{} exists and will be returned as Token objects.'.format(tokenFilePath))
 		tokens = []
 		with open_for_reading(tokenFilePath) as f:
 			reader = csv.DictReader(f, delimiter='\t')
 			for row in reader:
-				tokens.append(Token.from_dict(row, settings.k))
+				tokens.append(Token.from_dict(row, config.k))
 		return tokens
 	
-	hmm = HMM.fromParamsFile(settings.hmmParamsFile)
+	hmm = HMM.fromParamsFile(config.hmmParamsFile)
 
-	dictionary = Dictionary(settings.dictionaryFile)
+	dictionary = Dictionary(config.dictionaryFile)
 	
 	# Load previously done tokens if any
 	previousTokens = dict()
 	if useExisting == True:
-		for file in settings.tokenPath.iterdir():
+		for file in config.trainingPath.glob('*_tokens.csv'):
 			with open_for_reading(file) as f:
 				reader = csv.DictReader(f, delimiter='\t')
 				for row in reader:
-					previousTokens[row['Original']] = Token.fromDict(row, settings.k)
-
-	multichars = json.load(settings.multiCharacterErrorFile)
+					previousTokens[row['Original']] = Token.fromDict(row, config.k)
 	
-	(_, wordAlignments, _) = get_alignments(settings.fileid, settings)
+	data = config.multiCharacterErrorFile.read()
+	if len(data) > 0:
+		multichars = json.load(data, encoding='utf-8')
+	else:
+		multichars = []
+
+	(_, wordAlignments, _) = get_alignments(config.fileid, config)
 	
 	log.debug('wordAlignments: {}'.format(wordAlignments))
 	
-	origfilename = settings.originalPath.joinpath(settings.fileid + '.txt')
-	tokens = tokenize_file(origfilename, settings.nheaderlines)
+	origfilename = config.originalPath.joinpath(config.fileid + '.txt')
+	tokens = tokenize_file(origfilename, config.nheaderlines)
 	log.debug('Found {} tokens, first 10: {}'.format(len(tokens), tokens[:10]))
 	
-	log.info('Generating {} k-best suggestions for each token'.format(settings.k))
+	log.info('Generating {} k-best suggestions for each token'.format(config.k))
 	for i, token in enumerate(progressbar.progressbar(tokens)):
 		if token in previousTokens:
 			token.update(other=previousTokens[token])
 		else:
-			token.update(kbest=hmm.kbest_for_word(token.original, settings.k, dictionary, multichars))
+			token.update(kbest=hmm.kbest_for_word(token.original, config.k, dictionary, multichars))
 		if not token.gold and token.original in wordAlignments:
 			wa = wordAlignments.get(token.original, dict())
 			closest = sorted(wa.items(), key=lambda x: x[0], reverse=True)
@@ -175,17 +179,17 @@ def tokenize(settings, useExisting=False):
 	
 	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.']
 	
-	tokenPath = Path(settings.tokenPath).joinpath(settings.fileid + '_tokens.csv')
-	with open(tokenPath, 'w', encoding='utf-8') as f:
-		log.info('Writing tokens to {}'.format(tokenPath))
+	path = config.trainingPath.joinpath(config.fileid + '_tokens.csv')
+	with open(path, 'w', encoding='utf-8') as f:
+		log.info('Writing tokens to {}'.format(path))
 		writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
 		writer.writeheader()
 		writer.writerows([t.as_dict() for t in tokens])
 	
-	goldTokenPath = Path(settings.goldTokenPath).joinpath(settings.fileid + '_goldTokens.csv')
 	if len(wordAlignments) > 0:
-		with open(goldTokenPath, 'w', encoding='utf-8') as f:
-			log.info('Writing tokens to {}'.format(goldTokenPath))
+		path = config.trainingPath.joinpath(config.fileid + '_goldTokens.csv')
+		with open(path, 'w', encoding='utf-8') as f:
+			log.info('Writing tokens to {}'.format(path))
 			writer = csv.DictWriter(f, ['Gold']+header, delimiter='\t')
 			writer.writeheader()
 			writer.writerows([t.as_dict() for t in tokens])

@@ -6,6 +6,7 @@ from collections import OrderedDict
 
 from . import open_for_reading
 from .dictionary import Dictionary
+from .tokenizer import Token
 
 # print percents nicely
 def percc(n, x):
@@ -102,23 +103,22 @@ class Heuristics(object):
 		self.log.critical('Unable to make decision for token: '+str(token))
 		return (0, None)
 
-	def add_to_report(self, l):
+	def add_to_report(self, token):
 		vs = self.reportVariables
 		
-		self.log.debug(l)
 		# strip punctuation, which is considered not relevant to evaluation
-		gold = self.punctuation.sub('', l.gold) # gold standard wordform
-		orig = self.punctuation.sub('', l.original) # original uncorrected wordform
+		gold = self.punctuation.sub('', token.gold) # gold standard wordform
+		orig = self.punctuation.sub('', token.original) # original uncorrected wordform
 
 		# if the 1st or 2nd input column is empty, a word segmentation error probably occurred in the original
 		# (though possibly a deletion)
 		# don't count any other errors here; they will be counted in the segmentation error's other line.
-		if ((l.original == '') & (len(gold) > 0)):
+		if ((token.original == '') & (len(gold) > 0)):
 			vs[29] += 1 # words ran together in original / undersegmentation
 			vs = self.reportVariables
 			return
 
-		if ((l.gold == '') & (len(orig) > 0)):
+		if ((token.gold == '') & (len(orig) > 0)):
 			vs[30] += 1 # word wrongly broken apart in original / oversegmentation
 			vs = self.reportVariables
 			return
@@ -131,7 +131,7 @@ class Heuristics(object):
 		vs[0] += 1
 
 		# k best candidate words
-		kbws = [self.punctuation.sub('', l['{}-best'.format(n+1)]) for n in range(0, self.k)]
+		kbws = [self.punctuation.sub('', token.kbest(n)[0]) for n in range(1, self.k+1)]
 
 		# best candidate
 		k1 = kbws[0]
@@ -147,13 +147,13 @@ class Heuristics(object):
 		# an evidently useful quantity for sorting out what to send to annotators
 		#  - can split any existing category across a threshold of this quantity
 		#	(based on probabilities of best and 2nd-best candidates)
-		qqh = (float(l['1-best prob.'])-float(l['2-best prob.']))/float(l['1-best prob.'])
+		# qqh = (token.kbest(1)[1]-token.kbest(2)[1]) / token.kbest(1)[1]
 
 		# ---------- tracked categories (bins)
 		#   as defined by features observable at correction time,
 		#   with results for each bin reported wrt matching gold standard
 		
-		(bin,_) = self.evaluate(l)
+		(bin,_) = self.evaluate(token)
 		
 		if bin == 1:
 			# k1 = orig and this is in dict.
@@ -346,30 +346,28 @@ class Heuristics(object):
 		return out
 
 
-def make_report(settings):
-	log = logging.getLogger(__name__+'.tune')
+def make_report(config):
+	log = logging.getLogger(__name__+'.make_report')
 	
-	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)
-	heuristics = Heuristics(dictionary, settings.caseInsensitive, k=settings.k)
+	dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
+	heuristics = Heuristics(dictionary, config.caseInsensitive, k=config.k)
 	
-	for file in settings.goldTokenPath.glob('*.csv'):
+	for file in config.trainingPath.glob('*_goldTokens.csv'):
 		log.info('Collecting stats from {}'.format(file))
 		with open_for_reading(file) as f:
 			reader = csv.DictReader(f, delimiter='\t')
 			for row in reader:
-				heuristics.add_to_report(row)
+				heuristics.add_to_report(Token.from_dict(row))
 	
-	with open(settings.outfile, 'w', encoding='utf-8') as f:
-		f.writelines(heuristics.report())
+	config.reportFile.writelines(heuristics.report())
 
 
-def make_settings(settings):
+def make_settings(config):
 	# read report
-	bins = [ln for ln in settings.reportFile.readlines() if "BIN" in ln]
+	bins = [ln for ln in config.reportFile.readlines() if "BIN" in ln]
 	
 	# write settings
-	with open(settings.outfile, 'w', encoding='utf-8') as outf:
-		for b in bins:
-			binID = b.split()[1]
-			action = b.split()[-1]
-			outf.write(binID + u'\t' + action + u'\n')
+	for b in bins:
+		binID = b.split()[1]
+		action = b.split()[-1]
+		config.heuristicSettingsFile.write(binID + u'\t' + action + u'\n')

@@ -242,7 +242,7 @@ class CorrectionShell(cmd.Cmd):
 			return super().default(line)
 
 
-def correct(settings):
+def correct(config):
 	log = logging.getLogger(__name__+'.correct')
 	
 	# try to combine hyphenated linebreaks before correction
@@ -250,28 +250,27 @@ def correct(settings):
 	
 	# - - - parse inputs - - -
 	
-	log.info('Correcting ' + settings.fileid + ' ')
-	origfilename = settings.originalPath.joinpath(settings.fileid + '.txt')
+	log.info('Correcting ' + config.fileid + ' ')
+	origfilename = config.originalPath.joinpath(config.fileid + '.txt')
 	
 	# - - - set up files - - -
 	
 	# read memoized corrections
-	with Path(settings.memoizedCorrectionsFile.name) as p:
-		if p.is_file() and p.stat().st_size > 0:
-			memos = json.load(settings.memoizedCorrectionsFile)
-		else:
-			log.info('no memoized corrections found!')
-			memos = {}
+	memodata = config.memoizedCorrectionsFile.read()
+	if len(memodata) > 0:
+		memos = json.loads(memodata)
+	else:
+		log.info('no memoized corrections found!')
+		memos = {}
 	
 	# read corrections learning file
 	correctionTracking = defaultdict(int)
-	with Path(settings.correctionTrackingFile.name) as p:
-		if p.is_file() and p.stat().st_size > 0:
-			with open_for_reading(p) as f:
-				for key, count in json.load(f).items():
-					(original, gold) = key.split('\t')
-					correctionTracking[(original, gold)] = int(count)
-				correctionTracking.update()
+	correctiondata = config.correctionTrackingFile.read()
+	if len(correctiondata) > 0:
+		for key, count in json.loads(correctiondata).items():
+			(original, gold) = key.split('\t')
+			correctionTracking[(original, gold)] = int(count)
+		correctionTracking.update()
 	
 	log.debug(correctionTracking)
 	
@@ -282,13 +281,13 @@ def correct(settings):
 
 	# open file to write corrected output
 	# don't write over finished corrections
-	correctfilename = ensure_new_file(settings.correctedPath.joinpath(settings.fileid + '.txt'))
+	correctfilename = ensure_new_file(config.correctedPath.joinpath(config.fileid + '.txt'))
 	o = open(correctfilename, 'w', encoding='utf-8')
 
 	# get metadata, if any
-	if settings.nheaderlines > 0:
+	if config.nheaderlines > 0:
 		with open_for_reading(origfilename) as f:
-			metadata = f.readlines()[:settings.nheaderlines]
+			metadata = f.readlines()[:config.nheaderlines]
 	else:
 		metadata = ''
 
@@ -297,17 +296,17 @@ def correct(settings):
 		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
 
 	# get tokens to use for correction
-	tokens = tokenizer.tokenize(settings)
+	tokens = tokenizer.tokenize(config)
 	
-	dictionary = Dictionary(settings.dictionaryFile, settings.caseInsensitive)
-	correcter = Correcter(dictionary, settings.heuristicSettingsFile,
-	                      memos, settings.caseInsensitive, settings.k)
+	dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
+	correcter = Correcter(dictionary, config.heuristicSettingsFile,
+	                      memos, config.caseInsensitive, config.k)
 	
 	if linecombine:
 		tokens = correcter.linecombiner(tokens)
 
 	# print info to annotator
-	log.info(' file ' + settings.fileid + '  contains about ' + str(len(tokens)) + ' words')
+	log.info(' file ' + config.fileid + '  contains about ' + str(len(tokens)) + ' words')
 	for l in metadata:
 		log.info(l)
 	
@@ -318,7 +317,7 @@ def correct(settings):
 	log.debug(tracking['correctionTracking'])
 
 	# optionally clean up hyphenation in completed tokens
-	if settings.dehyphenate:
+	if config.dehyphenate:
 		tokens = [dehyph(tk) for tk in tokens]
 
 	# make print-ready text
@@ -335,6 +334,6 @@ def correct(settings):
 	for (original, gold), count in sorted(tracking['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
 		memos[original] = gold
 		track[original +'\t'+ gold] = count
-	with open(settings.correctionTrackingFile.name, 'w', encoding='utf-8') as f:
+	with open(config.correctionTrackingFile.name, 'w', encoding='utf-8') as f:
 		json.dump(track, f)
-	json.dump(memos, open(settings.memoizedCorrectionsFile.name, 'w'))
+	json.dump(memos, open(config.memoizedCorrectionsFile.name, 'w'))

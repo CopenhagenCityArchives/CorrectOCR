@@ -12,12 +12,10 @@ from . import open_for_reading
 from .dictionary import Dictionary
 
 class Aligner(object):
-	def __init__(self, originalPath, goldPath, fullAlignmentsPath, wordAlignmentsPath, misreadCountsPath):
+	def __init__(self, originalPath, goldPath, trainingPath):
 		self.originalPath = originalPath
 		self.goldPath = goldPath
-		self.fullAlignmentsPath = fullAlignmentsPath
-		self.wordAlignmentsPath = wordAlignmentsPath
-		self.misreadCountsPath = misreadCountsPath
+		self.trainingPath = trainingPath
 		self.log = logging.getLogger(__name__+'.align')
 
 	def align_words(self, left, right, index):
@@ -69,15 +67,13 @@ class Aligner(object):
 		self.wordAlignments = defaultdict(dict)
 		self.misreadCounts = collections.defaultdict(collections.Counter)
 		
-		faPath = self.fullAlignmentsPath.joinpath(fileid + '.json')
-		waPath = self.wordAlignmentsPath.joinpath(fileid + '.json')
-		mcPath = self.misreadCountsPath.joinpath(fileid + '.json')
-		originalFile = self.originalPath.joinpath(fileid + '.txt')
-		goldFile = self.goldPath.joinpath(fileid + '.txt')
+		faPath = self.trainingPath.joinpath(fileid + '_fullAlignments.json')
+		waPath = self.trainingPath.joinpath(fileid + '_wordAlignments.json')
+		mcPath = self.trainingPath.joinpath(fileid + '_misreadCounts.json')
 		
 		if not force and (faPath.is_file() and waPath.is_file() and mcPath.is_file()):
 			# presume correctness, user may clean the files to rerun
-			self.log.info('Alignment files for {} exist, will read and return. Use --force og clean files to rerun a subset.'.format(fileid))
+			self.log.info('Alignment files for {} exist, will read and return. Use --force or clean files to rerun a subset.'.format(fileid))
 			return (
 				json.load(open_for_reading(faPath)),
 				{o: {int(k): v for k,v in i.items()} for o, i in json.load(open_for_reading(waPath)).items()},
@@ -86,10 +82,14 @@ class Aligner(object):
 		if force:
 			self.log.info('Creating alignment files for {}'.format(fileid))
 		
+		originalFile = self.originalPath.joinpath(fileid + '.txt')
+		goldFile = self.goldPath.joinpath(fileid + '.txt')
+
 		#nopunct = lambda t: not t.is_punctuation()
 		#
 		#a = list(filter(nopunct, tokenize_file(originalFile)))
 		#b = list(filter(nopunct, tokenize_file(goldFile)))
+
 		a = tokenize_file(originalFile)
 		b = tokenize_file(goldFile)
 		
@@ -149,18 +149,18 @@ class Aligner(object):
 		return (self.fullAlignments, self.wordAlignments, self.misreadCounts)
 
 
-def align(settings):
-	a = Aligner(settings.originalPath, settings.goldPath, settings.fullAlignmentsPath, settings.wordAlignmentsPath, settings.misreadCountsPath)
-	if settings.fileid:
-		a.alignments(settings.fileid, force=settings.force)
-	elif settings.allPairs:
-		for goldFile in settings.goldPath.iterdir():
+def align(config):
+	a = Aligner(config.originalPath, config.goldPath, config.trainingPath)
+	if config.fileid:
+		a.alignments(config.fileid, force=config.force)
+	elif config.allPairs:
+		for goldFile in config.goldPath.iterdir():
 			basename = goldFile.stem
-			a.alignments(basename, force=settings.force)
+			a.alignments(basename, force=config.force)
 
 
-def get_alignments(fileid, settings, force=False):
-	a = Aligner(settings.originalPath, settings.goldPath, settings.fullAlignmentsPath, settings.wordAlignmentsPath, settings.misreadCountsPath)
+def get_alignments(fileid, config, force=False):
+	a = Aligner(config.originalPath, config.goldPath, config.trainingPath)
 
 	return a.alignments(fileid, force=force)
 
@@ -345,8 +345,7 @@ def parameter_check(init, tran, emis):
 class HMM(object):
 	
 	def fromParamsFile(path):
-		with open_for_reading(path) as f:
-			return HMM(*json.load(f, encoding='utf-8'))
+		return HMM(*json.load(path, encoding='utf-8'))
 	
 	def __init__(self, initial, transition, emission):
 		self.init = initial
@@ -454,37 +453,36 @@ class HMM(object):
 
 #-------------------------------------
 
-def build_model(settings):
+def build_model(config):
 	log = logging.getLogger(__name__+'.build_model')
 	
-	# Settings
+	# Extra config
 	remove_chars = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
 
 	# Select the gold files which correspond to the misread count files.
 	misreadCounts = collections.defaultdict(collections.Counter)
 	gold_files = []
-	for file in settings.misreadCountsPath.iterdir():
-		(_, _, counts) = get_alignments(file.stem, settings)
+	for file in config.trainingPath.glob('*_misreadCounts.csv'):
+		(_, _, counts) = get_alignments(file.stem, config)
 		misreadCounts.update(counts)
-		gold_files.append(settings.goldPath.joinpath(file.stem + '.txt'))
+		gold_files.append(config.goldPath.joinpath(file.stem + '.txt'))
 	
-	dictionary = Dictionary(settings.dictionaryFile)
+	dictionary = Dictionary(config.dictionaryFile)
 	
 	confusion = generate_confusion(misreadCounts, remove_chars)
-	char_counts = text_char_counts(gold_files, dictionary, remove_chars, settings.nheaderlines)
+	char_counts = text_char_counts(gold_files, dictionary, remove_chars, config.nheaderlines)
 
-	charset = set(settings.characterSet) | set(char_counts) | set(confusion)
+	charset = set(config.characterSet) | set(char_counts) | set(confusion)
 
 	log.debug(sorted(charset))
 
 	# Create the emission probabilities from the misread counts and the character counts
-	emis = emission_probabilities(confusion, char_counts, settings.smoothingParameter, remove_chars,
+	emis = emission_probabilities(confusion, char_counts, config.smoothingParameter, remove_chars,
                                extra_chars=charset)
 
 	# Create the initial and transition probabilities from the gold files
-	init, tran = init_tran_probabilities(gold_files, dictionary, settings.smoothingParameter,
-                                         remove_chars, settings.nheaderlines, extra_chars=charset)
+	init, tran = init_tran_probabilities(gold_files, dictionary, config.smoothingParameter,
+                                         remove_chars, config.nheaderlines, extra_chars=charset)
 
 	if parameter_check(init, tran, emis):
-		with open(settings.hmmParamsFile, 'w', encoding='utf-8') as f:
-			json.dump((init, tran, emis), f)
+		json.dump((init, tran, emis), config.hmmParamsFile)
