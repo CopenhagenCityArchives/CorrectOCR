@@ -46,6 +46,9 @@ class PathWrapper(object):
 	def __getattr__(self, name):
 		return getattr(self._p, name)
 	
+	def __fspath__(self):
+		return self._p.__fspath__()
+	
 	def open(self):
 		if self._mode == 'r':
 			self._p = open_for_reading(self._p)

@@ -73,7 +73,8 @@ else:
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command')
 
 dictparser = subparsers.add_parser('build_dictionary', parents=[commonparser], help='Build dictionary')
-dictparser.add_argument('--corpus', type=PathWrapper('d'), help='Direcotry of files to split into words and add to dictionary (TXT or PDF format)')
+dictparser.add_argument('--corpusPath', type=PathWrapper('d'), default='__dictionarycache__/', help='Directory of files to split into words and add to dictionary (TXT or PDF format)')
+dictparser.add_argument('--corpusFile', type=PathWrapper('r'), help='File containing list URLs to download and use as corpus (TXT format)')
 dictparser.set_defaults(func=dictionary.build_dictionary, **configuration)
 
 alignparser = subparsers.add_parser('align', parents=[commonparser], help='Create alignments')

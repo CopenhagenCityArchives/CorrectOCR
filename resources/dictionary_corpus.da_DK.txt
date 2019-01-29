@@ -1,0 +1,39 @@
+### Herman Bang ###
+# Stuk (1881)
+# http://adl.dk/solr_documents/bang07val-workid54099
+http://adl.dk/solr_documents/bang07val-workid54099.pdf
+# Tine (1889)
+# http://adl.dk/solr_documents/bang08val-workid54101
+http://adl.dk/solr_documents/bang08val-workid54101.pdf
+# Ludvigsbakke (1896)
+# http://adl.dk/solr_documents/bang09val-workid54102
+http://adl.dk/solr_documents/bang09val-workid54102.pdf
+
+### Georg Brandes ###
+# Hovedstrømninger. Emigrantliteraturen (1872)
+# http://adl.dk/solr_documents/brandes04-workid55327
+http://adl.dk/solr_documents/brandes04-workid55327.pdf
+# Hovedstrømninger. Den romantiske skole i Tyskland (1873)
+# http://adl.dk/solr_documents/brandes04-workid66532
+http://adl.dk/solr_documents/brandes04-workid66532.pdf
+# Hovedstrømninger. Reaktionen i Frankrig (1874)
+# http://adl.dk/solr_documents/brandes05-workid54333
+http://adl.dk/solr_documents/brandes05-workid54333.pdf
+# Hovedstrømninger. Naturalismen i England (1875)
+# http://adl.dk/solr_documents/brandes05-workid73502
+http://adl.dk/solr_documents/brandes05-workid73502.pdf
+# Hovedstrømninger. Den romantiske skole i Frankrig (1882)
+# http://adl.dk/solr_documents/brandes06-workid54311
+http://adl.dk/solr_documents/brandes06-workid54311.pdf
+# Hovedstrømninger. Det unge Tyskland (1890)
+# http://adl.dk/solr_documents/brandes06-workid78618
+http://adl.dk/solr_documents/brandes06-workid78618.pdf
+
+### Alexei Petrovich Krapotkin (oversat af Emmy Drachmann) ###
+# En Anarkists Erindringer (1900)
+# https://rex.kb.dk/primo-explore/fulldisplay?docid=KGL01008508218&context=L&vid=NUI&lang=da_DK
+http://www.kb.dk/e-mat/dod/130019428509.pdf
+
+### Gold standard files ###
+# contents of paths ending in a slash are copied to the corpus directory
+gold/

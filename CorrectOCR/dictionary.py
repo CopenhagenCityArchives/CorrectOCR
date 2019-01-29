@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 
+import shutil
+import random
+import time
 import logging
 from pathlib import Path
+
+import requests
 
 from . import open_for_reading, ensure_new_file
 
@@ -55,47 +60,58 @@ class Dictionary(object):
 				f.write(word + '\n')
 
 
-def extract_text_from_pdf(pdf_path):
-	# see https://www.blog.pythonlibrary.org/2018/05/03/exporting-data-from-pdfs-with-python/
-	import io
-	from pdfminer.converter import TextConverter
-	from pdfminer.pdfinterp import PDFPageInterpreter
-	from pdfminer.pdfinterp import PDFResourceManager
-	from pdfminer.pdfpage import PDFPage
-	from pdfminer.layout import LAParams
+def extract_text_from_pdf(filename):
+	import fitz
 	
-	# pdfminer sprays a ton of debug/info output
-	logging.getLogger('pdfminer').setLevel(logging.WARNING)
+	doc = fitz.open(filename)
 	
-	resource_manager = PDFResourceManager()
-	fake_file_handle = io.StringIO()
-	laparams = LAParams()
-	converter = TextConverter(resource_manager, fake_file_handle, laparams=laparams)
-	page_interpreter = PDFPageInterpreter(resource_manager, converter)
+	text = ''
 	
-	with open(pdf_path, 'rb') as fh:
-		for page in PDFPage.get_pages(fh,
-                                caching=True,
-                                check_extractable=True):
-			page_interpreter.process_page(page)
+	for p in range(0, doc.pageCount):
+		page = doc.loadPage(p)
 		
-		text = fake_file_handle.getvalue()
+		text += page.getText()
 	
-	# close open handles
-	converter.close()
-	fake_file_handle.close()
-	
-	if text:
-		return text
+	return text
 
 
 def build_dictionary(config):
 	newdict = Dictionary(config.dictionaryFile)
 	
+	log = logging.getLogger(__name__+'.build_dictionary')
+	
 	from .tokenizer import tokenize_string
 	
-	for file in config.corpus.iterdir():
-		logging.getLogger(__name__).info('Getting words from {}'.format(file))
+	if config.corpusFile:
+		for line in config.corpusFile.readlines():
+			line = line.strip()
+			if len(line) == 0:
+				pass
+			elif line[0] == '#':
+				log.info(line)
+			elif line[:4] == 'http':
+				outfile = config.corpusPath.joinpath(Path(line).name)
+				if outfile.exists():
+					log.info('Download cached, will not download again.')
+					continue
+				r = requests.get(line)
+				if r.status_code == 200:
+					with open(outfile, 'wb') as f:
+						f.write(r.content)
+				else:
+					log.error('Unable to save file: {}'.format(r))
+				time.sleep(random.uniform(0.5, 1.5))
+			elif line[-1] == '/':
+				for file in Path(line).iterdir():
+					outfile = config.corpusPath.joinpath(Path(line).name)
+					if outfile.exists():
+						log.info('File already copied: {}'.format(file))
+						continue
+					log.info('Copying {} to corpus.'.format(file))
+					shutil.copy(file, outfile)
+	
+	for file in config.corpusPath.iterdir():
+		log.info('Getting words from {}'.format(file))
 		if file.suffix == '.pdf':
 			text = extract_text_from_pdf(file)
 			for word in tokenize_string(str(text), objectify=False):
@@ -105,7 +121,7 @@ def build_dictionary(config):
 				for word in tokenize_string(f.read(), objectify=False):
 					newdict.add(word)
 		else:
-			logging.getLogger(__name__).error('Unrecognized filetype:{}'.format(file))
-		logging.getLogger(__name__).info('Wordcount {}'.format(len(newdict)))
+			log.error('Unrecognized filetype:{}'.format(file))
+		log.info('Wordcount {}'.format(len(newdict)))
 	
 	newdict.save()

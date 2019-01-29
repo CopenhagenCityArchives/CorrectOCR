@@ -109,6 +109,7 @@ Requirements
 * Python >= 3.6
 * [beautifulsoup4](https://pypi.org/project/beautifulsoup4/)
 * [nltk](https://pypi.org/project/nltk/)
-* [pdfminer.six](https://pypi.org/project/pdfminer.six/)
 * [progressbar2](https://pypi.org/project/progressbar2/)
+* [PyMuPDF](https://pypi.org/project/pymupdf/)
 * [regex](https://pypi.org/project/regex/)
+* [requests](https://pypi.org/project/requests/)
