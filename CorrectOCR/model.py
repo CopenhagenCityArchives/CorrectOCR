@@ -16,7 +16,7 @@ class Aligner(object):
 		self.originalPath = originalPath
 		self.goldPath = goldPath
 		self.trainingPath = trainingPath
-		self.log = logging.getLogger(__name__+'.align')
+		self.log = logging.getLogger(f'{__name__}.align')
 
 	def align_words(self, left, right, index):
 		(aPos, bPos, aStr, bStr) = (0, 0, '', '')
@@ -50,12 +50,12 @@ class Aligner(object):
 				if ratio == 1.0:
 					continue # no reason to compare further
 			if best and bestRatio > 0.7 or (len(leftToken.original) > 4 and bestRatio > 0.6):
-				#self.log.debug('\t{} -> {} {}'.format(leftToken, best, bestRatio))
+				#self.log.debug(f'\t{leftToken} -> {best} {bestRatio}')
 				self.align_words(leftToken.original, best.original, i)
 				self.wordAlignments[leftToken.original][i] = best.original
 				remove.add(leftToken)
 			else:
-				#self.log.debug('\tbestRatio: {} & {} = {}'.format(leftToken, best, bestRatio))
+				#self.log.debug(f'\tbestRatio: {leftToken} & {best} = {bestRatio}')
 				pass
 		
 		return [t for t in left if t not in remove], right
@@ -67,23 +67,23 @@ class Aligner(object):
 		self.wordAlignments = defaultdict(dict)
 		self.misreadCounts = collections.defaultdict(collections.Counter)
 		
-		faPath = self.trainingPath.joinpath(fileid + '_fullAlignments.json')
-		waPath = self.trainingPath.joinpath(fileid + '_wordAlignments.json')
-		mcPath = self.trainingPath.joinpath(fileid + '_misreadCounts.json')
+		faPath = self.trainingPath.joinpath(f'{fileid}_fullAlignments.json')
+		waPath = self.trainingPath.joinpath(f'{fileid}_wordAlignments.json')
+		mcPath = self.trainingPath.joinpath(f'{fileid}_misreadCounts.json')
 		
 		if not force and (faPath.is_file() and waPath.is_file() and mcPath.is_file()):
 			# presume correctness, user may clean the files to rerun
-			self.log.info('Alignment files for {} exist, will read and return. Use --force or clean files to rerun a subset.'.format(fileid))
+			self.log.info(f'Alignment files for {fileid} exist, will read and return. Use --force or clean files to rerun a subset.')
 			return (
 				json.load(open_for_reading(faPath)),
 				{o: {int(k): v for k,v in i.items()} for o, i in json.load(open_for_reading(waPath)).items()},
 				json.load(open_for_reading(mcPath))
 			)
 		if force:
-			self.log.info('Creating alignment files for {}'.format(fileid))
+			self.log.info(f'Creating alignment files for {fileid}')
 		
-		originalFile = self.originalPath.joinpath(fileid + '.txt')
-		goldFile = self.goldPath.joinpath(fileid + '.txt')
+		originalFile = self.originalPath.joinpath(f'{fileid}.txt')
+		goldFile = self.goldPath.joinpath(f'{fileid}.txt')
 
 		#nopunct = lambda t: not t.is_punctuation()
 		#
@@ -114,7 +114,7 @@ class Aligner(object):
 							self.misreadCounts[leftChar][rightChar] += 1
 						self.wordAlignments[leftToken.original][i1] = rightToken.original
 				else:
-					#self.log.debug('{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}'.format(tag, i1, i2, j1, j2, a[i1:i2], b[j1:j2]))
+					#self.log.debug(f'{tag:7}   a[{i1}:{i2}] --> b[{j1}:{j2}] {a[i1:i2]!r:>8} --> {b[j1:j2]!r}')
 					(left, right) = self.align_tokens(a[i1:i2], b[j1:j2], i1)
 					leftRest.extend(left)
 					rightRest.extend(right)
@@ -125,8 +125,8 @@ class Aligner(object):
 		
 		(left, right) = self.align_tokens(leftRest, rightRest, int(len(a)/3))
 		
-		#self.log.debug('unmatched tokens left {}: {}'.format(len(left), sorted(left)))
-		#self.log.debug('unmatched tokens right {}: {}'.format(len(right), sorted(right)))
+		#self.log.debug(f'unmatched tokens left {len(left)}: {sorted(left)}')
+		#self.log.debug(f'unmatched tokens right {len(right)}: {sorted(right)}')
 	
 		with open(faPath, 'w', encoding='utf-8') as f:
 			json.dump(self.fullAlignments, f)
@@ -141,10 +141,10 @@ class Aligner(object):
 			json.dump(self.misreadCounts, f)
 			f.close()
 		
-		#self.log.debug('æ: {}'.format(self.misreadCounts['æ']))
-		#self.log.debug('cr: {}'.format(self.misreadCounts.get('cr', None)))
-		#self.log.debug('c: {}'.format(self.misreadCounts.get('c', None)))
-		#self.log.debug('r: {}'.format(self.misreadCounts.get('r', None)))
+		#self.log.debug(f"æ: {self.misreadCounts['æ']}")
+		#self.log.debug(f"cr: {self.misreadCounts.get('cr', None)}")
+		#self.log.debug(f"c: {self.misreadCounts.get('c', None)}")
+		#self.log.debug(f"r: {self.misreadCounts.get('r', None)}")
 		
 		return (self.fullAlignments, self.wordAlignments, self.misreadCounts)
 
@@ -196,7 +196,7 @@ def generate_confusion(misreadCounts, remove=[]):
 			if unwanted in confusion[outer]:
 				del confusion[outer][unwanted]
 	
-	#logging.getLogger(__name__+'.load_misread_counts').debug(confusion)
+	#logging.getLogger(f'{__name__}.load_misread_counts').debug(confusion)
 	return confusion
 
 # Get the character counts of the training files. Used for filling in
@@ -264,7 +264,7 @@ def emission_probabilities(confusion, char_counts, alpha,
 	for char in extra_chars:
 		confusion[char][char] = 1.0
 	
-	#logging.getLogger(__name__+'.emission_probabilities').debug(confusion)
+	#logging.getLogger(f'{__name__}.emission_probabilities').debug(confusion)
 	return confusion
 
 
@@ -324,7 +324,7 @@ def init_tran_probabilities(goldfiles, dictionary, alpha,
 
 
 def parameter_check(init, tran, emis):
-	log = logging.getLogger(__name__+'.parameter_check')
+	log = logging.getLogger(f'{__name__}.parameter_check')
 	all_match = True
 	if set(init) != set(tran):
 		all_match = False
@@ -332,11 +332,16 @@ def parameter_check(init, tran, emis):
 	if set(init) != set(emis):
 		all_match = False
 		keys = set(init).symmetric_difference(set(emis))
-		log.error('Initial keys do not match emission keys: diff: {} init: {} emis: {}'.format([k for k in keys], [init.get(k, None) for k in keys], [emis.get(k, None) for k in keys]))
+		log.error(
+			f'Initial keys do not match emission keys:'
+			f' diff: {[k for k in keys]}'
+			f' init: {[init.get(k, None) for k in keys]}'
+			f' emis: {[emis.get(k, None) for k in keys]}'
+		)
 	for key in tran:
 		if set(tran[key]) != set(tran):
 			all_match = False
-			log.error('Outer transition keys do not match inner keys: {}'.format(key))
+			log.error(f'Outer transition keys do not match inner keys: {key}')
 	if all_match == True:
 		log.info('Parameters match.')
 	return all_match
@@ -351,14 +356,15 @@ class HMM(object):
 		self.init = initial
 		self.tran = transition
 		self.emis = emission
-		self.log = logging.getLogger(__name__ + '.HMM')
+		self.log = logging.getLogger(f'{__name__}.HMM')
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		
 		self.states = initial.keys()
-		self.log.debug('self.init: ' + str(self.init))
-		#self.log.debug('self.tran: ' + str(self.tran))
-		#self.log.debug('self.emis: ' + str(self.emis))
-		self.log.debug('self.states: ' + str(self.states))
+		self.log.debug(f'self.init: {self.init}')
+		#self.log.debug(f'self.tran: {self.tran}')
+		#self.log.debug(f'self.emis: {self.emis}')
+		self.log.debug(f'self.states: {self.states}')
+		
 		#self.symbols = emission[self.states[0]].keys() # Not used ?!
 	
 	def viterbi(self, char_seq): # UNUSED!!
@@ -389,7 +395,7 @@ class HMM(object):
 		return ''.join(selected_states)
 	
 	def k_best_beam(self, word, k):
-		#self.log.debug('word: '+word)
+		#self.log.debug(f'word: {word}')
 		# Single symbol input is just initial * emission.
 		if len(word) == 1:
 			paths = [(i, self.init[i] * self.emis[i][word[0]])
@@ -403,7 +409,8 @@ class HMM(object):
 								for i in self.states for j in self.states]
 			except KeyError as e:
 				character = e.args[0]
-				self.log.critical('[word: {}] Model is missing character: {} ({})'.format(word, character, character.encode('utf-8')))
+				self.log.critical(f'[word: {word}] Model is missing character: {character} ({character.encode("utf-8")})')
+				raise SystemExit(-1)
 			
 			# Keep the k best sequences.
 			paths = sorted(paths, key=lambda x: x[1], reverse=True)[:k]
@@ -454,7 +461,7 @@ class HMM(object):
 #-------------------------------------
 
 def build_model(config):
-	log = logging.getLogger(__name__+'.build_model')
+	log = logging.getLogger(f'{__name__}.build_model')
 	
 	# Extra config
 	remove_chars = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
@@ -465,7 +472,7 @@ def build_model(config):
 	for file in config.trainingPath.glob('*_misreadCounts.csv'):
 		(_, _, counts) = get_alignments(file.stem, config)
 		misreadCounts.update(counts)
-		gold_files.append(config.goldPath.joinpath(file.stem + '.txt'))
+		gold_files.append(config.goldPath.joinpath(f'{file.stem}.txt'))
 	
 	dictionary = Dictionary(config.dictionaryFile)
 	

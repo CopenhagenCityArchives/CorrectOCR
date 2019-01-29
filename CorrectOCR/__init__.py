@@ -10,7 +10,7 @@ from collections import deque
 def get_encoding(file):
 	with open(file, 'rb') as f:
 		dammit = UnicodeDammit(f.read(1024*500), ['utf-8', 'Windows-1252'])
-		logging.getLogger(__name__+'.get_encoding').debug('detected %s for %s' % (dammit.original_encoding, file))
+		logging.getLogger(f'{__name__}.get_encoding').debug(f'detected {dammit.original_encoding} for {file}')
 		return dammit.original_encoding
 
 
@@ -33,11 +33,11 @@ class PathWrapper(object):
 				if not self._p.exists():
 					self._p.mkdir()
 				elif not self._p.is_dir():
-					self.log.critical('Error: Path {} exists but is not a directory!'.format(string))
+					self.log.critical(f'Error: Path {string} exists but is not a directory!')
 					raise SystemExit(-1)
 			elif self._mode == 'r':
 				if not self._p.exists():
-					self.log.critical('Required file does not exist! Should be at: {}'.format(string))
+					self.log.critical(f'Required file does not exist! Should be at: {string}')
 					raise SystemExit(-1)
 		if self._mode != 'd':
 			self.open()
@@ -55,13 +55,13 @@ class PathWrapper(object):
 		elif self._mode == 'w':
 			self._p = open(self._p, 'w', encoding=self._encoding)
 		else:
-			self.log.critical('Cannot open() path {} with mode "{}"'.format(self._p, self._mode))
+			self.log.critical(f'Cannot open() path {self._p} with mode "{self._mode}"')
 
 	def iterdir(self):
 		if self._mode == 'd':
 			return self._p.iterdir()
 		else:
-			self.log.critical('Cannot iterdir() path {} with mode "{}"'.format(self._p, self._mode))
+			self.log.critical(f'Cannot iterdir() path {self._p} with mode "{self._mode}"')
 
 
 def splitwindow(l, before=3, after=3):
@@ -75,9 +75,9 @@ def ensure_new_file(path):
 	counter = 0
 	originalpath = path
 	while Path(path).is_file():
-		path = Path(path.parent, '{}_{:03n}.txt'.format(originalpath.stem, counter))
+		path = Path(path.parent, f'{originalpath.stem}_{counter:03n}.txt')
 		counter += 1
 	if counter > 0:
-		logging.getLogger(__name__+'.ensure_new_file').info('Existing file moved to {}'.format(path))
+		logging.getLogger(f'{__name__}.ensure_new_file').info(f'Existing file moved to {path}')
 		originalpath.rename(path)
 	return path

@@ -132,7 +132,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(progname)
 
-log.info(u'Configuration for this invocation:\n{}'.format(pformat(vars(args))))
+log.info(f'Configuration for this invocation:\n{pformat(vars(args))}')
 args.func(args)
 
 exit()

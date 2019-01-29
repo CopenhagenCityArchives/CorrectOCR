@@ -73,7 +73,7 @@ class Heuristics(object):
 				self.bins[int(bin)]['heuristic'] = code[0]
 		self.k = k
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
-		self.log = logging.getLogger(__name__+'.Heuristics')
+		self.log = logging.getLogger(f'{__name__}.Heuristics')
 		self.reportVariables = [0]*31 # see report for interpretation
 	
 	def evaluate(self, token):
@@ -94,13 +94,13 @@ class Heuristics(object):
 		elif 0 < len(nkdict) < self.k:
 			dcode = 'somekd'
 		
-		#self.log.debug('{} {} {}'.format(original, kbest, dcode))
+		#self.log.debug(f'{original} {kbest} {dcode}')
 		
 		for num, bin in self.bins.items():
 			if bin['matcher'](original, kbest[0][1][0], self.dictionary, dcode):
 				return (num, bin['heuristic'])
 		
-		self.log.critical('Unable to make decision for token: '+str(token))
+		self.log.critical(f'Unable to make decision for token: {token}')
 		return (0, None)
 
 	def add_to_report(self, token):
@@ -347,13 +347,13 @@ class Heuristics(object):
 
 
 def make_report(config):
-	log = logging.getLogger(__name__+'.make_report')
+	log = logging.getLogger(f'{__name__}.make_report')
 	
 	dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
 	heuristics = Heuristics(dictionary, config.caseInsensitive, k=config.k)
 	
 	for file in config.trainingPath.glob('*_goldTokens.csv'):
-		log.info('Collecting stats from {}'.format(file))
+		log.info(f'Collecting stats from {file}')
 		with open_for_reading(file) as f:
 			reader = csv.DictReader(f, delimiter='\t')
 			for row in reader:

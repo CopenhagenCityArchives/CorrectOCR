@@ -17,7 +17,7 @@ from .model import HMM, get_alignments
 class Token(object):
 	def __init__(self, original, gold=None, kbest=[]):
 		self.original = original
-		self.log = logging.getLogger(__name__+'.Token')
+		self.log = logging.getLogger(f'{__name__}.Token')
 		# Newline characters are kept to recreate the text later,
 		# but are replaced by labeled strings for writing to csv.
 		if self.original == '\n':
@@ -37,7 +37,7 @@ class Token(object):
 				('_NEWLINE_R_', 0.0)
 			]
 		elif self.is_punctuation():
-			#self.log.debug('{}: is_punctuation'.format(self))
+			#self.log.debug(f'{self}: is_punctuation')
 			self.gold = self.original
 			self._kbest = []
 		else:
@@ -45,8 +45,8 @@ class Token(object):
 			self._kbest = kbest
 	
 	def __repr__(self):
-		#return '<{}>'.format(self.original)
-		return '<Token: {}{}{}>'.format(self.original, '/'+self.gold if self.gold else '', ' ({})'.format(self._kbest) if self._kbest else '')
+		#return f'<{self.original}>'
+		return '<Token: {}{}{}>'.format(self.original, '/'+self.gold if self.gold else '', f' ({self._kbest})' if self._kbest else '')
 	
 	def __eq__(self, other):
 		if isinstance(other, self.__class__):
@@ -133,12 +133,12 @@ def tokenize_file(filename, header=0, objectify=True):
 
 
 def tokenize(config, useExisting=False, getWordAlignements=True):
-	log = logging.getLogger(__name__+'.tokenize')
+	log = logging.getLogger(f'{__name__}.tokenize')
 	
-	tokenFilePath = config.trainingPath.joinpath(config.fileid + '_tokens.csv')
+	tokenFilePath = config.trainingPath.joinpath(f'{config.fileid}_tokens.csv')
 
 	if not config.force and tokenFilePath.is_file():
-		log.info('{} exists and will be returned as Token objects. Use --force or delete it to rerun.'.format(tokenFilePath))
+		log.info(f'{tokenFilePath} exists and will be returned as Token objects. Use --force or delete it to rerun.')
 		tokens = []
 		with open_for_reading(tokenFilePath) as f:
 			reader = csv.DictReader(f, delimiter='\t')
@@ -170,13 +170,13 @@ def tokenize(config, useExisting=False, getWordAlignements=True):
 	else:
 		wordAlignments = dict()
 	
-	log.debug('wordAlignments: {}'.format(wordAlignments))
+	log.debug(f'wordAlignments: {wordAlignments}')
 	
-	origfilename = config.originalPath.joinpath(config.fileid + '.txt')
+	origfilename = config.originalPath.joinpath(f'{config.fileid}.txt')
 	tokens = tokenize_file(origfilename, config.nheaderlines)
-	log.debug('Found {} tokens, first 10: {}'.format(len(tokens), tokens[:10]))
+	log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
 	
-	log.info('Generating {} k-best suggestions for each token'.format(config.k))
+	log.info(f'Generating {config.k}-best suggestions for each token')
 	for i, token in enumerate(progressbar.progressbar(tokens)):
 		if token in previousTokens:
 			token.update(other=previousTokens[token])
@@ -185,24 +185,24 @@ def tokenize(config, useExisting=False, getWordAlignements=True):
 		if not token.gold and token.original in wordAlignments:
 			wa = wordAlignments.get(token.original, dict())
 			closest = sorted(wa.items(), key=lambda x: x[0], reverse=True)
-			#log.debug('{} {} {}'.format(i, token.original, closest))
+			#log.debug(f'{i} {token.original} {closest}')
 			token.gold = closest[0][1]
 		previousTokens[token.original] = token
 		#log.debug(token.as_dict())
 	
 	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.']
 	
-	path = config.trainingPath.joinpath(config.fileid + '_tokens.csv')
+	path = config.trainingPath.joinpath(f'{config.fileid}_tokens.csv')
 	with open(path, 'w', encoding='utf-8') as f:
-		log.info('Writing tokens to {}'.format(path))
+		log.info(f'Writing tokens to {path}')
 		writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
 		writer.writeheader()
 		writer.writerows([t.as_dict() for t in tokens])
 	
 	if len(wordAlignments) > 0:
-		path = config.trainingPath.joinpath(config.fileid + '_goldTokens.csv')
+		path = config.trainingPath.joinpath(f'{config.fileid}_goldTokens.csv')
 		with open(path, 'w', encoding='utf-8') as f:
-			log.info('Writing tokens to {}'.format(path))
+			log.info(f'Writing gold tokens to {path}')
 			writer = csv.DictWriter(f, ['Gold']+header, delimiter='\t')
 			writer.writeheader()
 			writer.writerows([t.as_dict() for t in tokens])

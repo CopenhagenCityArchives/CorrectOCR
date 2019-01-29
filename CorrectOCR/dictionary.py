@@ -16,15 +16,15 @@ class Dictionary(object):
 		self.caseInsensitive = caseInsensitive
 		self.words = set()
 		self.file = file
-		self.log = logging.getLogger(__name__+'.Dictionary')
+		self.log = logging.getLogger(f'{__name__}.Dictionary')
 		if Path(self.file.name).exists():
-			self.log.info('Loading dictionary from {}'.format(self.file.name))
+			self.log.info(f'Loading dictionary from {self.file.name}')
 			for line in self.file.readlines():
 				if self.caseInsensitive:
 					self.words.add(line.strip().lower())
 				else:
 					self.words.add(line.strip())
-		self.log.info('{} words in dictionary'.format(len(self.words)))
+		self.log.info(f'{len(self.words)} words in dictionary')
 	
 	def __contains__(self, word):
 		if word.isnumeric():
@@ -44,7 +44,7 @@ class Dictionary(object):
 		if word in self or not word.isalpha():
 			return
 		if len(word) > 15:
-			self.log.warn('Added word is more than 15 characters long: {}'.format(word))
+			self.log.warn(f'Added word is more than 15 characters long: {word}')
 		if self.caseInsensitive:
 			word = word.lower()
 		self.words.add(word)
@@ -53,11 +53,11 @@ class Dictionary(object):
 		self.file.close()
 		name = self.file.name
 		newname = ensure_new_file(Path(self.file.name))
-		self.log.info('Backed up original dictionary file to {}'.format(newname))
-		self.log.info('Saving dictionary (words: {}) to {}'.format(len(self.words), name))
+		self.log.info(f'Backed up original dictionary file to {newname}')
+		self.log.info(f'Saving dictionary (words: {len(self.words)}) to {name}')
 		with open(name, 'w', encoding='utf-8') as f:
 			for word in sorted(self.words, key=str.lower):
-				f.write(word + '\n')
+				f.write(f'{word}\n')
 
 
 def extract_text_from_pdf(filename):
@@ -78,7 +78,7 @@ def extract_text_from_pdf(filename):
 def build_dictionary(config):
 	newdict = Dictionary(config.dictionaryFile)
 	
-	log = logging.getLogger(__name__+'.build_dictionary')
+	log = logging.getLogger(f'{__name__}.build_dictionary')
 	
 	from .tokenizer import tokenize_string
 	
@@ -99,19 +99,19 @@ def build_dictionary(config):
 					with open(outfile, 'wb') as f:
 						f.write(r.content)
 				else:
-					log.error('Unable to save file: {}'.format(r))
+					log.error(f'Unable to save file: {r}')
 				time.sleep(random.uniform(0.5, 1.5))
 			elif line[-1] == '/':
 				for file in Path(line).iterdir():
 					outfile = config.corpusPath.joinpath(Path(line).name)
 					if outfile.exists():
-						log.info('File already copied: {}'.format(file))
+						log.info(f'File already copied: {file}')
 						continue
-					log.info('Copying {} to corpus.'.format(file))
+					log.info(f'Copying {file} to corpus.')
 					shutil.copy(file, outfile)
 	
 	for file in config.corpusPath.iterdir():
-		log.info('Getting words from {}'.format(file))
+		log.info(f'Getting words from {file}')
 		if file.suffix == '.pdf':
 			text = extract_text_from_pdf(file)
 			for word in tokenize_string(str(text), objectify=False):
@@ -121,7 +121,7 @@ def build_dictionary(config):
 				for word in tokenize_string(f.read(), objectify=False):
 					newdict.add(word)
 		else:
-			log.error('Unrecognized filetype:{}'.format(file))
-		log.info('Wordcount {}'.format(len(newdict)))
+			log.error(f'Unrecognized filetype:{file}')
+		log.info(f'Wordcount {len(newdict)}')
 	
 	newdict.save()

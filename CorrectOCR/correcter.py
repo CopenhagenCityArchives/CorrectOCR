@@ -30,7 +30,7 @@ class Correcter(object):
 		self.caseInsensitive = caseInsensitive
 		self.memos = memos
 		self.k = k
-		self.log = logging.getLogger(__name__+'.Correcter')
+		self.log = logging.getLogger(f'{__name__}.Correcter')
 		self.dictionary = dictionary
 		self.heuristics = Heuristics(self.dictionary, self.caseInsensitive, settingsFile=heuristicSettingsFile)
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
@@ -86,7 +86,7 @@ class Correcter(object):
 		
 		# this should not happen in well-formed input
 		if len(token.original) == 0:
-			return ('error', 'Input is malformed! Original is 0-length: {}'.format(token))
+			return ('error', f'Input is malformed! Original is 0-length: {token}')
 		
 		# catch linebreaks
 		if (token.original in [u'_NEWLINE_N_', u'_NEWLINE_R_']):
@@ -100,7 +100,7 @@ class Correcter(object):
 		filtids = [k for k, (c,p) in token.kbest() if c in self.dictionary]
 		
 		(bin, decision) = self.heuristics.evaluate(token)
-		#self.log.debug('%d %s' % (bin, decisioncode))
+		#self.log.debug(f'{bin} {dcode}')
 		
 		# return decision codes and output token form or candidate list as appropriate
 		if decision == 'o':
@@ -130,7 +130,7 @@ class CorrectionShell(cmd.Cmd):
 			'newWords': [],
 			'correctionTracking': correctionTracking,
 		}
-		sh.log = logging.getLogger(__name__+'.CorrectionShell')
+		sh.log = logging.getLogger(f'{__name__}.CorrectionShell')
 		sh.punctuation = regex.compile(r'\p{posix_punct}+')
 		sh.use_rawinput = True
 		
@@ -143,7 +143,7 @@ class CorrectionShell(cmd.Cmd):
 	
 	def nexttoken(self):
 		try:
-			ctxr, self.token, ctxl = next(self.tokenwindow)
+			ctxl, self.token, ctxr = next(self.tokenwindow)
 			if self.token.gold:
 				return self.nexttoken()
 			(self.decision, self.var) = self.correcter.evaluate(self.token)
@@ -152,26 +152,23 @@ class CorrectionShell(cmd.Cmd):
 			if self.decision == 'annotator':
 				self.tracking['humanCount'] +=1 # increment human-effort count
 				
-				print('\n\n...{} \033[1;7m{}\033[0m {}...\n'.format(
-					' '.join([c.gold or c.original for c in ctxr]),
-					self.token.original,
-					' '.join([c.original for c in ctxl])
-				))
-				print('\nSELECT for {} :\n'.format(self.token.original))
+				left = ' '.join([c.gold or c.original for c in ctxr])
+				right = ' '.join([c.original for c in ctxl])
+				print(f'\n\n...{left} \033[1;7m{self.token.original}\033[0m {right}...\n')
+				print(f'\nSELECT for {self.token.original} :\n')
 				for k, (candidate, probability) in self.token.kbest():
-					print('\t{}. {} ({}){}\n'.format(k, candidate, probability,
-						' * is in dictionary' if k in self.var else ''
-					))
+					inDict = ' * is in dictionary' if k in self.var else ''
+					print(f'\t{k}. {candidate} ({probability}){inDict}\n')
 				
-				self.prompt = 'CorrectOCR {}/{} ({}) > '.format(self.tracking['tokenCount'], self.tracking['tokenTotal'], self.tracking['humanCount'])
+				self.prompt = f"CorrectOCR {self.tracking['tokenCount']}/{self.tracking['tokenTotal']} ({self.tracking['humanCount']}) > "
 			else:
-				self.cmdqueue.insert(0, '{} {}'.format(self.decision, self.var))
+				self.cmdqueue.insert(0, f'{self.decision} {self.var}')
 		except StopIteration:
 			print('Reached end of tokens, going to quit...')
 			return self.onecmd('quit')
 	
 	def select(self, word, decision, save=True):
-		print('Selecting {} for "{}": "{}"'.format(decision, self.token.original, word))
+		print(f'Selecting {decision} for "{self.token.original}": "{word}"')
 		self.token.gold = word
 		if save:
 			cleanword = self.punctuation.sub('', word)
@@ -202,18 +199,18 @@ class CorrectionShell(cmd.Cmd):
 		else:
 			k = 1
 		(candidate, _) = self.token.kbest(k)
-		return self.select(candidate, '{}-best'.format(k))
+		return self.select(candidate, f'{k}-best')
 	
 	def do_kdict(self, arg):
 		"""Choose k-best which is in dictionary"""
 		(candidate, _) = self.token.kbest(int(arg))
-		return self.select(candidate, 'k-best from dict')
+		return self.select(candidate, f'k-best from dict')
 	
 	def do_memo(self, arg):
 		return self.select(arg, 'memoized correction')
 	
 	def do_error(self, arg):
-		self.log.error('ERROR: {} {}'.format(arg, str(self.token)))
+		self.log.error(f'ERROR: {arg} {self.token}')
 	
 	def do_linefeed(self, arg):
 		return self.select('\n', 'linefeed', save=False)
@@ -232,26 +229,26 @@ class CorrectionShell(cmd.Cmd):
 		elif line == 'k':
 			return self.onecmd('kbest 1')
 		elif line.isnumeric():
-			return self.onecmd('kbest '+line)
+			return self.onecmd(f'kbest {line}')
 		elif line == 'q':
 			return self.onecmd('quit')
 		elif line == 'p':
 			print(self.decision, self.var, self.token) # for debugging
 		else:
-			self.log.error('bad command: "{}"'.format(line))
+			self.log.error(f'bad command: "{line}"')
 			return super().default(line)
 
 
 def correct(config):
-	log = logging.getLogger(__name__+'.correct')
+	log = logging.getLogger(f'{__name__}.correct')
 	
 	# try to combine hyphenated linebreaks before correction
 	linecombine = True
 	
 	# - - - parse inputs - - -
 	
-	log.info('Correcting ' + config.fileid + ' ')
-	origfilename = config.originalPath.joinpath(config.fileid + '.txt')
+	log.info(f'Correcting {config.fileid}')
+	origfilename = config.originalPath.joinpath(f'{config.fileid}.txt')
 	
 	# - - - set up files - - -
 	
@@ -281,7 +278,7 @@ def correct(config):
 
 	# open file to write corrected output
 	# don't write over finished corrections
-	correctfilename = ensure_new_file(config.correctedPath.joinpath(config.fileid + '.txt'))
+	correctfilename = ensure_new_file(config.correctedPath.joinpath(f'{config.fileid}.txt'))
 	o = open(correctfilename, 'w', encoding='utf-8')
 
 	# get metadata, if any
@@ -306,7 +303,7 @@ def correct(config):
 		tokens = correcter.linecombiner(tokens)
 
 	# print info to annotator
-	log.info(' file ' + config.fileid + '  contains about ' + str(len(tokens)) + ' words')
+	log.info(f' file {config.fileid} contains about {len(tokens)} words')
 	for l in metadata:
 		log.info(l)
 	
@@ -333,7 +330,7 @@ def correct(config):
 	track = dict()
 	for (original, gold), count in sorted(tracking['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
 		memos[original] = gold
-		track[original +'\t'+ gold] = count
+		track[f'{original}\t{gold}'] = count
 	with open(config.correctionTrackingFile.name, 'w', encoding='utf-8') as f:
 		json.dump(track, f)
 	json.dump(memos, open(config.memoizedCorrectionsFile.name, 'w'))
