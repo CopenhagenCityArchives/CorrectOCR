@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import re
-import textract
 import logging
 from pathlib import Path
+
+import textract
 
 from . import open_for_reading, ensure_new_file
 
@@ -37,8 +37,11 @@ class Dictionary(object):
 		return self.words.__len__()
 	
 	def add(self, word):
-		if word.isnumeric():
+		"""Silently drops non-alpha strings"""
+		if word in self or not word.isalpha():
 			return
+		if len(word) > 15:
+			self.log.warn('Added word is more than 15 characters long: {}'.format(word))
 		if self.caseInsensitive:
 			word = word.lower()
 		self.words.add(word)
@@ -88,19 +91,19 @@ def extract_text_from_pdf(pdf_path):
 
 
 def build_dictionary(config):
-	charset = re.sub(r'\W+', r'', config.characterSet)
-	
 	newdict = Dictionary(config.dictionaryFile)
 	
-	for file in config.files:
+	from .tokenizer import tokenize_string
+	
+	for file in config.dictionaryCorpus.iterdir():
 		logging.getLogger(__name__).info('Getting words from {}'.format(file))
 		if file.suffix == '.pdf':
 			text = extract_text_from_pdf(file)
-			for word in re.findall(r'\w+', str(text), re.IGNORECASE):
+			for word in tokenize_string(str(text), objectify=False):
 				newdict.add(word)
 		elif file.suffix == '.txt':
 			with open_for_reading(file) as f:
-				for word in re.findall(r'\w+', f.read(), re.IGNORECASE):
+				for word in tokenize_string(f.read(), objectify=False):
 					newdict.add(word)
 		else:
 			logging.getLogger(__name__).error('Unrecognized filetype:{}'.format(file))

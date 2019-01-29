@@ -110,16 +110,20 @@ class Token(object):
 		return self.original.isnumeric()
 
 
-def tokenize_file(filename, header=0, objectify=True):
-	with open_for_reading(filename) as f:
-		data = str.join('\n', [l for l in f.readlines()][header:])
-	
+def tokenize_string(data, objectify=True):
 	words = nltk.tokenize.word_tokenize(data, 'danish')
 	
 	if not objectify:
 		return words
 	
 	return [Token(w) for w in words]
+
+
+def tokenize_file(filename, header=0, objectify=True):
+	with open_for_reading(filename) as f:
+		data = str.join('\n', [l for l in f.readlines()][header:])
+	
+	return tokenize_string(data, objectify=objectify)
 
 
 def tokenize(config, useExisting=False):
