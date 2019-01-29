@@ -3,8 +3,6 @@
 import logging
 from pathlib import Path
 
-import textract
-
 from . import open_for_reading, ensure_new_file
 
 
