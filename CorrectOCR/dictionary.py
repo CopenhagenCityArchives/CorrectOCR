@@ -19,7 +19,6 @@ class Dictionary(object):
 					self.words.add(line.strip().lower())
 				else:
 					self.words.add(line.strip())
-			self.file.close()
 		self.log.info('{} words in dictionary'.format(len(self.words)))
 	
 	def __contains__(self, word):
@@ -46,6 +45,7 @@ class Dictionary(object):
 		self.words.add(word)
 	
 	def save(self):
+		self.file.close()
 		name = self.file.name
 		newname = ensure_new_file(Path(self.file.name))
 		self.log.info('Backed up original dictionary file to {}'.format(newname))
