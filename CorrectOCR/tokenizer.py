@@ -132,7 +132,7 @@ def tokenize_file(filename, header=0, objectify=True):
 	return tokenize_string(data, objectify=objectify)
 
 
-def tokenize(config, useExisting=False):
+def tokenize(config, useExisting=False, getWordAlignements=True):
 	log = logging.getLogger(__name__+'.tokenize')
 	
 	tokenFilePath = config.trainingPath.joinpath(config.fileid + '_tokens.csv')
@@ -165,7 +165,10 @@ def tokenize(config, useExisting=False):
 	else:
 		multichars = []
 
-	(_, wordAlignments, _) = get_alignments(config.fileid, config)
+	if getWordAlignements:
+		(_, wordAlignments, _) = get_alignments(config.fileid, config)
+	else:
+		wordAlignments = dict()
 	
 	log.debug('wordAlignments: {}'.format(wordAlignments))
 	

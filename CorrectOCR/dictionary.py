@@ -21,6 +21,7 @@ class Dictionary(object):
 					self.words.add(line.strip().lower())
 				else:
 					self.words.add(line.strip())
+			self.file.close()
 		self.log.info('{} words in dictionary'.format(len(self.words)))
 	
 	def __contains__(self, word):
@@ -95,7 +96,7 @@ def build_dictionary(config):
 	
 	from .tokenizer import tokenize_string
 	
-	for file in config.dictionaryCorpus.iterdir():
+	for file in config.corpus.iterdir():
 		logging.getLogger(__name__).info('Getting words from {}'.format(file))
 		if file.suffix == '.pdf':
 			text = extract_text_from_pdf(file)

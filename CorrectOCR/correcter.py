@@ -296,7 +296,7 @@ def correct(config):
 		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
 
 	# get tokens to use for correction
-	tokens = tokenizer.tokenize(config)
+	tokens = tokenizer.tokenize(config, getWordAlignements=False)
 	
 	dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
 	correcter = Correcter(dictionary, config.heuristicSettingsFile,
