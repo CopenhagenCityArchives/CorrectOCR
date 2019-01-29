@@ -17,47 +17,47 @@ def percc(n, x):
 class Heuristics(object):
 	bins = OrderedDict({
 		1: {
-			'description': 'k1 = orig and this is in dict.',
+			'description': 'k1 == original and both are in dictionary.',
 			'matcher': lambda o, k, d, dcode: o == k and o in d,
 			'heuristic': 'a', # send to annotator by default if no loaded settings
 		},
 		2: {
-			'description': 'k1 = orig but not in dict, and no other kbest in dict either.',
+			'description': 'k1 == original but they are not in dictionary, and no other kbest is in dictionary either.',
 			'matcher': lambda o, k, d, dcode: o == k and o not in d and dcode == 'zerokd',
 			'heuristic': 'a',
 		},
 		3: {
-			'description': 'k1 = orig but not in dict, but some lower-ranked kbest is in dict.',
+			'description': 'k1 == original but they are not in dictionary, but some lower-ranked kbest is.',
 			'matcher': lambda o, k, d, dcode: o == k and o not in d and dcode == 'somekd',
 			'heuristic': 'a',
 		},
 		4: {
-			'description': 'k1 is different from orig, and k1 passes dict check while orig doesn''t.',
+			'description': 'k1 != original and is in dictionary while original isn''t.',
 			'matcher': lambda o, k, d, dcode: o == k and o not in d and k in d,
 			'heuristic': 'a',
 		},
 		5: {
-			'description': 'k1 is different from orig and nothing anywhere passes dict check.',
+			'description': 'k1 != original and nothing is in dictionary.',
 			'matcher': lambda o, k, d, dcode: o != k and o not in d and dcode == 'zerokd',
 			'heuristic': 'a',
 		},
 		6: {
-			'description': 'k1 is different from orig and neither is in dict, but a lower-ranked candidate is.',
+			'description': 'k1 != original and neither are in dictionary, but a lower-ranked candidate is.',
 			'matcher': lambda o, k, d, dcode: o != k and o not in d and dcode == 'somekd',
 			'heuristic': 'a',
 		},
 		7: {
-			'description': 'k1 is different from orig and both are in dict.',
+			'description': 'k1 != original and both are in dictionary.',
 			'matcher': lambda o, k, d, dcode: o != k and o in d and k in d,
 			'heuristic': 'a',
 		},
 		8: {
-			'description': 'k1 is different from orig, orig is in dict and no candidates are in dict.',
+			'description': 'k1 != original, original is in dictionary and no candidates are in dictionary.',
 			'matcher': lambda o, k, d, dcode: o != k and o in d and dcode == 'zerokd',
 			'heuristic': 'a',
 		},
 		9: {
-			'description': 'k1 is different from orig, k1 not in dict but a lower candidate is and orig also in dict.',
+			'description': 'k1 != original, k1 is not in dictionary but both original and a lower candidate are.',
 			'matcher': lambda o, k, d, dcode: o != k and o in d and k not in d and dcode == 'somekd',
 			'heuristic': 'a',
 		}

@@ -138,7 +138,7 @@ def tokenize(config, useExisting=False):
 	tokenFilePath = config.trainingPath.joinpath(config.fileid + '_tokens.csv')
 
 	if not config.force and tokenFilePath.is_file():
-		log.info('{} exists and will be returned as Token objects.'.format(tokenFilePath))
+		log.info('{} exists and will be returned as Token objects. Use --force or delete it to rerun.'.format(tokenFilePath))
 		tokens = []
 		with open_for_reading(tokenFilePath) as f:
 			reader = csv.DictReader(f, delimiter='\t')
