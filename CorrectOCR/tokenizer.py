@@ -1,12 +1,10 @@
 import csv
-import itertools
 import logging
 from pathlib import Path
 
-import re
-import regex
 import nltk
 import progressbar
+import regex
 
 from . import open_for_reading, extract_text_from_pdf
 from .dictionary import Dictionary

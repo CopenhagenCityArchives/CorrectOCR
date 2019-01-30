@@ -1,10 +1,9 @@
 import collections
+import itertools
 import json
 import logging
-import itertools
-from difflib import SequenceMatcher
-from pathlib import Path
 from collections import defaultdict
+from difflib import SequenceMatcher
 
 import regex
 
@@ -61,8 +60,7 @@ class Aligner(object):
 		return [t for t in left if t not in remove], right
 
 	def alignments(self, fileid, force=False):
-		from .tokenizer import tokenize_file
-		
+
 		self.fullAlignments = []
 		self.wordAlignments = defaultdict(dict)
 		self.misreadCounts = collections.defaultdict(collections.Counter)
@@ -281,8 +279,6 @@ def init_tran_probabilities(goldfiles, dictionary, alpha,
 			# Record each occurrence of character pair ij in tran[i][j]
 			for i, j in zip(word[0:], word[1:]):
 				tran[i][j] += 1
-	
-	from .tokenizer import tokenize_file
 	
 	for file in goldfiles:
 		words = tokenize_file(file, header=nheaderlines, objectify=False)

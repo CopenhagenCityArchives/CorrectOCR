@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import logging
-import argparse
 import json
-from pathlib import Path
+import logging
 from collections import deque
+from pathlib import Path
 
 from bs4 import UnicodeDammit
 

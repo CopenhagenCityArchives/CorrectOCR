@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-
-import shutil
-import random
-import time
 import logging
+import random
+import shutil
+import time
 from pathlib import Path
 
 import requests

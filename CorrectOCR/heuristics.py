@@ -1,13 +1,14 @@
-import regex
-import logging
 import csv
+import logging
 from collections import OrderedDict
 
 import progressbar
+import regex
 
 from . import open_for_reading
 from .dictionary import Dictionary
 from .tokenizer import Token
+
 
 # print percents nicely
 def percc(n, x):

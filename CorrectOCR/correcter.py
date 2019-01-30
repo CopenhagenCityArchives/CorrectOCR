@@ -1,19 +1,15 @@
-# coding=utf-8
-# c richter / ricca@seas.upenn.edu
-import regex
 import cmd
 import csv
 import logging
-import readline
 from collections import defaultdict
-from pathlib import Path
 
 import progressbar
+import regex
 
-from . import tokenizer
 from . import open_for_reading, splitwindow, ensure_new_file
 from .dictionary import Dictionary
 from .heuristics import Heuristics
+from .tokenizer import tokenize
 
 '''
 IMPORTANT BEFORE USING:
@@ -246,7 +242,7 @@ def correct(config):
 	log.info(f'Loaded {len(memos)} memoized corrections from {config.memoizedCorrectionsFile}')
 	
 	# get tokens to use for correction
-	tokens = tokenizer.tokenize(config, getWordAlignements=False)
+	tokens = tokenize(config, getWordAlignments=False)
 	
 	dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
 	correcter = Correcter(dictionary, config.heuristicSettingsFile,

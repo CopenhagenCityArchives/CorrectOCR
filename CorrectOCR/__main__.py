@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 
+import argparse
+import configparser
 import logging
 import os
 import sys
-import configparser
-import argparse
-from pathlib import Path
 from pprint import pformat
 
 import progressbar
 
-from . import get_encoding, PathWrapper
+from . import PathWrapper
+from . import correcter
 from . import dictionary
+from . import heuristics
 from . import model
 from . import tokenizer
-from . import heuristics
-from . import correcter
 
 defaults = """
 [configuration]
