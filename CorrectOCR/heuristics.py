@@ -1,8 +1,9 @@
 import regex
 import logging
 import csv
-
 from collections import OrderedDict
+
+import progressbar
 
 from . import open_for_reading
 from .dictionary import Dictionary
@@ -71,6 +72,8 @@ class Heuristics(object):
 			for l in settfile:
 				(bin, code) = l.split('\t')
 				self.bins[int(bin)]['heuristic'] = code[0]
+		for k, v in self.bins.items():
+			v['number'] = k
 		self.k = k
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		self.log = logging.getLogger(f'{__name__}.Heuristics')
@@ -98,10 +101,10 @@ class Heuristics(object):
 		
 		for num, bin in self.bins.items():
 			if bin['matcher'](original, kbest[0][1][0], self.dictionary, dcode):
-				return (num, bin['heuristic'])
+				return (dict(bin), bin['heuristic'])
 		
 		self.log.critical(f'Unable to make decision for token: {token}')
-		return (0, None)
+		return (None, None)
 
 	def add_to_report(self, token):
 		vs = self.reportVariables
@@ -140,6 +143,7 @@ class Heuristics(object):
 		nkdict = len(set([kww for kww in kbws if kww in self.dictionary]))
 
 		filtws = [] # filtered words - only candidates that pass dict check
+		d1 = None
 		if 0 < nkdict < len(set(kbws)):
 			filtws = [kww for kww in kbws if kww in self.dictionary]
 			d1 = filtws[0]
@@ -155,19 +159,19 @@ class Heuristics(object):
 		
 		(bin,_) = self.evaluate(token)
 		
-		if bin == 1:
+		if bin['number'] == 1:
 			# k1 = orig and this is in dict.
 			if orig == gold:
 				vs[1] += 1
 			else:
 				vs[2] += 1
-		elif bin == 2:
+		elif bin['number'] == 2:
 			# k1 = orig but not in dict, and no other kbest in dict either
 			if orig == gold:
 				vs[3] += 1
 			else:
 				vs[4] += 1
-		elif bin == 3:
+		elif bin['number'] == 3:
 			# k1 = orig but not in dict, but some lower-ranked kbest is in dict
 			if k1 == gold:
 				vs[5] += 1
@@ -176,7 +180,7 @@ class Heuristics(object):
 				vs[6] += 1
 			else:
 				vs[7] += 1
-		elif bin == 4:
+		elif bin['number'] == 4:
 			# k1 is different from orig, and k1 passes dict check while orig doesn't
 			if orig == gold:
 				vs[8] += 1
@@ -185,7 +189,7 @@ class Heuristics(object):
 			else:
 				# neither orig nor k1 forms are correct
 				vs[10] += 1
-		elif bin == 5:
+		elif bin['number'] == 5:
 			# k1 is different from orig and nothing anywhere passes dict check
 			if orig == gold:
 				vs[11] += 1
@@ -193,7 +197,7 @@ class Heuristics(object):
 				vs[12] += 1
 			else:
 				vs[13] += 1
-		elif bin == 6:
+		elif bin['number'] == 6:
 			# k1 is different from orig and neither is in dict, but a lower-ranked candidate is
 			# orig is correct although not in dict
 			if orig == gold:
@@ -206,7 +210,7 @@ class Heuristics(object):
 				vs[16] += 1
 			else:
 				vs[17] += 1
-		elif bin == 7:
+		elif bin['number'] == 7:
 			# k1 is different from orig and both are in dict
 			if orig == gold:
 				vs[18] += 1
@@ -214,7 +218,7 @@ class Heuristics(object):
 				vs[19] += 1
 			else:
 				vs[20] += 1
-		elif bin == 8:
+		elif bin['number'] == 8:
 			# k1 is different from orig, orig is in dict and no candidates are in dict
 			if orig == gold:
 				vs[21] += 1
@@ -222,7 +226,7 @@ class Heuristics(object):
 				vs[22] += 1
 			else:
 				vs[23] += 1
-		elif bin == 9:
+		elif bin['number'] == 9:
 			# k1 is different from orig, k1 not in dict but a lower candidate is
 			# and orig also in dict
 			if orig == gold:
@@ -356,17 +360,20 @@ def make_report(config):
 		log.info(f'Collecting stats from {file}')
 		with open_for_reading(file) as f:
 			reader = csv.DictReader(f, delimiter='\t')
-			for row in reader:
-				heuristics.add_to_report(Token.from_dict(row))
+			for row in progressbar.progressbar(reader):
+				t = Token.from_dict(row)
+				heuristics.add_to_report(t)
 	
 	config.reportFile.writelines(heuristics.report())
 
 
 def make_settings(config):
-	# read report
+	log = logging.getLogger(f'{__name__}.make_settings')
+	
+	log.info(f'Reading report from {config.reportFile.name}')
 	bins = [ln for ln in config.reportFile.readlines() if "BIN" in ln]
 	
-	# write settings
+	log.info(f'Writing settings to {config.heuristicSettingsFile.name}')
 	for b in bins:
 		binID = b.split()[1]
 		action = b.split()[-1]

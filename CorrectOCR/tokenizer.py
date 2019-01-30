@@ -17,6 +17,7 @@ from .model import HMM, get_alignments
 class Token(object):
 	def __init__(self, original, gold=None, kbest=[]):
 		self.original = original
+		self.bin = dict()
 		self.log = logging.getLogger(f'{__name__}.Token')
 		# Newline characters are kept to recreate the text later,
 		# but are replaced by labeled strings for writing to csv.
@@ -93,6 +94,12 @@ class Token(object):
 		for k, (candidate, probability) in enumerate(self._kbest, 1):
 			output['%d-best'%k] = candidate
 			output['%d-best prob.'%k] = probability
+		if len(self.bin) > 0:
+			output['bin'] = self.bin.get('number', -1)
+			output['heuristic'] = self.bin.get('heuristic', None)
+			output['decision'] = self.bin.get('decision', None)
+			output['selection'] = self.bin.get('selection', None)
+			
 		return output
 	
 	def kbest(self, k=0):

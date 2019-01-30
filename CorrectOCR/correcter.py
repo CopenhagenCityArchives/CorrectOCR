@@ -9,6 +9,8 @@ import readline
 from collections import defaultdict
 from pathlib import Path
 
+import progressbar
+
 from . import tokenizer
 from . import open_for_reading, splitwindow, ensure_new_file
 from .dictionary import Dictionary
@@ -94,12 +96,12 @@ class Correcter(object):
 		
 		# catch memorised corrections
 		if not token.is_punctuation() and token.original in self.memos:
-			return ('memo', self.memos[token.original])
+			return ('memoized', self.memos[token.original])
 		
 		# k best candidate words
 		filtids = [k for k, (c,p) in token.kbest() if c in self.dictionary]
 		
-		(bin, decision) = self.heuristics.evaluate(token)
+		(token.bin, decision) = self.heuristics.evaluate(token)
 		#self.log.debug(f'{bin} {dcode}')
 		
 		# return decision codes and output token form or candidate list as appropriate
@@ -110,19 +112,17 @@ class Correcter(object):
 		elif decision == 'd':
 			return ('kdict', filtids[0])
 		else:
-			# decision is 'a' or undefined
+			# decision is 'a' or unrecognized
 			return ('annotator', filtids)
 
 
 class CorrectionShell(cmd.Cmd):
 	prompt = 'CorrectOCR> '
 	
-	def start(tokens, correcter, correctionTracking=defaultdict(int), intro=None):
+	def start(tokens, dictionary, correctionTracking=defaultdict(int), intro=None):
 		sh = CorrectionShell()
 		sh.tokenwindow = splitwindow(tokens, before=7, after=7)
-		sh.correcter = correcter
-		sh.dictionary = sh.correcter.dictionary
-		sh.k = sh.correcter.k
+		sh.dictionary = dictionary
 		sh.tracking = {
 			'tokenCount': 0,
 			'humanCount': 0,
@@ -146,7 +146,7 @@ class CorrectionShell(cmd.Cmd):
 			ctxl, self.token, ctxr = next(self.tokenwindow)
 			if self.token.gold:
 				return self.nexttoken()
-			(self.decision, self.var) = self.correcter.evaluate(self.token)
+			(self.decision, self.selection) = (self.token.bin['decision'], self.token.bin['selection'])
 			
 			self.tracking['tokenCount'] += 1
 			if self.decision == 'annotator':
@@ -157,12 +157,12 @@ class CorrectionShell(cmd.Cmd):
 				print(f'\n\n...{left} \033[1;7m{self.token.original}\033[0m {right}...\n')
 				print(f'\nSELECT for {self.token.original} :\n')
 				for k, (candidate, probability) in self.token.kbest():
-					inDict = ' * is in dictionary' if k in self.var else ''
+					inDict = ' * is in dictionary' if k in self.selection else ''
 					print(f'\t{k}. {candidate} ({probability}){inDict}\n')
 				
 				self.prompt = f"CorrectOCR {self.tracking['tokenCount']}/{self.tracking['tokenTotal']} ({self.tracking['humanCount']}) > "
 			else:
-				self.cmdqueue.insert(0, f'{self.decision} {self.var}')
+				self.cmdqueue.insert(0, f'{self.decision} {self.selection}')
 		except StopIteration:
 			print('Reached end of tokens, going to quit...')
 			return self.onecmd('quit')
@@ -206,7 +206,7 @@ class CorrectionShell(cmd.Cmd):
 		(candidate, _) = self.token.kbest(int(arg))
 		return self.select(candidate, f'k-best from dict')
 	
-	def do_memo(self, arg):
+	def do_memoized(self, arg):
 		return self.select(arg, 'memoized correction')
 	
 	def do_error(self, arg):
@@ -233,7 +233,7 @@ class CorrectionShell(cmd.Cmd):
 		elif line == 'q':
 			return self.onecmd('quit')
 		elif line == 'p':
-			print(self.decision, self.var, self.token) # for debugging
+			print(self.decision, self.selection, self.token) # for debugging
 		else:
 			self.log.error(f'bad command: "{line}"')
 			return super().default(line)
@@ -299,6 +299,21 @@ def correct(config):
 	correcter = Correcter(dictionary, config.heuristicSettingsFile,
 	                      memos, config.caseInsensitive, config.k)
 	
+	log.info('Running heuristics on tokens to determine annotator workload.')
+	annotatorRequired = 0
+	for t in progressbar.progressbar(tokens):
+		(t.bin['decision'], t.bin['selection']) = correcter.evaluate(t)
+		annotatorRequired += 1
+	log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
+	
+	path = config.trainingPath.joinpath(f'{config.fileid}_binnedTokens.csv')
+	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.', 'bin', 'heuristic', 'decision', 'selection']
+	with open(path, 'w', encoding='utf-8') as f:
+		log.info(f'Writing gold tokens to {path}')
+		writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
+		writer.writeheader()
+		writer.writerows([t.as_dict() for t in tokens])
+
 	if linecombine:
 		tokens = correcter.linecombiner(tokens)
 
@@ -307,7 +322,7 @@ def correct(config):
 	for l in metadata:
 		log.info(l)
 	
-	tracking = CorrectionShell.start(tokens, correcter, correctionTracking)
+	tracking = CorrectionShell.start(tokens, dictionary, correctionTracking)
 
 	#log.debug(tokens)
 	log.debug(tracking['newWords'])
