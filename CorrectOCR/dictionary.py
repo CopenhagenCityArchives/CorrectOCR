@@ -26,6 +26,12 @@ class Dictionary(object):
 					self.words.add(line.strip())
 		self.log.info(f'{len(self.words)} words in dictionary')
 	
+	def __str__(self):
+		return f'<{self.__class__.__name__} "{len(self.words)}{" caseInsensitive" if self._optional else ""}>'
+	
+	def __repr__(self):
+		return self.__str__()
+	
 	def __contains__(self, word):
 		if word.isnumeric():
 			return True

@@ -323,34 +323,7 @@ def init_tran_probabilities(goldfiles, dictionary, alpha,
 	return init, tran
 
 
-def parameter_check(init, tran, emis):
-	log = logging.getLogger(f'{__name__}.parameter_check')
-	all_match = True
-	if set(init) != set(tran):
-		all_match = False
-		log.error('Initial keys do not match transition keys.')
-	if set(init) != set(emis):
-		all_match = False
-		keys = set(init).symmetric_difference(set(emis))
-		log.error(
-			f'Initial keys do not match emission keys:'
-			f' diff: {[k for k in keys]}'
-			f' init: {[init.get(k, None) for k in keys]}'
-			f' emis: {[emis.get(k, None) for k in keys]}'
-		)
-	for key in tran:
-		if set(tran[key]) != set(tran):
-			all_match = False
-			log.error(f'Outer transition keys do not match inner keys: {key}')
-	if all_match == True:
-		log.info('Parameters match.')
-	return all_match
-
-
 class HMM(object):
-	
-	def fromParamsFile(path):
-		return HMM(*path.loadjson())
 	
 	def __init__(self, initial, transition, emission):
 		self.init = initial
@@ -365,7 +338,44 @@ class HMM(object):
 		#self.log.debug(f'self.emis: {self.emis}')
 		self.log.debug(f'self.states: {self.states}')
 		
-		#self.symbols = emission[self.states[0]].keys() # Not used ?!
+		if not self.parameter_check():
+			self.log.critical(f'Parameter check failed for {self}')
+		else:
+			self.log.debug(f'HMM initialized: {self}')
+	
+	def __str__(self):
+		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
+	
+	def __repr__(self):
+		return self.__str__()
+
+	def parameter_check(self):
+		all_match = True
+		if set(self.init) != set(self.tran):
+			all_match = False
+			self.log.error('Initial keys do not match transition keys.')
+		if set(self.init) != set(self.emis):
+			all_match = False
+			keys = set(self.init).symmetric_difference(set(self.emis))
+			self.log.error(
+				f'Initial keys do not match emission keys:'
+				f' diff: {[k for k in keys]}'
+				f' init: {[self.init.get(k, None) for k in keys]}'
+				f' emis: {[self.emis.get(k, None) for k in keys]}'
+			)
+		for key in self.tran:
+			if set(self.tran[key]) != set(self.tran):
+				all_match = False
+				self.log.error(f'Outer transition keys do not match inner keys: {key}')
+		if all_match == True:
+			self.log.info('Parameters match.')
+		return all_match
+
+	def load(path):
+		return HMM(*path.loadjson())
+	
+	def save(self, path):
+		path.savejson([self.init, self.tran, self.emis])
 	
 	def viterbi(self, char_seq): # UNUSED!!
 		# delta[t][j] is probability of max probability path to state j
@@ -491,5 +501,7 @@ def build_model(config):
 	init, tran = init_tran_probabilities(gold_files, dictionary, config.smoothingParameter,
                                          remove_chars, config.nheaderlines, extra_chars=charset)
 
-	if parameter_check(init, tran, emis):
-		config.hmmParamsFile.savejson((init, tran, emis))
+	log.info(f'Saving HMM parameters to {config.hmmParamsFile}')
+	hmm = HMM(init, tran, emis)
+	hmm.save(config.hmmParamsFile)
+		

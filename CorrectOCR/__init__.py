@@ -28,6 +28,12 @@ class PathWrapper(object):
 		self._fh = None
 		if self._mode != 'r':
 			self._encoding = 'utf-8'
+	
+	def __str__(self):
+		return f'<{self.__class__.__name__} "{self._p}" {self._mode}{" optional" if self._optional else ""}>'
+	
+	def __repr__(self):
+		return self.__str__()
 
 	def __call__(self, string):
 		self._p = Path(string)

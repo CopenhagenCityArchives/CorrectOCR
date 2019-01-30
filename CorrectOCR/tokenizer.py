@@ -1,5 +1,4 @@
 import csv
-import json
 import itertools
 import logging
 from pathlib import Path
@@ -45,9 +44,11 @@ class Token(object):
 			self.gold = gold
 			self._kbest = kbest
 	
+	def __str__(self):
+		return f'<{self.__class__.__name__} {self.original}, {self.gold}, {self._kbest}, {self.bin}>'
+	
 	def __repr__(self):
-		#return f'<{self.original}>'
-		return '<Token: {}{}{}>'.format(self.original, '/'+self.gold if self.gold else '', f' ({self._kbest})' if self._kbest else '')
+		return self.__str__()
 	
 	def __eq__(self, other):
 		if isinstance(other, self.__class__):
@@ -76,10 +77,13 @@ class Token(object):
 		elif kbest:
 			self._kbest = kbest
 		elif d:
-			original=d['Original']
-			gold=d.get('Gold', None)
-			kbest = [(d['%d-best'%k], float(d['%d-best prob.'%k])) for k in range(1, k+1)]
-			self.__init__(original, gold, kbest)
+			#self.log.debug(self)
+			self.__init__(
+				d['Original'],
+				d.get('Gold', None),
+				[(d['%d-best'%k], float(d['%d-best prob.'%k])) for k in range(1, k+1)]
+			)
+			#self.log.debug(self)
 	
 	def from_dict(d, k=4):
 		t = Token('')
@@ -153,7 +157,7 @@ def tokenize(config, useExisting=False, getWordAlignements=True):
 				tokens.append(Token.from_dict(row, config.k))
 		return tokens
 	
-	hmm = HMM.fromParamsFile(config.hmmParamsFile)
+	hmm = HMM.load(config.hmmParamsFile)
 
 	dictionary = Dictionary(config.dictionaryFile)
 	
