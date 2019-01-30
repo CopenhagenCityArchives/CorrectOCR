@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 
-from . import open_for_reading, ensure_new_file
+from . import open_for_reading, ensure_new_file, extract_text_from_pdf
 
 
 class Dictionary(object):
@@ -64,21 +64,6 @@ class Dictionary(object):
 		with open(name, 'w', encoding='utf-8') as f:
 			for word in sorted(self.words, key=str.lower):
 				f.write(f'{word}\n')
-
-
-def extract_text_from_pdf(filename):
-	import fitz
-	
-	doc = fitz.open(filename)
-	
-	text = ''
-	
-	for p in range(0, doc.pageCount):
-		page = doc.loadPage(p)
-		
-		text += page.getText()
-	
-	return text
 
 
 def build_dictionary(config):

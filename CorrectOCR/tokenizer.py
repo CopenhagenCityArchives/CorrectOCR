@@ -8,7 +8,7 @@ import regex
 import nltk
 import progressbar
 
-from . import open_for_reading
+from . import open_for_reading, extract_text_from_pdf
 from .dictionary import Dictionary
 from .model import HMM, get_alignments
 

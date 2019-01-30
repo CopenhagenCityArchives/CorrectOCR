@@ -95,6 +95,7 @@ class PathWrapper(object):
 			raise SystemExit(-1)
 		return json.dump(data, self.open())
 
+
 def splitwindow(l, before=3, after=3):
 	a = deque(maxlen=before)
 	for i in range(len(l)):
@@ -112,3 +113,20 @@ def ensure_new_file(path):
 		logging.getLogger(f'{__name__}.ensure_new_file').info(f'Existing file moved to {path}')
 		originalpath.rename(path)
 	return path
+
+
+def extract_text_from_pdf(filename):
+	import fitz
+	
+	doc = fitz.open(filename)
+	
+	text = ''
+	
+	for p in range(0, doc.pageCount):
+		page = doc.loadPage(p)
+		
+		text += page.getText()
+	
+	return text
+
+
