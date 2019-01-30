@@ -5,6 +5,7 @@ all:
 	init from fileid & return generated/memoized alignments/decodings/etc
 	normalize regex usage (function in __init__?)
 	more progressbars where possible
+	classes: __str__/__repr__ methods
 
 dictionary:
 	use tokenization to build dict
