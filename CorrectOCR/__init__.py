@@ -2,9 +2,11 @@
 
 import logging
 import argparse
+import json
 from pathlib import Path
-from bs4 import UnicodeDammit
 from collections import deque
+
+from bs4 import UnicodeDammit
 
 
 def get_encoding(file):
@@ -23,6 +25,7 @@ class PathWrapper(object):
 		self.log = logging.getLogger(__name__)
 		self._mode = mode
 		self._optional = optional
+		self._fh = None
 		if self._mode != 'r':
 			self._encoding = 'utf-8'
 
@@ -39,30 +42,52 @@ class PathWrapper(object):
 				if not self._p.exists():
 					self.log.critical(f'Required file does not exist! Should be at: {string}')
 					raise SystemExit(-1)
-		if self._mode != 'd':
+		if self._p.is_file():
 			self.open()
 		return self
 	
 	def __getattr__(self, name):
-		return getattr(self._p, name)
+		if self._fh:
+			return getattr(self._fh, name)
+		else:
+			return getattr(self._p, name)
 	
 	def __fspath__(self):
 		return self._p.__fspath__()
 	
 	def open(self):
+		if self._fh:
+			return self._fh
 		if self._mode == 'r':
-			self._p = open_for_reading(self._p)
+			self._fh = open_for_reading(self._p)
+			return self._fh
 		elif self._mode == 'w':
-			self._p = open(self._p, 'w', encoding=self._encoding)
+			self._fh = open(self._p, 'w', encoding=self._encoding)
+			return self._fh
 		else:
 			self.log.critical(f'Cannot open() path {self._p} with mode "{self._mode}"')
+			raise SystemExit(-1)
 
 	def iterdir(self):
 		if self._mode == 'd':
 			return self._p.iterdir()
 		else:
 			self.log.critical(f'Cannot iterdir() path {self._p} with mode "{self._mode}"')
+			raise SystemExit(-1)
 
+	def loadjson(self):
+		if self._mode == 'd':
+			self.log.critical(f'Cannot load json from directory: {self._p}')
+			raise SystemExit(-1)
+		elif not self._p.is_file():
+			return dict()
+		return json.load(self.open())
+
+	def savejson(self, data):
+		if self._mode == 'd':
+			self.log.critical(f'Cannot save json from directory: {self._p}')
+			raise SystemExit(-1)
+		return json.dump(data, self.open())
 
 def splitwindow(l, before=3, after=3):
 	a = deque(maxlen=before)

@@ -166,11 +166,7 @@ def tokenize(config, useExisting=False, getWordAlignements=True):
 				for row in reader:
 					previousTokens[row['Original']] = Token.fromDict(row, config.k)
 	
-	data = config.multiCharacterErrorFile.read()
-	if len(data) > 0:
-		multichars = json.load(data, encoding='utf-8')
-	else:
-		multichars = []
+	multichars = config.multiCharacterErrorFile.loadjson()
 
 	if getWordAlignements:
 		(_, wordAlignments, _) = get_alignments(config.fileid, config)

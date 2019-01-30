@@ -350,7 +350,7 @@ def parameter_check(init, tran, emis):
 class HMM(object):
 	
 	def fromParamsFile(path):
-		return HMM(*json.load(path, encoding='utf-8'))
+		return HMM(*path.loadjson())
 	
 	def __init__(self, initial, transition, emission):
 		self.init = initial
@@ -492,4 +492,4 @@ def build_model(config):
                                          remove_chars, config.nheaderlines, extra_chars=charset)
 
 	if parameter_check(init, tran, emis):
-		json.dump((init, tran, emis), config.hmmParamsFile)
+		config.hmmParamsFile.savejson((init, tran, emis))

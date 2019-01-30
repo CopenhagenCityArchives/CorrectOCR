@@ -2,7 +2,6 @@
 # c richter / ricca@seas.upenn.edu
 import regex
 import cmd
-import json
 import csv
 import logging
 import readline
@@ -253,21 +252,15 @@ def correct(config):
 	# - - - set up files - - -
 	
 	# read memoized corrections
-	memodata = config.memoizedCorrectionsFile.read()
-	if len(memodata) > 0:
-		memos = json.loads(memodata)
-	else:
-		log.info('no memoized corrections found!')
-		memos = {}
+	memos = config.memoizedCorrectionsFile.loadjson()
+	log.info(f'Loaded {len(memos)} memoized corrections from {config.memoizedCorrectionsFile}')
 	
 	# read corrections learning file
 	correctionTracking = defaultdict(int)
-	correctiondata = config.correctionTrackingFile.read()
-	if len(correctiondata) > 0:
-		for key, count in json.loads(correctiondata).items():
-			(original, gold) = key.split('\t')
-			correctionTracking[(original, gold)] = int(count)
-		correctionTracking.update()
+	for key, count in config.correctionTrackingFile.loadjson().items():
+		(original, gold) = key.split('\t')
+		correctionTracking[(original, gold)] = int(count)
+	log.info(f'Loaded {len(correctionTracking)} correction tracking items from {config.correctionTrackingFile}')
 	
 	log.debug(correctionTracking)
 	
@@ -346,6 +339,7 @@ def correct(config):
 	for (original, gold), count in sorted(tracking['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
 		memos[original] = gold
 		track[f'{original}\t{gold}'] = count
-	with open(config.correctionTrackingFile.name, 'w', encoding='utf-8') as f:
-		json.dump(track, f)
-	json.dump(memos, open(config.memoizedCorrectionsFile.name, 'w'))
+	if len(track) > 0:
+		config.correctionTrackingFile.savejson(track)
+	if len(memos) > 0:
+		config.memoizedCorrectionsFile.savejson(memos)
