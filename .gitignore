@@ -5,3 +5,5 @@ original
 resources
 training
 __dictionarycache__
+*.ini
+.idea
