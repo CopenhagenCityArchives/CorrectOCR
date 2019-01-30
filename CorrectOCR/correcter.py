@@ -241,50 +241,10 @@ class CorrectionShell(cmd.Cmd):
 def correct(config):
 	log = logging.getLogger(f'{__name__}.correct')
 	
-	# try to combine hyphenated linebreaks before correction
-	linecombine = True
-	
-	# - - - parse inputs - - -
-	
-	log.info(f'Correcting {config.fileid}')
-	origfilename = config.originalPath.joinpath(f'{config.fileid}.txt')
-	
-	# - - - set up files - - -
-	
 	# read memoized corrections
 	memos = config.memoizedCorrectionsFile.loadjson()
 	log.info(f'Loaded {len(memos)} memoized corrections from {config.memoizedCorrectionsFile}')
 	
-	# read corrections learning file
-	correctionTracking = defaultdict(int)
-	for key, count in config.correctionTrackingFile.loadjson().items():
-		(original, gold) = key.split('\t')
-		correctionTracking[(original, gold)] = int(count)
-	log.info(f'Loaded {len(correctionTracking)} correction tracking items from {config.correctionTrackingFile}')
-	
-	log.debug(correctionTracking)
-	
-	# -----------------------------------------------------------
-	# // -------------------------------------------- //
-	# //  Interactively handle corrections in a file  //
-	# // -------------------------------------------- //
-
-	# open file to write corrected output
-	# don't write over finished corrections
-	correctfilename = ensure_new_file(config.correctedPath.joinpath(f'{config.fileid}.txt'))
-	o = open(correctfilename, 'w', encoding='utf-8')
-
-	# get metadata, if any
-	if config.nheaderlines > 0:
-		with open_for_reading(origfilename) as f:
-			metadata = f.readlines()[:config.nheaderlines]
-	else:
-		metadata = ''
-
-	# and write it to output file, replacing 'Corrected: No' with 'Yes'
-	for l in metadata:
-		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
-
 	# get tokens to use for correction
 	tokens = tokenizer.tokenize(config, getWordAlignements=False)
 	
@@ -302,10 +262,42 @@ def correct(config):
 	path = config.trainingPath.joinpath(f'{config.fileid}_binnedTokens.csv')
 	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.', 'bin', 'heuristic', 'decision', 'selection']
 	with open(path, 'w', encoding='utf-8') as f:
-		log.info(f'Writing gold tokens to {path}')
+		log.info(f'Writing binned tokens to {path}')
 		writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
 		writer.writeheader()
 		writer.writerows([t.as_dict() for t in tokens])
+
+	if not config.interactive:
+		return
+
+	# try to combine hyphenated linebreaks before correction
+	linecombine = True
+	
+	log.info(f'Correcting {config.fileid}')
+	origfilename = config.originalPath.joinpath(f'{config.fileid}.txt')
+	
+	# read corrections learning file
+	correctionTracking = defaultdict(int)
+	for key, count in config.correctionTrackingFile.loadjson().items():
+		(original, gold) = key.split('\t')
+		correctionTracking[(original, gold)] = int(count)
+	log.info(f'Loaded {len(correctionTracking)} correction tracking items from {config.correctionTrackingFile}')
+	
+	log.debug(correctionTracking)
+	
+	correctfilename = ensure_new_file(config.correctedPath.joinpath(f'{config.fileid}.txt'))
+	o = open(correctfilename, 'w', encoding='utf-8')
+
+	# get metadata, if any
+	if config.nheaderlines > 0:
+		with open_for_reading(origfilename) as f:
+			metadata = f.readlines()[:config.nheaderlines]
+	else:
+		metadata = ''
+
+	# and write it to output file, replacing 'Corrected: No' with 'Yes'
+	for l in metadata:
+		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
 
 	if linecombine:
 		tokens = correcter.linecombiner(tokens)

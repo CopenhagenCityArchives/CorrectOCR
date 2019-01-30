@@ -110,6 +110,7 @@ settingsparser.set_defaults(func=heuristics.make_settings, **configuration)
 
 correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Run assisted correction interface')
 correctparser.add_argument('--fileid', required=True, help='Input file ID (filename without path or extension)')
+correctparser.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
 correctparser.add_argument('--hmmParamsFile', metavar='FILE', type=PathWrapper('r'), help='Path to HMM parameters (generated from alignment files via build_model command)')
 correctparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=PathWrapper('r') , help='Path to heuristics settings (generated via make_settings command)')
 correctparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=PathWrapper('r', optional=True), help='Path to output multi-character error file (JSON format)')
