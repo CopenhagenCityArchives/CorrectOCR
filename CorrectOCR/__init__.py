@@ -35,7 +35,7 @@ class PathWrapper(object):
 		return self.__str__()
 
 	def __call__(self, string):
-		self._p = Path(string)
+		self._p = Path(string).resolve()
 		if not self._optional:
 			if self._mode == 'd':
 				if not self._p.exists():
