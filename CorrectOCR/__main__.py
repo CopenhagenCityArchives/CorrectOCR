@@ -5,35 +5,39 @@ import configparser
 import logging
 import os
 import sys
+from pathlib import Path
 from pprint import pformat
 
 import progressbar
 
-from . import PathWrapper
-from . import aligner
-from . import correcter
-from . import dictionary
-from . import heuristics
-from . import model
-from . import tokenizer
+from . import workspace
+from . import commands
 
 defaults = """
 [configuration]
 characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+
+[workspace]
 correctedPath = corrected/
 goldPath = gold/
 originalPath = original/
+trainingPath = training/
+
+[resources]
 correctionTrackingFile = resources/correction_tracking.json
 dictionaryFile = resources/dictionary.txt
 hmmParamsFile = resources/hmm_parameters.json
 memoizedCorrectionsFile = resources/memoized_corrections.json
 multiCharacterErrorFile = resources/multicharacter_errors.json
 reportFile = resources/report.txt
-heuristicSettingsFile = resources/settings.txt
-trainingPath = training/
+heuristicSettingsFile = resources/settings.json
 """
 
 progname = 'CorrectOCR'
+
+loglevels = dict(logging._nameToLevel)
+del loglevels['NOTSET']
+del loglevels['WARN']
 
 # windows/mobaxterm/py3.6 fix:
 if os.name == 'nt':
@@ -47,24 +51,37 @@ config.optionxform = lambda option: option
 config.read_string(defaults)
 config.read(['CorrectOCR.ini'], encoding='utf-8')
 
+workspaceparser = argparse.ArgumentParser()
+workspaceparser.add_argument('--originalPath', metavar='PATH', type=Path, help='Path to directory of original, uncorrected files')
+workspaceparser.add_argument('--goldPath', metavar='PATH', type=Path, help='Path to directory of known correct "gold" files')
+workspaceparser.add_argument('--trainingPath', metavar='PATH', type=Path, help='Path for generated training files')
+workspaceparser.add_argument('--correctedPath', metavar='PATH', type=Path, help='Directory to output corrected files')
+workspaceparser.set_defaults(**dict(config.items('workspace')))
+(workspaceconfig, args) = workspaceparser.parse_known_args()
+#print(workspaceconfig, args)
+
+resourceparser = argparse.ArgumentParser()
+resourceparser.add_argument('--hmmParamsFile', metavar='FILE', type=Path, help='Path to HMM parameters (generated from alignment files via build_model command)')
+resourceparser.add_argument('--reportFile', metavar='FILE', type=Path, help='Path to output heuristics report (TXT file)')
+resourceparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=Path , help='Path to heuristics settings (generated via make_settings command)')
+resourceparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=Path, help='Path to output multi-character error file (JSON format)')
+resourceparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=Path , help='Path to memoizations of corrections.')
+resourceparser.add_argument('--correctionTrackingFile', metavar='FILE', type=Path , help='Path to correction tracking.')
+resourceparser.add_argument('--dictionaryFile', metavar='FILE', type=Path, help='Path to dictionary file')
+resourceparser.add_argument('--caseInsensitive', action='store_true', default=False, help='Use case insensitive dictionary comparisons')
+resourceparser.set_defaults(**dict(config.items('resources')))
+(resourceconfig, args) = resourceparser.parse_known_args(args)
+#print(resourceconfig, args)
+
 configuration = dict(config.items('configuration'))
+#print(configuration)
 
 rootparser = argparse.ArgumentParser(prog=progname, description='Correct OCR')
 
 commonparser = argparse.ArgumentParser(add_help=False)
 commonparser.add_argument('-k', type=int, default=4, help='Number of k-best candidates to use for tokens (default: 4)')
 commonparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus file headers (default: 0)')
-
-commonparser.add_argument('--dictionaryFile', metavar='FILE', type=PathWrapper('r', optional=True), help='Path to dictionary file')
-commonparser.add_argument('--caseInsensitive', action='store_true', default=False, help='Use case insensitive dictionary comparisons')
-
-commonparser.add_argument('--trainingPath', metavar='PATH', type=PathWrapper('d'), help='Path for generated training files')
-
 commonparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
-
-loglevels = dict(logging._nameToLevel)
-del loglevels['NOTSET']
-del loglevels['WARN']
 commonparser.add_argument('--loglevel', type=str, help='Log level', choices=loglevels.keys(), default='INFO')
 
 if sys.version_info >= (3, 7):
@@ -73,58 +90,39 @@ else:
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command')
 
 dictparser = subparsers.add_parser('build_dictionary', parents=[commonparser], help='Build dictionary')
-dictparser.add_argument('--corpusPath', type=PathWrapper('d'), default='__dictionarycache__/', help='Directory of files to split into words and add to dictionary (TXT or PDF format)')
-dictparser.add_argument('--corpusFile', type=PathWrapper('r'), help='File containing list URLs to download and use as corpus (TXT format)')
-dictparser.set_defaults(func=dictionary.build_dictionary, **configuration)
+dictparser.add_argument('--corpusPath', type=Path, default='__dictionarycache__/', help='Directory of files to split into words and add to dictionary (TXT or PDF format)')
+dictparser.add_argument('--corpusFile', type=Path, help='File containing list URLs to download and use as corpus (TXT format)')
+dictparser.set_defaults(func=commands.build_dictionary, **configuration)
 
 alignparser = subparsers.add_parser('align', parents=[commonparser], help='Create alignments')
 group = alignparser.add_mutually_exclusive_group(required=True)
 group.add_argument('--fileid', help='Input file ID (filename without path or extension)')
-group.add_argument('--allPairs', action='store_true', help='Align all pairs in original/corrected paths')
-alignparser.add_argument('--originalPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory of original, uncorrected files')
-alignparser.add_argument('--goldPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory of known correct "gold" files')
-alignparser.set_defaults(func=aligner.align, **configuration)
+group.add_argument('--allPairs', action='store_true', help='Align all pairs in original/gold paths')
+alignparser.set_defaults(func=commands.do_align, **configuration)
 
 modelparser = subparsers.add_parser('build_model', parents=[commonparser], help='Build model')
 modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM (default: 0.0001)')
-modelparser.add_argument('--goldPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory of known correct files (aka. "gold" files)')
-modelparser.add_argument('--hmmParamsFile', metavar='FILE', type=PathWrapper('w'), help='Path to output HMM parameters (JSON format)')
-modelparser.set_defaults(func=model.build_model, **configuration)
+modelparser.set_defaults(func=commands.build_model, **configuration)
 
 tokenizerparser = subparsers.add_parser('tokenize', parents=[commonparser], help='Tokenize and add k-best guesses')
-tokenizerparser.add_argument('--fileid', required=True, help='Input file ID (filename without path or extension)')
-tokenizerparser.add_argument('--hmmParamsFile', metavar='FILE', type=PathWrapper('r'), help='Path to HMM parameters (generated from alignment files via build_model command)')
-tokenizerparser.add_argument('--originalPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory of original, uncorrected files')
-tokenizerparser.add_argument('--goldPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory of known correct files (aka. "gold" files)')
-tokenizerparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=PathWrapper('r', optional=True), help='Path to output multi-character error file (JSON format)')
-tokenizerparser.set_defaults(func=tokenizer.tokenize, **configuration)
+group = tokenizerparser.add_mutually_exclusive_group(required=True)
+group.add_argument('--fileid', help='Input file ID (filename without path or extension)')
+group.add_argument('--all', action='store_true', help='Tokenize all files in original/gold paths')
+tokenizerparser.set_defaults(func=commands.do_tokenize, **configuration)
 
 tunerparser = subparsers.add_parser('make_report', parents=[commonparser], help='Make heuristics report')
-tunerparser.add_argument('--reportFile', metavar='FILE', type=PathWrapper('w'), help='Path to output heuristics report (TXT file)')
-tunerparser.set_defaults(func=heuristics.make_report, **configuration)
+tunerparser.set_defaults(func=commands.make_report, **configuration)
 
 settingsparser = subparsers.add_parser('make_settings', parents=[commonparser], help='Make heuristics settings')
-settingsparser.add_argument('--reportFile', metavar='FILE', type=PathWrapper('r'), help='Path to annotated heuristics report (generated from tokens via make_report command)')
-settingsparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=PathWrapper('w') , help='Path to output heuristics settings (TXT format)')
-settingsparser.set_defaults(func=heuristics.make_settings, **configuration)
+settingsparser.set_defaults(func=commands.make_settings, **configuration)
 
 correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Run assisted correction interface')
 correctparser.add_argument('--fileid', required=True, help='Input file ID (filename without path or extension)')
 correctparser.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
-correctparser.add_argument('--hmmParamsFile', metavar='FILE', type=PathWrapper('r'), help='Path to HMM parameters (generated from alignment files via build_model command)')
-correctparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=PathWrapper('r') , help='Path to heuristics settings (generated via make_settings command)')
-correctparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=PathWrapper('r', optional=True), help='Path to output multi-character error file (JSON format)')
-correctparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=PathWrapper('r', optional=True) , help='Path to memoizations of corrections.')
-correctparser.add_argument('--correctionTrackingFile', metavar='FILE', type=PathWrapper('r', optional=True) , help='Path to correction tracking.')
-correctparser.add_argument('--dehyphenate', action='store_true', help='repair hyphenation')
-correctparser.add_argument('--originalPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory of original, uncorrected files')
-correctparser.add_argument('--goldPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory of known correct files (aka. "gold" files)')
-correctparser.add_argument('--correctedPath', metavar='PATH', type=PathWrapper('d'), help='Directory to output corrected files')
-correctparser.add_argument('--goldTokenPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory containing tokens with added k-best (generated via tokenize command)')
+correctparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation')
+correctparser.set_defaults(func=commands.do_correct, **configuration)
 
-correctparser.set_defaults(func=correcter.correct, **configuration)
-
-args = rootparser.parse_args()
+args = rootparser.parse_args(args)
 
 logging.basicConfig(
 	stream=sys.stdout,
@@ -133,7 +131,9 @@ logging.basicConfig(
 )
 log = logging.getLogger(progname)
 
+workspace = workspace.Workspace(workspaceconfig, resourceconfig)
+
 log.info(f'Configuration for this invocation:\n{pformat(vars(args))}')
-args.func(args)
+args.func(workspace, args)
 
 exit()

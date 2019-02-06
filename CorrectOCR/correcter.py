@@ -3,13 +3,10 @@ import csv
 import logging
 from collections import defaultdict
 
-import progressbar
 import regex
 
 from . import open_for_reading, splitwindow, ensure_new_file
-from .dictionary import Dictionary
-from .heuristics import Heuristics
-from .tokenizer import tokenize
+from .workspace import Workspace
 
 '''
 IMPORTANT BEFORE USING:
@@ -23,13 +20,13 @@ For example:
 
 
 class Correcter(object):
-	def __init__(self, dictionary, heuristicSettingsFile, memos, caseInsensitive=False, k=4):
+	def __init__(self, dictionary, heuristics, memos, caseInsensitive=False, k=4):
 		self.caseInsensitive = caseInsensitive
 		self.memos = memos
 		self.k = k
 		self.log = logging.getLogger(f'{__name__}.Correcter')
 		self.dictionary = dictionary
-		self.heuristics = Heuristics(self.dictionary, self.caseInsensitive, settingsFile=heuristicSettingsFile)
+		self.heuristics = heuristics
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
 	# remove selected hyphens from inside a single token - postprocessing step
@@ -114,7 +111,7 @@ class Correcter(object):
 class CorrectionShell(cmd.Cmd):
 	prompt = 'CorrectOCR> '
 	
-	def start(tokens, dictionary, correctionTracking=defaultdict(int), intro=None):
+	def start(tokens, dictionary, correctionTracking, intro=None):
 		sh = CorrectionShell()
 		sh.tokenwindow = splitwindow(tokens, before=7, after=7)
 		sh.dictionary = dictionary
@@ -170,7 +167,9 @@ class CorrectionShell(cmd.Cmd):
 			if cleanword not in self.dictionary:
 				self.tracking['newWords'].append(cleanword) # add to suggestions for dictionary review
 			self.dictionary.add(cleanword) # add to current dictionary for subsequent heuristic decisions
-			self.tracking['correctionTracking'][(self.punctuation.sub('', self.token.original), cleanword)] += 1
+			if f'{self.token.original}\t{cleanword}' not in self.tracking['correctionTracking']:
+				self.tracking['correctionTracking'][f'{self.token.original}\t{cleanword}'] = 0
+			self.tracking['correctionTracking'][f'{self.token.original}\t{cleanword}'] += 1
 		return self.nexttoken()
 	
 	def emptyline(self):
@@ -202,7 +201,7 @@ class CorrectionShell(cmd.Cmd):
 		return self.select(candidate, f'k-best from dict')
 	
 	def do_memoized(self, arg):
-		return self.select(arg, 'memoized correction')
+		return self.select(arg, 'memoized correction', save=False)
 	
 	def do_error(self, arg):
 		self.log.error(f'ERROR: {arg} {self.token}')
@@ -232,102 +231,3 @@ class CorrectionShell(cmd.Cmd):
 		else:
 			self.log.error(f'bad command: "{line}"')
 			return super().default(line)
-
-
-def correct(config):
-	log = logging.getLogger(f'{__name__}.correct')
-	
-	# read memoized corrections
-	memos = config.memoizedCorrectionsFile.loadjson()
-	log.info(f'Loaded {len(memos)} memoized corrections from {config.memoizedCorrectionsFile}')
-	
-	# get tokens to use for correction
-	tokens = tokenize(config, getWordAlignments=False)
-	
-	dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
-	correcter = Correcter(dictionary, config.heuristicSettingsFile,
-	                      memos, config.caseInsensitive, config.k)
-	
-	log.info('Running heuristics on tokens to determine annotator workload.')
-	annotatorRequired = 0
-	for t in progressbar.progressbar(tokens):
-		(t.bin['decision'], t.bin['selection']) = correcter.evaluate(t)
-		annotatorRequired += 1
-	log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
-	
-	path = config.trainingPath.joinpath(f'{config.fileid}_binnedTokens.csv')
-	header = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', '3-best', '3-best prob.', '4-best', '4-best prob.', 'bin', 'heuristic', 'decision', 'selection']
-	with open(path, 'w', encoding='utf-8') as f:
-		log.info(f'Writing binned tokens to {path}')
-		writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
-		writer.writeheader()
-		writer.writerows([t.as_dict() for t in tokens])
-
-	if not config.interactive:
-		return
-
-	# try to combine hyphenated linebreaks before correction
-	linecombine = True
-	
-	log.info(f'Correcting {config.fileid}')
-	origfilename = config.originalPath.joinpath(f'{config.fileid}.txt')
-	
-	# read corrections learning file
-	correctionTracking = defaultdict(int)
-	for key, count in config.correctionTrackingFile.loadjson().items():
-		(original, gold) = key.split('\t')
-		correctionTracking[(original, gold)] = int(count)
-	log.info(f'Loaded {len(correctionTracking)} correction tracking items from {config.correctionTrackingFile}')
-	
-	log.debug(correctionTracking)
-	
-	correctfilename = ensure_new_file(config.correctedPath.joinpath(f'{config.fileid}.txt'))
-	o = open(correctfilename, 'w', encoding='utf-8')
-
-	# get metadata, if any
-	if config.nheaderlines > 0:
-		with open_for_reading(origfilename) as f:
-			metadata = f.readlines()[:config.nheaderlines]
-	else:
-		metadata = ''
-
-	# and write it to output file, replacing 'Corrected: No' with 'Yes'
-	for l in metadata:
-		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
-
-	if linecombine:
-		tokens = correcter.linecombiner(tokens)
-
-	# print info to annotator
-	log.info(f' file {config.fileid} contains about {len(tokens)} words')
-	for l in metadata:
-		log.info(l)
-	
-	tracking = CorrectionShell.start(tokens, dictionary, correctionTracking)
-
-	#log.debug(tokens)
-	log.debug(tracking['newWords'])
-	log.debug(tracking['correctionTracking'])
-
-	# optionally clean up hyphenation in completed tokens
-	if config.dehyphenate:
-		tokens = [dehyph(tk) for tk in tokens]
-
-	# make print-ready text
-	spaced = u' '.join([token.gold or token.original for token in tokens])
-	despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
-
-	# write corrected output
-	o.write(despaced)
-	o.close()
-	
-	# update tracking & memos of annotator's actions
-	memos = dict()
-	track = dict()
-	for (original, gold), count in sorted(tracking['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
-		memos[original] = gold
-		track[f'{original}\t{gold}'] = count
-	if len(track) > 0:
-		config.correctionTrackingFile.savejson(track)
-	if len(memos) > 0:
-		config.memoizedCorrectionsFile.savejson(memos)

@@ -1,4 +1,3 @@
-import csv
 import logging
 from collections import OrderedDict
 
@@ -7,7 +6,6 @@ import regex
 
 from . import open_for_reading
 from .dictionary import Dictionary
-from .tokenizer import Token
 
 
 # print percents nicely
@@ -65,16 +63,12 @@ class Heuristics(object):
 		}
 	})
 	
-	def __init__(self, dictionary, caseInsensitive, settingsDict=dict(), settingsFile=None, k=4):
-		self.caseInsensitive = caseInsensitive
+	def __init__(self, settings, dictionary, k=4):
+		for (bin, code) in settings.items():
+			self.bins[int(bin)]['heuristic'] = code
+		for i, j in self.bins.items():
+			j['number'] = i
 		self.dictionary = dictionary
-		if settingsFile:
-			settfile = [l[:-1] for l in settingsFile.readlines()]
-			for l in settfile:
-				(bin, code) = l.split('\t')
-				self.bins[int(bin)]['heuristic'] = code[0]
-		for k, v in self.bins.items():
-			v['number'] = k
 		self.k = k
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		self.log = logging.getLogger(f'{__name__}.Heuristics')
@@ -349,33 +343,3 @@ class Heuristics(object):
 				   str(vs[27]) + '  (' + percc(vs[27], vs[0]) + ' %)\n')
 		
 		return out
-
-
-def make_report(config):
-	log = logging.getLogger(f'{__name__}.make_report')
-	
-	dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
-	heuristics = Heuristics(dictionary, config.caseInsensitive, k=config.k)
-	
-	for file in config.trainingPath.glob('*_goldTokens.csv'):
-		log.info(f'Collecting stats from {file}')
-		with open_for_reading(file) as f:
-			reader = csv.DictReader(f, delimiter='\t')
-			for row in progressbar.progressbar(reader):
-				t = Token.from_dict(row)
-				heuristics.add_to_report(t)
-	
-	config.reportFile.writelines(heuristics.report())
-
-
-def make_settings(config):
-	log = logging.getLogger(f'{__name__}.make_settings')
-	
-	log.info(f'Reading report from {config.reportFile.name}')
-	bins = [ln for ln in config.reportFile.readlines() if "BIN" in ln]
-	
-	log.info(f'Writing settings to {config.heuristicSettingsFile.name}')
-	for b in bins:
-		binID = b.split()[1]
-		action = b.split()[-1]
-		config.heuristicSettingsFile.write(binID + u'\t' + action + u'\n')

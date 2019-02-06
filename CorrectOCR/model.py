@@ -1,183 +1,29 @@
 import collections
 import itertools
+import json
 import logging
 from collections import defaultdict
-from difflib import SequenceMatcher
+from pathlib import Path
 
 import regex
 
-from . import open_for_reading
-from .dictionary import Dictionary
-from .aligner import Aligner
-
-# Start with misread counts, remove any keys which are not single
-# characters, remove specified characters, and combine into a single
-# dictionary.
-def generate_confusion(misreadCounts, remove=[]):
-	# Outer keys are the correct characters. Inner keys are the counts of
-	# what each character was read as.
-	confusion = collections.defaultdict(collections.Counter)
-
-	confusion.update(misreadCounts)
-
-	# Strip out any outer keys that aren't a single character
-	confusion = {key: value for key, value in confusion.items()
-              if len(key) == 1}
-
-	for unwanted in remove:
-		if unwanted in confusion:
-			del confusion[unwanted]
-
-	# Strip out any inner keys that aren't a single character.
-	# Later, these may be useful, for now, remove them.
-	for outer in confusion:
-		wrongsize = [key for key in confusion[outer] if len(key) != 1]
-		for key in wrongsize:
-			del confusion[outer][key]
-
-		for unwanted in remove:
-			if unwanted in confusion[outer]:
-				del confusion[outer][unwanted]
-	
-	#logging.getLogger(f'{__name__}.load_misread_counts').debug(confusion)
-	return confusion
-
-# Get the character counts of the training files. Used for filling in
-# gaps in the confusion probabilities.
-
-
-def text_char_counts(files, dictionary, remove=[], nheaderlines=0):
-	char_count = collections.Counter()
-	for file in files:
-		with open_for_reading(file) as f:
-			f.readlines(nheaderlines)
-			text = f.readlines()
-		char_count.update(list(text))
-
-	for word in dictionary:
-		char_count.update(list(word))
-
-	for unwanted in remove:
-		if unwanted in char_count:
-			del char_count[unwanted]
-
-	return char_count
-
-
-# Create the emission probabilities using misread counts and character
-# counts. Optionally a file of expected characters can be used to add
-# expected characters as model states whose emission probabilities are set to
-# only output themselves.
-def emission_probabilities(confusion, char_counts, alpha,
-                           remove=[], extra_chars=None):
-	# Add missing dictionary elements.
-	# Missing outer terms are ones which were always read correctly.
-	for char in char_counts:
-		if char not in confusion:
-			confusion[char] = {char: char_counts[char]}
-			
-	# Inner terms are just added with 0 probability.
-	charset = set().union(*[confusion[i].keys() for i in confusion])
-			
-	for char in confusion:
-		for missing in charset:
-			if missing not in confusion[char]:
-				confusion[char][missing] = 0.0
-	
-	# Smooth and convert to probabilities.
-	for i in confusion:
-		denom = sum(confusion[i].values()) + (alpha * len(confusion[i]))
-		for j in confusion[i]:
-			confusion[i][j] = (confusion[i][j] + alpha) / denom
-
-	# Add characters that are expected to occur in the texts.
-	# Get the characters which aren't already present.
-	extra_chars = extra_chars - set(remove)
-
-	# Add them as new states.
-	for char in extra_chars:
-		if char not in confusion:
-			confusion[char] = {i: 0 for i in charset}
-	# Add them with 0 probability to every state.
-	for i in confusion:
-		for char in extra_chars:
-			if char not in confusion[i]:
-				confusion[i][char] = 0.0
-	# Set them to emit themselves
-	for char in extra_chars:
-		confusion[char][char] = 1.0
-	
-	#logging.getLogger(f'{__name__}.emission_probabilities').debug(confusion)
-	return confusion
-
-
-# Create the initial and transition probabilities from the gold
-# text in the training data.
-def init_tran_probabilities(goldfiles, dictionary, alpha,
-                            remove=[], nheaderlines=0, extra_chars=None):
-	tran = collections.defaultdict(lambda: collections.defaultdict(int))
-	init = collections.defaultdict(int)
-	
-	def add_word(word):
-		if len(word) > 0:
-			init[word[0]] += 1
-			# Record each occurrence of character pair ij in tran[i][j]
-			for i, j in zip(word[0:], word[1:]):
-				tran[i][j] += 1
-	
-	for file in goldfiles:
-		words = tokenize_file(file, header=nheaderlines, objectify=False)
-		
-		for word in words:
-			add_word(word)
-
-	for word in dictionary:
-		add_word(word)
-
-	# Create a set of all the characters that have been seen.
-	charset = set(tran.keys()) & set(init.keys())
-	for key in tran:
-		charset.update(set(tran[key].keys()))
-
-	# Add characters that are expected to occur in the texts.
-	charset.update(extra_chars)
-
-	for unwanted in remove:
-		if unwanted in charset:
-			charset.remove(unwanted)
-		if unwanted in init:
-			del init[unwanted]
-		if unwanted in tran:
-			del tran[unwanted]
-		for i in tran:
-			if unwanted in tran[i]:
-				del tran[i][unwanted]
-
-	# Add missing characters to the parameter dictionaries and apply smoothing.
-	init_denom = sum(init.values()) + (alpha * len(charset))
-	for i in charset:
-		init[i] = (init[i] + alpha) / init_denom
-		tran_denom = sum(tran[i].values()) + (alpha * len(charset))
-		for j in charset:
-			tran[i][j] = (tran[i][j] + alpha) / tran_denom
-
-	return init, tran
-
+from . import open_for_reading, ensure_new_file
+from .tokenize.string import tokenize_file
 
 class HMM(object):
-	
-	def __init__(self, initial, transition, emission):
+	def __init__(self, initial, transition, emission, multichars={}):
+		self.log = logging.getLogger(f'{__name__}.HMM')
 		self.init = initial
 		self.tran = transition
 		self.emis = emission
-		self.log = logging.getLogger(f'{__name__}.HMM')
+		self.multichars = multichars
 		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		
 		self.states = initial.keys()
-		self.log.debug(f'self.init: {self.init}')
-		#self.log.debug(f'self.tran: {self.tran}')
-		#self.log.debug(f'self.emis: {self.emis}')
-		self.log.debug(f'self.states: {self.states}')
+		#self.log.debug(f'init: {self.init}')
+		#self.log.debug(f'tran: {self.tran}')
+		#self.log.debug(f'emis: {self.emis}')
+		self.log.debug(f'states: {self.states}')
 		
 		if not self.parameter_check():
 			self.log.critical(f'Parameter check failed for {self}')
@@ -189,6 +35,14 @@ class HMM(object):
 	
 	def __repr__(self):
 		return self.__str__()
+
+	def save(self, name):
+		newname = ensure_new_file(Path(name))
+		self.log.info(f'Backed up original HMM parameters to {newname}')
+		self.log.info(f'Saving HMM parameters to {name}')
+		with open(name, 'w', encoding='utf-8') as f:
+			json.dump([self.init, self.tran, self.emis], f)
+
 
 	def parameter_check(self):
 		all_match = True
@@ -212,12 +66,6 @@ class HMM(object):
 			self.log.info('Parameters match.')
 		return all_match
 
-	def load(path):
-		return HMM(*path.loadjson())
-	
-	def save(self, path):
-		path.savejson([self.init, self.tran, self.emis])
-	
 	def viterbi(self, char_seq): # UNUSED!!
 		# delta[t][j] is probability of max probability path to state j
 		# at time t given the observation sequence up to time t.
@@ -277,17 +125,17 @@ class HMM(object):
 		return [(''.join(seq), prob) for seq, prob in paths[:k]]
 	
 	
-	def kbest_for_word(self, word, k, dictionary, multichars={}):
+	def kbest_for_word(self, word, k, dictionary):
 		if len(word) == 0:
 			return [''] + ['', 0.0] * k
 
 		k_best = self.k_best_beam(word, k)
 		# Check for common multi-character errors. If any are present,
 		# make substitutions and compare probabilties of results.
-		for sub in multichars:
+		for sub in self.multichars:
 			# Only perform the substitution if none of the k-best candidates are present in the dictionary
 			if sub in word and all(self.punctuation.sub('', x[0]) not in dictionary for x in k_best):
-				variant_words = HMM.multichar_variants(word, sub, multichars[sub])
+				variant_words = HMM.multichar_variants(word, sub, self.multichars[sub])
 				for v in variant_words:
 					if v != word:
 						k_best.extend(self.k_best_beam(v, k))
@@ -309,40 +157,152 @@ class HMM(object):
 		return variant_words
 
 
-#-------------------------------------
+class HMMBuilder(object):
+	# Start with misread counts, remove any keys which are not single
+	# characters, remove specified characters, and combine into a single
+	# dictionary.
+	def generate_confusion(misreadCounts, remove=[]):
+		# Outer keys are the correct characters. Inner keys are the counts of
+		# what each character was read as.
+		confusion = collections.defaultdict(collections.Counter)
 
-def build_model(config):
-	log = logging.getLogger(f'{__name__}.build_model')
-	
-	# Extra config
-	remove_chars = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
+		confusion.update(misreadCounts)
 
-	# Select the gold files which correspond to the misread count files.
-	misreadCounts = collections.defaultdict(collections.Counter)
-	gold_files = []
-	for file in config.trainingPath.glob('*_misreadCounts.csv'):
-		(_, _, counts) = get_alignments(file.stem, config)
-		misreadCounts.update(counts)
-		gold_files.append(config.goldPath.joinpath(f'{file.stem}.txt'))
-	
-	dictionary = Dictionary(config.dictionaryFile)
-	
-	confusion = generate_confusion(misreadCounts, remove_chars)
-	char_counts = text_char_counts(gold_files, dictionary, remove_chars, config.nheaderlines)
+		# Strip out any outer keys that aren't a single character
+		confusion = {key: value for key, value in confusion.items()
+				  if len(key) == 1}
 
-	charset = set(config.characterSet) | set(char_counts) | set(confusion)
+		for unwanted in remove:
+			if unwanted in confusion:
+				del confusion[unwanted]
 
-	log.debug(sorted(charset))
+		# Strip out any inner keys that aren't a single character.
+		# Later, these may be useful, for now, remove them.
+		for outer in confusion:
+			wrongsize = [key for key in confusion[outer] if len(key) != 1]
+			for key in wrongsize:
+				del confusion[outer][key]
 
-	# Create the emission probabilities from the misread counts and the character counts
-	emis = emission_probabilities(confusion, char_counts, config.smoothingParameter, remove_chars,
-                               extra_chars=charset)
+			for unwanted in remove:
+				if unwanted in confusion[outer]:
+					del confusion[outer][unwanted]
 
-	# Create the initial and transition probabilities from the gold files
-	init, tran = init_tran_probabilities(gold_files, dictionary, config.smoothingParameter,
-                                         remove_chars, config.nheaderlines, extra_chars=charset)
+		#logging.getLogger(f'{__name__}.load_misread_counts').debug(confusion)
+		return confusion
 
-	log.info(f'Saving HMM parameters to {config.hmmParamsFile}')
-	hmm = HMM(init, tran, emis)
-	hmm.save(config.hmmParamsFile)
+	# Get the character counts of the training files. Used for filling in
+	# gaps in the confusion probabilities.
+	def text_char_counts(files, dictionary, remove=[], nheaderlines=0):
+		char_count = collections.Counter()
+		for file in files:
+			with open_for_reading(file) as f:
+				f.readlines(nheaderlines)
+				text = f.readlines()
+			char_count.update(list(text))
+
+		for word in dictionary:
+			char_count.update(list(word))
+
+		for unwanted in remove:
+			if unwanted in char_count:
+				del char_count[unwanted]
+
+		return char_count
+
+	# Create the emission probabilities using misread counts and character
+	# counts. Optionally a file of expected characters can be used to add
+	# expected characters as model states whose emission probabilities are set to
+	# only output themselves.
+	def emission_probabilities(confusion, char_counts, alpha,
+							   remove=[], extra_chars=None):
+		# Add missing dictionary elements.
+		# Missing outer terms are ones which were always read correctly.
+		for char in char_counts:
+			if char not in confusion:
+				confusion[char] = {char: char_counts[char]}
 		
+		# Inner terms are just added with 0 probability.
+		charset = set().union(*[confusion[i].keys() for i in confusion])
+		
+		for char in confusion:
+			for missing in charset:
+				if missing not in confusion[char]:
+					confusion[char][missing] = 0.0
+
+		# Smooth and convert to probabilities.
+		for i in confusion:
+			denom = sum(confusion[i].values()) + (alpha * len(confusion[i]))
+			for j in confusion[i]:
+				confusion[i][j] = (confusion[i][j] + alpha) / denom
+
+		# Add characters that are expected to occur in the texts.
+		# Get the characters which aren't already present.
+		extra_chars = extra_chars - set(remove)
+
+		# Add them as new states.
+		for char in extra_chars:
+			if char not in confusion:
+				confusion[char] = {i: 0 for i in charset}
+		# Add them with 0 probability to every state.
+		for i in confusion:
+			for char in extra_chars:
+				if char not in confusion[i]:
+					confusion[i][char] = 0.0
+		# Set them to emit themselves
+		for char in extra_chars:
+			confusion[char][char] = 1.0
+
+		#logging.getLogger(f'{__name__}.emission_probabilities').debug(confusion)
+		return confusion
+
+	# Create the initial and transition probabilities from the gold
+	# text in the training data.
+	def init_tran_probabilities(goldfiles, dictionary, alpha,
+								remove=[], nheaderlines=0, extra_chars=None):
+		tran = collections.defaultdict(lambda: collections.defaultdict(int))
+		init = collections.defaultdict(int)
+
+		def add_word(word):
+			if len(word) > 0:
+				init[word[0]] += 1
+				# Record each occurrence of character pair ij in tran[i][j]
+				for i, j in zip(word[0:], word[1:]):
+					tran[i][j] += 1
+
+		for file in goldfiles:
+			words = tokenize_file(file, header=nheaderlines, objectify=False)
+	
+			for word in words:
+				add_word(word)
+
+		for word in dictionary:
+			add_word(word)
+
+		# Create a set of all the characters that have been seen.
+		charset = set(tran.keys()) & set(init.keys())
+		for key in tran:
+			charset.update(set(tran[key].keys()))
+
+		# Add characters that are expected to occur in the texts.
+		charset.update(extra_chars)
+
+		for unwanted in remove:
+			if unwanted in charset:
+				charset.remove(unwanted)
+			if unwanted in init:
+				del init[unwanted]
+			if unwanted in tran:
+				del tran[unwanted]
+			for i in tran:
+				if unwanted in tran[i]:
+					del tran[i][unwanted]
+
+		# Add missing characters to the parameter dictionaries and apply smoothing.
+		init_denom = sum(init.values()) + (alpha * len(charset))
+		for i in charset:
+			init[i] = (init[i] + alpha) / init_denom
+			tran_denom = sum(tran[i].values()) + (alpha * len(charset))
+			for j in charset:
+				tran[i][j] = (tran[i][j] + alpha) / tran_denom
+
+		return init, tran
