@@ -10,6 +10,7 @@ from pprint import pformat
 import progressbar
 
 from . import PathWrapper
+from . import aligner
 from . import correcter
 from . import dictionary
 from . import heuristics
@@ -82,7 +83,7 @@ group.add_argument('--fileid', help='Input file ID (filename without path or ext
 group.add_argument('--allPairs', action='store_true', help='Align all pairs in original/corrected paths')
 alignparser.add_argument('--originalPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory of original, uncorrected files')
 alignparser.add_argument('--goldPath', metavar='PATH', type=PathWrapper('d'), help='Path to directory of known correct "gold" files')
-alignparser.set_defaults(func=model.align, **configuration)
+alignparser.set_defaults(func=aligner.align, **configuration)
 
 modelparser = subparsers.add_parser('build_model', parents=[commonparser], help='Build model')
 modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM (default: 0.0001)')
