@@ -31,14 +31,29 @@ When a corrected file is satisfactory, it can be moved to the gold folder and us
 Configuration
 -------------
 
-When invoked, CorrectOCR looks for a file named `CorrectOCR.ini` in the working directory. If found, it is loaded, and any entries under the `[configuration]` header will be considered defaults to their corresponding option. For example:
+When invoked, CorrectOCR looks for a file named `CorrectOCR.ini` in the working directory. If found, it is loaded, and any entries will be considered defaults to their corresponding option. For example:
 
 ```INI
 [configuration]
-correctedPath = new/ # sets new default for the --correctedPath argument
+characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+
+[workspace]
+correctedPath = corrected/
+goldPath = gold/
+originalPath = original/
+trainingPath = training/
+
+[resources]
+correctionTrackingFile = resources/correction_tracking.json
+dictionaryFile = resources/dictionary.txt
+hmmParamsFile = resources/hmm_parameters.json
+memoizedCorrectionsFile = resources/memoized_corrections.json
+multiCharacterErrorFile = resources/multicharacter_errors.json
+reportFile = resources/report.txt
+heuristicSettingsFile = resources/settings.json
 ```
 
-By default, CorrectOCR requires 4 subdirectories in the working directory:
+By default, CorrectOCR requires 4 subdirectories in the working directory, which will be used as the current `Workspace`:
 
 * `original/` contains the original uncorrected files. If necessary, it can be configured with the `--originalPath` argument.
 * `gold/` contains the known correct "gold" files. If necessary, it can be configured with the `--goldPath` argument.
@@ -48,6 +63,8 @@ By default, CorrectOCR requires 4 subdirectories in the working directory:
 Corresponding files in _original_, _gold_, and _corrected_ are named identically. The generated files in `training/` have suffixes according to their kind.
 
 If generated files exist, CorrectOCR will generally avoid doing redundant calculations. The `--force` switch overrides this, forcing CorrectOCR to create new files and overwrite the new ones. Alternately, one may delete a subset of the generated files to only recreate those.
+
+The `Workspace` also has a `ResourceManager` (accessible via `.resources`) that handles access to the dictionary, HMM parameter files, etc.
 
 Commands
 --------
@@ -99,7 +116,7 @@ They may then enter a command. The commands reflect the above settings, with an 
 
 Prefixing the entered text with an exclamation point causes it to be considered the corrected version of the token. For example, if the token is "Wagor" and no suitable candidate is available, the annotator may enter `!Wagon` to correct the word.
 
-Corrections are memoized, so the file need not be corrected fully in one session.
+Corrections are memoized, so the file need not be corrected fully in one session. To finish a session and save corrections, use the `quit` command.
 
 A `help` command is available in the interface.
 
