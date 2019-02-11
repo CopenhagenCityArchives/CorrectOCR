@@ -6,7 +6,7 @@ from pprint import pformat
 
 import requests
 
-from . import open_for_reading
+from . import open_for_reading, ensure_new_file
 from .dictionary import Dictionary
 from .aligner import Aligner
 from .model import HMM
@@ -72,18 +72,20 @@ class Workspace(object):
 	BINNEDHEADER = GOLDHEADER + ['bin', 'heuristic', 'decision', 'selection']
 	
 	#TODO nheaderlines
-	def save(data, path, kind=None, header=None):
+	def save(data, path, kind=None, header=None, backup=True):
 		if not kind:
 			kind = Workspace.DATA
+		if backup:
+			path = ensure_new_file(path)
 		with open(path, 'w', encoding='utf-8') as f:
 			if kind == Workspace.JSON:
 				if not path.suffix == '.json':
-					logging.getLogger(f'{__name__}.Workspace').error(f'Will not save JSON to file wth {path.suffix} extension! path: {path}')
+					logging.getLogger(f'{__name__}.Workspace').error(f'Cannot save JSON to file with {path.suffix} extension! path: {path}')
 					raise SystemExit(-1)
 				return json.dump(data, f)
 			elif kind == Workspace.CSV:
 				if not path.suffix == '.csv':
-					logging.getLogger(f'{__name__}.Workspace').error(f'Will not save CSV to file wth {path.suffix} extension! path: {path}')
+					logging.getLogger(f'{__name__}.Workspace').error(f'Cannot save CSV to file with {path.suffix} extension! path: {path}')
 					raise SystemExit(-1)
 				writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
 				writer.writeheader()
@@ -99,12 +101,12 @@ class Workspace(object):
 		with open_for_reading(path) as f:
 			if kind == Workspace.JSON:
 				if not path.suffix == '.json':
-					self.log.error(f'Will not load JSON to file wth {path.suffix} extension! path: {path}')
+					self.log.error(f'Cannot load JSON to file with {path.suffix} extension! path: {path}')
 					raise SystemExit(-1)
 				return json.load(f)
 			elif kind == Workspace.CSV:
 				if not path.suffix == '.csv':
-					self.log.error(f'Will not load CSV to file wth {path.suffix} extension! path: {path}')
+					self.log.error(f'Cannot load CSV to file with {path.suffix} extension! path: {path}')
 					raise SystemExit(-1)
 				return list(csv.DictReader(f, delimiter='\t'))
 			else:
