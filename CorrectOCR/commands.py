@@ -11,15 +11,13 @@ from .dictionary import Dictionary
 from .aligner import Aligner
 from .model import HMM, HMMBuilder
 from .correcter import Correcter, CorrectionShell
-from .tokenize.string import StringTokenizer
+from .tokenize.string import tokenize_string
 
 ##########################################################################################
 
 
 def build_dictionary(workspace, config):
 	log = logging.getLogger(f'{__name__}.build_dictionary')
-	
-	from .tokenize.string import tokenize_string
 	
 	if config.corpusFile:
 		for line in config.corpusFile.readlines():

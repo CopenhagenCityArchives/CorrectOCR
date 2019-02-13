@@ -162,7 +162,7 @@ class Workspace(object):
 			wordAlignments = dict()
 
 		self.log.debug(f'wordAlignments: {wordAlignments}')
-	
+
 		tokenizer = StringTokenizer(
 			self.resources.dictionary,
 			self.resources.hmm,
