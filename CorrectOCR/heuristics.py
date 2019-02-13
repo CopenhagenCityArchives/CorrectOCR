@@ -2,9 +2,8 @@ import logging
 from collections import OrderedDict
 
 import progressbar
-import regex
 
-from . import open_for_reading
+from . import punctuationRE, open_for_reading
 from .dictionary import Dictionary
 
 
@@ -70,13 +69,12 @@ class Heuristics(object):
 			j['number'] = i
 		self.dictionary = dictionary
 		self.k = k
-		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		self.log = logging.getLogger(f'{__name__}.Heuristics')
 		self.reportVariables = [0]*31 # see report for interpretation
 	
 	def evaluate(self, token):
 		# original form
-		original = self.punctuation.sub('', token.original)
+		original = punctuationRE.sub('', token.original)
 		
 		# top k best
 		kbest = list(token.kbest())
@@ -105,8 +103,8 @@ class Heuristics(object):
 		vs = self.reportVariables
 		
 		# strip punctuation, which is considered not relevant to evaluation
-		gold = self.punctuation.sub('', token.gold) # gold standard wordform
-		orig = self.punctuation.sub('', token.original) # original uncorrected wordform
+		gold = punctuationRE.sub('', token.gold) # gold standard wordform
+		orig = punctuationRE.sub('', token.original) # original uncorrected wordform
 
 		# if the 1st or 2nd input column is empty, a word segmentation error probably occurred in the original
 		# (though possibly a deletion)
@@ -129,7 +127,7 @@ class Heuristics(object):
 		vs[0] += 1
 
 		# k best candidate words
-		kbws = [self.punctuation.sub('', token.kbest(n)[0]) for n in range(1, self.k+1)]
+		kbws = [punctuationRE.sub('', token.kbest(n)[0]) for n in range(1, self.k+1)]
 
 		# best candidate
 		k1 = kbws[0]

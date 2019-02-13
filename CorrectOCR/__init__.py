@@ -5,7 +5,11 @@ import logging
 from collections import deque
 from pathlib import Path
 
+import regex
 from bs4 import UnicodeDammit
+
+
+punctuationRE = regex.compile(r'\p{punct}+')
 
 
 def get_encoding(file):

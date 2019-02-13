@@ -3,9 +3,7 @@ import csv
 import logging
 from collections import defaultdict
 
-import regex
-
-from . import open_for_reading, splitwindow, ensure_new_file
+from . import punctuationRE, open_for_reading, splitwindow, ensure_new_file
 from .workspace import Workspace
 
 '''
@@ -27,17 +25,16 @@ class Correcter(object):
 		self.log = logging.getLogger(f'{__name__}.Correcter')
 		self.dictionary = dictionary
 		self.heuristics = heuristics
-		self.punctuation = regex.compile(r'\p{posix_punct}+')
 	
 	# remove selected hyphens from inside a single token - postprocessing step
 	def dehyph(self, tk):
 		o = tk
 		# if - in token, and token is not only punctuation, and - is not at end or start of token:
-		if (u'-' in tk) & ((len(self.punctuation.sub('', tk)) > 0) & ((tk[-1] != u'-') & (tk[0] != u'-'))):
+		if (u'-' in tk) & ((len(punctuationRE.sub('', tk)) > 0) & ((tk[-1] != u'-') & (tk[0] != u'-'))):
 			# if - doesn't precede capital letter, and the word including dash form isn't in dictionary:
 			if ((not tk[tk.index(u'-')+1].isupper()) & ((not tk in dws) & (not tk.lower() in dws))):
 				# if the word not including dash form is in dictionary, only then take out the dash
-				if ((self.punctuation.sub('', tk) in dws) or (self.punctuation.sub('', tk).lower() in dws)):
+				if ((punctuationRE.sub('', tk) in dws) or (punctuationRE.sub('', tk).lower() in dws)):
 					o = tk.replace(u'-', u'')
 		return(o)
 	
@@ -56,8 +53,8 @@ class Correcter(object):
 					# combining it with restofword is in dictionary,
 					# and restofword doesn't start with capital letter
 					# -- this is generally approximately good enough
-					if (not self.punctuation.sub('', curw) in self.dictionary
-						and self.punctuation.sub('', curw+nexw) in self.dictionary
+					if (not punctuationRE.sub('', curw) in self.dictionary
+						and punctuationRE.sub('', curw+nexw) in self.dictionary
 						and nexw[0].islower()):
 						# make a new row to put combined form into the output later
 						ls[i] = {
@@ -123,7 +120,6 @@ class CorrectionShell(cmd.Cmd):
 			'correctionTracking': correctionTracking,
 		}
 		sh.log = logging.getLogger(f'{__name__}.CorrectionShell')
-		sh.punctuation = regex.compile(r'\p{posix_punct}+')
 		sh.use_rawinput = True
 		
 		sh.cmdloop(intro)
@@ -163,7 +159,7 @@ class CorrectionShell(cmd.Cmd):
 		print(f'Selecting {decision} for "{self.token.original}": "{word}"')
 		self.token.gold = word
 		if save:
-			cleanword = self.punctuation.sub('', word)
+			cleanword = punctuationRE.sub('', word)
 			if cleanword not in self.dictionary:
 				self.tracking['newWords'].append(cleanword) # add to suggestions for dictionary review
 			self.dictionary.add(cleanword) # add to current dictionary for subsequent heuristic decisions

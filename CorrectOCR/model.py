@@ -2,12 +2,11 @@ import collections
 import itertools
 import json
 import logging
+import re
 from collections import defaultdict
 from pathlib import Path
 
-import regex
-
-from . import open_for_reading, ensure_new_file
+from . import punctuationRE, open_for_reading, ensure_new_file
 from .tokenize.string import tokenize_file
 
 class HMM(object):
@@ -17,7 +16,6 @@ class HMM(object):
 		self.tran = transition
 		self.emis = emission
 		self.multichars = multichars
-		self.punctuation = regex.compile(r'\p{posix_punct}+')
 		
 		self.states = initial.keys()
 		#self.log.debug(f'init: {self.init}')
@@ -134,7 +132,7 @@ class HMM(object):
 		# make substitutions and compare probabilties of results.
 		for sub in self.multichars:
 			# Only perform the substitution if none of the k-best candidates are present in the dictionary
-			if sub in word and all(self.punctuation.sub('', x[0]) not in dictionary for x in k_best):
+			if sub in word and all(punctuationRE.sub('', x[0]) not in dictionary for x in k_best):
 				variant_words = HMM.multichar_variants(word, sub, self.multichars[sub])
 				for v in variant_words:
 					if v != word:
@@ -147,7 +145,7 @@ class HMM(object):
 	def multichar_variants(word, original, replacements):
 		variants = [original] + replacements
 		variant_words = set()
-		pieces = regex.split(original, word)
+		pieces = re.split(original, word)
 		
 		# Reassemble the word using original or replacements
 		for x in itertools.product(variants, repeat=word.count(original)):
