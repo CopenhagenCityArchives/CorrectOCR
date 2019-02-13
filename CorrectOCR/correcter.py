@@ -90,7 +90,7 @@ class Correcter(object):
 		# k best candidate words
 		filtids = [k for k, (c,p) in token.kbest() if c in self.dictionary]
 		
-		(token.bin, decision) = self.heuristics.evaluate(token)
+		(decision, token.bin) = self.heuristics.evaluate(token)
 		#self.log.debug(f'{bin} {dcode}')
 		
 		# return decision codes and output token form or candidate list as appropriate

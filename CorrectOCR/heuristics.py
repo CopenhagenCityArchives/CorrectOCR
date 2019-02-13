@@ -94,10 +94,10 @@ class Heuristics(object):
 		
 		for num, bin in self.bins.items():
 			if bin['matcher'](original, kbest[0][1][0], self.dictionary, dcode):
-				return (dict(bin), bin['heuristic'])
+				return (bin['heuristic'], dict(bin))
 		
 		self.log.critical(f'Unable to make decision for token: {token}')
-		return (None, None)
+		return ('a', None)
 
 	def add_to_report(self, token):
 		vs = self.reportVariables
