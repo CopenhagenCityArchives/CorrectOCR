@@ -5,3 +5,5 @@ PyMuPDF
 regex
 requests
 pycountry
+tei-reader
+lxml

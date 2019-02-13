@@ -34,6 +34,15 @@ http://adl.dk/solr_documents/brandes06-workid78618.pdf
 # https://rex.kb.dk/primo-explore/fulldisplay?docid=KGL01008508218&context=L&vid=NUI&lang=da_DK
 http://www.kb.dk/e-mat/dod/130019428509.pdf
 
+### Corpora from CLARIN-DK ###
+# Johannes V. Jensen and Iversen, Stefan, 2011, Johannes V. Jensen Corpus, CLARIN-DK-UCPH Centre Repository
+# http://hdl.handle.net/20.500.12115/20
+https://repository.clarin.dk/repository/xmlui/handle/20.500.12115/20/allzip	jvjensen.zip
+
+# Ravn, Kim Steen, 2018, Grundtvig's Works Corpus, v. 1.12, April 2018, CLARIN-DK-UCPH Centre Repository
+# http://hdl.handle.net/20.500.12115/31
+https://repository.clarin.dk/repository/xmlui/handle/20.500.12115/31/allzip	grundtvig.zip
+
 ### Gold standard files ###
 # contents of paths ending in a slash are copied to the corpus directory
 gold/
