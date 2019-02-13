@@ -7,7 +7,6 @@ all:
 tokenizer:
 	get tokens from hocr also
 	tokeninfo column in csv (string, hocr, ?)
-	--language argument to configure nltk, tesseract, et al
 	squish abbreviations? something like below?
 	mwes = [
 		('P', 'E'), # Politiets Efterretninger

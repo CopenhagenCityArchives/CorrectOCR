@@ -113,7 +113,7 @@ class Workspace(object):
 				return f.read()
 	
 
-	def alignments(self, fileid, force=False):
+	def alignments(self, fileid, language='English', force=False):
 		faPath = self.fullAlignmentsFile(fileid)
 		waPath = self.wordAlignmentsFile(fileid)
 		mcPath = self.misreadCountsFile(fileid)
@@ -129,8 +129,8 @@ class Workspace(object):
 		self.log.info(f'Creating alignment files for {fileid}')
 		
 		(fullAlignments, wordAlignments, misreadCounts) = Aligner().alignments(
-			tokenize_string(Workspace.load(self.originalFile(fileid))),
-			tokenize_string(Workspace.load(self.goldFile(fileid))),
+			tokenize_string(Workspace.load(self.originalFile(fileid)), language),
+			tokenize_string(Workspace.load(self.goldFile(fileid)), language),
 			force=force
 		)
 		
@@ -143,7 +143,7 @@ class Workspace(object):
 		return (fullAlignments, wordAlignments, misreadCounts)		
 
 
-	def tokens(self, fileid, nheaderlines=0, k=4, getWordAlignments=True, force=False):
+	def tokens(self, fileid, nheaderlines=0, k=4, language='English', getWordAlignments=True, force=False):
 		tokenFilePath = self.tokenFile(fileid)
 		if not force and tokenFilePath.is_file():
 			self.log.info(f'{tokenFilePath} exists and will be returned as StringToken objects. Use --force or delete it to rerun.')
@@ -166,6 +166,7 @@ class Workspace(object):
 		tokenizer = StringTokenizer(
 			self.resources.dictionary,
 			self.resources.hmm,
+			language,
 			wordAlignments,
 			previousTokens,
 		)

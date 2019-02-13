@@ -51,11 +51,11 @@ def build_dictionary(workspace, config):
 		log.info(f'Getting words from {file}')
 		if file.suffix == '.pdf':
 			text = extract_text_from_pdf(file)
-			for word in tokenize_string(str(text), objectify=False):
+			for word in tokenize_string(str(text), config.language.name, objectify=False):
 				workspace.resources.dictionary.add(word)
 		elif file.suffix == '.txt':
 			with open_for_reading(file) as f:
-				for word in tokenize_string(f.read(), objectify=False):
+				for word in tokenize_string(f.read(), config.language.name, objectify=False):
 					workspace.resources.dictionary.add(word)
 		else:
 			log.error(f'Unrecognized filetype:{file}')
@@ -69,10 +69,10 @@ def build_dictionary(workspace, config):
 
 def do_align(workspace, config):
 	if config.fileid:
-		workspace.alignments(config.fileid, force=config.force)
+		workspace.alignments(config.fileid, config.language.name, force=config.force)
 	elif config.allPairs:
 		for goldFile in workspace.goldFiles():
-			workspace.alignments(goldFile.stem, force=config.force)
+			workspace.alignments(goldFile.stem, config.language.name, force=config.force)
 
 
 ##########################################################################################
@@ -116,10 +116,10 @@ def build_model(workspace, config):
 
 def do_tokenize(workspace, config, getWordAlignments=True):
 	if config.fileid:
-		workspace.tokens(config.fileid, config.nheaderlines, config.k, getWordAlignments, force=config.force)
+		workspace.tokens(config.fileid, config.nheaderlines, config.k, config.language.name, getWordAlignments, force=config.force)
 	elif config.all:
 		for goldFile in workspace.goldFiles():
-			workspace.tokens(goldFile.stem, config.nheaderlines, config.k, getWordAlignments, force=config.force)
+			workspace.tokens(goldFile.stem, config.nheaderlines, config.k, config.language.name, getWordAlignments, force=config.force)
 
 
 ##########################################################################################
@@ -167,7 +167,7 @@ def do_correct(workspace, config):
 	)
 	
 	# get tokens to use for correction
-	tokens = workspace.tokens(config.fileid, getWordAlignments=False)
+	tokens = workspace.tokens(config.fileid, language=config.language.name, getWordAlignments=False)
 	
 	log.info('Running heuristics on tokens to determine annotator workload.')
 	annotatorRequired = 0

@@ -124,8 +124,8 @@ class StringToken(object):
 		return self.original.isnumeric()
 
 
-def tokenize_string(data, objectify=True):
-	words = nltk.tokenize.word_tokenize(data, 'danish')
+def tokenize_string(data, language='English', objectify=True):
+	words = nltk.tokenize.word_tokenize(data, language)
 	
 	if not objectify:
 		return words
@@ -133,24 +133,25 @@ def tokenize_string(data, objectify=True):
 	return [StringToken(w) for w in words]
 
 
-def tokenize_file(filename, header=0, objectify=True):
+def tokenize_file(filename, header=0, language='English', objectify=True):
 	with open_for_reading(filename) as f:
 		data = str.join('\n', [l for l in f.readlines()][header:])
 	
-	return tokenize_string(data, objectify=objectify)
+	return tokenize_string(data, language, objectify=objectify)
 
 
 class StringTokenizer(object):
-	def __init__(self, dictionary, hmm, wordAlignments=None, previousTokens=None):
+	def __init__(self, dictionary, hmm, language, wordAlignments=None, previousTokens=None):
 		self.log = logging.getLogger(f'{__name__}.StringTokenizer')
 		self.dictionary = dictionary
 		self.hmm = hmm
+		self.language = language
 		self.wordAlignments = wordAlignments
 		self.previousTokens = previousTokens or dict()
 		self.tokens = []
 
 	def tokenize(self, file, nheaderlines=0, k=4, force=False):
-		tokens = tokenize_file(file, nheaderlines)
+		tokens = tokenize_file(file, nheaderlines, self.language)
 		self.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
 	
 		self.log.info(f'Generating {k}-best suggestions for each token')

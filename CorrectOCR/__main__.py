@@ -9,6 +9,7 @@ from pathlib import Path
 from pprint import pformat
 
 import progressbar
+from pycountry import languages
 
 from . import workspace
 from . import commands
@@ -16,6 +17,7 @@ from . import commands
 defaults = """
 [configuration]
 characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+language = Danish
 
 [workspace]
 correctedPath = corrected/
@@ -83,6 +85,7 @@ commonparser.add_argument('-k', type=int, default=4, help='Number of k-best cand
 commonparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus file headers (default: 0)')
 commonparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
 commonparser.add_argument('--loglevel', type=str, help='Log level', choices=loglevels.keys(), default='INFO')
+commonparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
 
 if sys.version_info >= (3, 7):
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command', required=True)

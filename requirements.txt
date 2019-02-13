@@ -4,3 +4,4 @@ progressbar2
 PyMuPDF
 regex
 requests
+pycountry
