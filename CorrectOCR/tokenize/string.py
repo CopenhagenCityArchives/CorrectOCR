@@ -70,7 +70,11 @@ class StringToken(object):
 			#self.log.debug(f'{self} -- {d}')
 			kbest = []
 			for n in range(1, k+1):
-				kbest.append((d[f'{n}-best'], float(d[f'{n}-best prob.'])))
+				candidate = d[f'{n}-best']
+				probability = d[f'{n}-best prob.']
+				if probability == '': # not sure why this sometimes happens...
+					probability = 0.0
+				kbest.append((candidate, float(probability)))
 			self.__init__(
 				d['Original'],
 				d.get('Gold', None),
