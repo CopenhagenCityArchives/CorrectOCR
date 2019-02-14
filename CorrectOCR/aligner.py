@@ -1,13 +1,20 @@
-import logging
 import collections
-
+import logging
 from difflib import SequenceMatcher
+from typing import DefaultDict, Dict, List, Counter
+
+from . import punctuationRE
+
 
 class Aligner(object):
-	def __init__(self):
-		self.log = logging.getLogger(f'{__name__}.align')
+	log = logging.getLogger(f'{__name__}.Aligner')
 
-	def align_words(self, left, right, index):
+	def __init__(self):
+		self.fullAlignments: List[List[str, str]] = None
+		self.wordAlignments: DefaultDict[str, Dict[int, str]] = None
+		self.misreadCounts: DefaultDict[str, Counter[str]] = None
+
+	def align_words(self, left: str, right: str):
 		(aPos, bPos, aStr, bStr) = (0, 0, '', '')
 		#matcher.set_seq1(best.original)
 		m = SequenceMatcher(None, left, right)
@@ -24,32 +31,32 @@ class Aligner(object):
 				self.misreadCounts[char][char] += 1
 			(aPos, bPos, aStr, bStr) = (a+c, b+c, '', '')
 
-	def align_tokens(self, left, right, index):
+	def align_tokens(self, left: List[str], right: List[str], index: int):
 		remove = set()
-		
-		for i, leftToken in enumerate(left, index):
-			matcher = SequenceMatcher(None, None, leftToken.original, autojunk=None)
+
+		for i, left in enumerate(left, index):
+			matcher = SequenceMatcher(None, None, left, autojunk=None)
 			(best, bestRatio) = (None, 0.0)
-			for rightToken in right:
-				matcher.set_seq1(rightToken.original)
+			for right in right:
+				matcher.set_seq1(right)
 				ratio = matcher.ratio()
 				if ratio > bestRatio:
-					best = rightToken
+					best = right
 					bestRatio = ratio
 				if ratio == 1.0:
 					continue # no reason to compare further
-			if best and bestRatio > 0.7 or (len(leftToken.original) > 4 and bestRatio > 0.6):
-				#self.log.debug(f'\t{leftToken} -> {best} {bestRatio}')
-				self.align_words(leftToken.original, best.original, i)
-				self.wordAlignments[leftToken.original][i] = best.original
-				remove.add(leftToken)
+			if best and bestRatio > 0.7 or (len(left) > 4 and bestRatio > 0.6):
+				#Aligner.log.debug(f'\t{left} -> {best} {bestRatio}')
+				self.align_words(left, best)
+				self.wordAlignments[left][i] = best
+				remove.add(left)
 			else:
-				#self.log.debug(f'\tbestRatio: {leftToken} & {best} = {bestRatio}')
+				#Aligner.log.debug(f'\tbestRatio: {left} & {best} = {bestRatio}')
 				pass
 		
 		return [t for t in left if t not in remove], right
 
-	def alignments(self, originalTokens, goldTokens, force=False):
+	def alignments(self, originalTokens: List[str], goldTokens: List[str]):
 		self.fullAlignments = []
 		self.wordAlignments = collections.defaultdict(dict)
 		self.misreadCounts = collections.defaultdict(collections.Counter)
@@ -62,7 +69,7 @@ class Aligner(object):
 		a = originalTokens
 		b = goldTokens
 		
-		matcher = SequenceMatcher(isjunk=lambda t: t.is_punctuation(), autojunk=False)
+		matcher = SequenceMatcher(isjunk=lambda t: punctuationRE.match(t), autojunk=False)
 		matcher.set_seqs(a, b)
 		
 		leftRest = []
@@ -71,19 +78,19 @@ class Aligner(object):
 		for tag, i1, i2, j1, j2 in matcher.get_opcodes():
 			if tag == 'equal':
 				for token in a[i1:i2]:
-					for char in token.original:
+					for char in token:
 						self.fullAlignments.append([char, char])
 						self.misreadCounts[char][char] += 1
-				self.wordAlignments[token.original][i1] = token.original
+					self.wordAlignments[token][i1] = token
 			elif tag == 'replace':
 				if i2-i1 == j2-j1:
-					for leftToken, rightToken in zip(a[i1:i2], b[j1:j2]):
-						for leftChar, rightChar in zip(leftToken.original, rightToken.original):
+					for left, right in zip(a[i1:i2], b[j1:j2]):
+						for leftChar, rightChar in zip(left, right):
 							self.fullAlignments.append([leftChar, rightChar])
 							self.misreadCounts[leftChar][rightChar] += 1
-						self.wordAlignments[leftToken.original][i1] = rightToken.original
+						self.wordAlignments[left][i1] = right
 				else:
-					#self.log.debug(f'{tag:7}   a[{i1}:{i2}] --> b[{j1}:{j2}] {a[i1:i2]!r:>8} --> {b[j1:j2]!r}')
+					#Aligner.log.debug(f'{tag:7}   a[{i1}:{i2}] --> b[{j1}:{j2}] {a[i1:i2]!r:>8} --> {b[j1:j2]!r}')
 					(left, right) = self.align_tokens(a[i1:i2], b[j1:j2], i1)
 					leftRest.extend(left)
 					rightRest.extend(right)
@@ -94,12 +101,12 @@ class Aligner(object):
 		
 		(left, right) = self.align_tokens(leftRest, rightRest, int(len(a)/3))
 		
-		#self.log.debug(f'unmatched tokens left {len(left)}: {sorted(left)}')
-		#self.log.debug(f'unmatched tokens right {len(right)}: {sorted(right)}')
+		Aligner.log.debug(f'unmatched tokens left {len(left)}: {sorted(left)}')
+		Aligner.log.debug(f'unmatched tokens right {len(right)}: {sorted(right)}')
 	
-		#self.log.debug(f"æ: {self.misreadCounts['æ']}")
-		#self.log.debug(f"cr: {self.misreadCounts.get('cr', None)}")
-		#self.log.debug(f"c: {self.misreadCounts.get('c', None)}")
-		#self.log.debug(f"r: {self.misreadCounts.get('r', None)}")
+		#Aligner.log.debug(f"æ: {self.misreadCounts['æ']}")
+		#Aligner.log.debug(f"cr: {self.misreadCounts.get('cr', None)}")
+		#Aligner.log.debug(f"c: {self.misreadCounts.get('c', None)}")
+		#Aligner.log.debug(f"r: {self.misreadCounts.get('r', None)}")
 		
-		return (self.fullAlignments, self.wordAlignments, self.misreadCounts)
+		return self.fullAlignments, self.wordAlignments, self.misreadCounts

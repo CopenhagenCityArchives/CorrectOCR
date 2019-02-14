@@ -1,32 +1,37 @@
 import collections
 import itertools
-import json
 import logging
 import re
-from collections import defaultdict
 from pathlib import Path
+from typing import Dict, List
 
-from . import punctuationRE, open_for_reading, ensure_new_file
+from . import punctuationRE
+from .dictionary import Dictionary
 from .tokenize.string import tokenize_file
+from .workspace import Workspace
+
 
 class HMM(object):
-	def __init__(self, initial, transition, emission, multichars={}):
-		self.log = logging.getLogger(f'{__name__}.HMM')
+	log = logging.getLogger(f'{__name__}.HMM')
+
+	def __init__(self, initial, transition, emission, multichars=None):
+		if multichars is None:
+			multichars = {}
 		self.init = initial
 		self.tran = transition
 		self.emis = emission
 		self.multichars = multichars
 		
 		self.states = initial.keys()
-		#self.log.debug(f'init: {self.init}')
-		#self.log.debug(f'tran: {self.tran}')
-		#self.log.debug(f'emis: {self.emis}')
-		self.log.debug(f'states: {self.states}')
+		#HMM.log.debug(f'init: {self.init}')
+		#HMM.log.debug(f'tran: {self.tran}')
+		#HMM.log.debug(f'emis: {self.emis}')
+		HMM.log.debug(f'states: {self.states}')
 		
 		if not self.parameter_check():
-			self.log.critical(f'Parameter check failed for {self}')
+			HMM.log.critical(f'Parameter check failed for {self}')
 		else:
-			self.log.debug(f'HMM initialized: {self}')
+			HMM.log.debug(f'HMM initialized: {self}')
 	
 	def __str__(self):
 		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
@@ -34,23 +39,20 @@ class HMM(object):
 	def __repr__(self):
 		return self.__str__()
 
-	def save(self, name):
-		newname = ensure_new_file(Path(name))
-		self.log.info(f'Backed up original HMM parameters to {newname}')
-		self.log.info(f'Saving HMM parameters to {name}')
-		with open(name, 'w', encoding='utf-8') as f:
-			json.dump([self.init, self.tran, self.emis], f)
+	def save(self, path):
+		HMM.log.info(f'Saving HMM parameters to {path}')
+		Workspace.save([self.init, self.tran, self.emis], path, Workspace.JSON)
 
 
 	def parameter_check(self):
 		all_match = True
 		if set(self.init) != set(self.tran):
 			all_match = False
-			self.log.error('Initial keys do not match transition keys.')
+			HMM.log.error('Initial keys do not match transition keys.')
 		if set(self.init) != set(self.emis):
 			all_match = False
 			keys = set(self.init).symmetric_difference(set(self.emis))
-			self.log.error(
+			HMM.log.error(
 				f'Initial keys do not match emission keys:'
 				f' diff: {[k for k in keys]}'
 				f' init: {[self.init.get(k, None) for k in keys]}'
@@ -59,11 +61,12 @@ class HMM(object):
 		for key in self.tran:
 			if set(self.tran[key]) != set(self.tran):
 				all_match = False
-				self.log.error(f'Outer transition keys do not match inner keys: {key}')
-		if all_match == True:
-			self.log.info('Parameters match.')
+				HMM.log.error(f'Outer transition keys do not match inner keys: {key}')
+		if all_match:
+			HMM.log.info('Parameters match.')
 		return all_match
 
+	# noinspection PyTypeChecker
 	def viterbi(self, char_seq): # UNUSED!!
 		# delta[t][j] is probability of max probability path to state j
 		# at time t given the observation sequence up to time t.
@@ -91,8 +94,8 @@ class HMM(object):
 		
 		return ''.join(selected_states)
 	
-	def k_best_beam(self, word, k):
-		#self.log.debug(f'word: {word}')
+	def k_best_beam(self, word: str, k: int):
+		#HMM.log.debug(f'word: {word}')
 		# Single symbol input is just initial * emission.
 		if len(word) == 1:
 			paths = [(i, self.init[i] * self.emis[i][word[0]])
@@ -106,7 +109,7 @@ class HMM(object):
 								for i in self.states for j in self.states]
 			except KeyError as e:
 				character = e.args[0]
-				self.log.critical(f'[word: {word}] Model is missing character: {character} ({character.encode("utf-8")})')
+				HMM.log.critical(f'[word: {word}] Model is missing character: {character} ({character.encode("utf-8")})')
 				raise SystemExit(-1)
 			
 			# Keep the k best sequences.
@@ -123,7 +126,7 @@ class HMM(object):
 		return [(''.join(seq), prob) for seq, prob in paths[:k]]
 	
 	
-	def kbest_for_word(self, word, k, dictionary):
+	def kbest_for_word(self, word: str, k: int, dictionary: Dictionary):
 		if len(word) == 0:
 			return [''] + ['', 0.0] * k
 
@@ -141,8 +144,9 @@ class HMM(object):
 				k_best = sorted(k_best, key=lambda x: x[1], reverse=True)[:k]
 		
 		return k_best
-	
-	def multichar_variants(word, original, replacements):
+
+	@classmethod
+	def multichar_variants(cls, word: str, original: str, replacements: List[str]):
 		variants = [original] + replacements
 		variant_words = set()
 		pieces = re.split(original, word)
@@ -159,9 +163,12 @@ class HMMBuilder(object):
 	# Start with misread counts, remove any keys which are not single
 	# characters, remove specified characters, and combine into a single
 	# dictionary.
-	def generate_confusion(misreadCounts, remove=[]):
+	@staticmethod
+	def generate_confusion(misreadCounts: Dict, remove=None) -> Dict[str, Dict[str, int]]:
 		# Outer keys are the correct characters. Inner keys are the counts of
 		# what each character was read as.
+		if remove is None:
+			remove = []
 		confusion = collections.defaultdict(collections.Counter)
 
 		confusion.update(misreadCounts)
@@ -190,12 +197,13 @@ class HMMBuilder(object):
 
 	# Get the character counts of the training files. Used for filling in
 	# gaps in the confusion probabilities.
-	def text_char_counts(files, dictionary, remove=[], nheaderlines=0):
+	@staticmethod
+	def text_char_counts(files: List[Path], dictionary: Dictionary, remove=None) -> Dict[str, int]:
+		if remove is None:
+			remove = []
 		char_count = collections.Counter()
 		for file in files:
-			with open_for_reading(file) as f:
-				f.readlines(nheaderlines)
-				text = f.readlines()
+			text = Workspace.load(file)
 			char_count.update(list(text))
 
 		for word in dictionary:
@@ -211,10 +219,13 @@ class HMMBuilder(object):
 	# counts. Optionally a file of expected characters can be used to add
 	# expected characters as model states whose emission probabilities are set to
 	# only output themselves.
+	@staticmethod
 	def emission_probabilities(confusion, char_counts, alpha,
-							   remove=[], extra_chars=None):
+							   remove=None, extra_chars=None):
 		# Add missing dictionary elements.
 		# Missing outer terms are ones which were always read correctly.
+		if remove is None:
+			remove = []
 		for char in char_counts:
 			if char not in confusion:
 				confusion[char] = {char: char_counts[char]}
@@ -255,20 +266,23 @@ class HMMBuilder(object):
 
 	# Create the initial and transition probabilities from the gold
 	# text in the training data.
+	@staticmethod
 	def init_tran_probabilities(goldfiles, dictionary, alpha,
-								remove=[], nheaderlines=0, extra_chars=None):
+								remove=None, language=None, extra_chars=None):
+		if remove is None:
+			remove = []
 		tran = collections.defaultdict(lambda: collections.defaultdict(int))
 		init = collections.defaultdict(int)
 
-		def add_word(word):
-			if len(word) > 0:
-				init[word[0]] += 1
+		def add_word(_word):
+			if len(_word) > 0:
+				init[_word[0]] += 1
 				# Record each occurrence of character pair ij in tran[i][j]
-				for i, j in zip(word[0:], word[1:]):
-					tran[i][j] += 1
+				for (a, b) in zip(_word[0:], _word[1:]):
+					tran[a][b] += 1
 
 		for file in goldfiles:
-			words = tokenize_file(file, header=nheaderlines, objectify=False)
+			words = tokenize_file(file, language.name)
 	
 			for word in words:
 				add_word(word)

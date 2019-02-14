@@ -42,6 +42,7 @@ correctedPath = corrected/
 goldPath = gold/
 originalPath = original/
 trainingPath = training/
+nheaderlines = 0
 
 [resources]
 correctionTrackingFile = resources/correction_tracking.json

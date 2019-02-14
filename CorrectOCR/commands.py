@@ -5,23 +5,24 @@ import shutil
 import time
 import zipfile
 from pathlib import Path
+from typing import List, Set
 
-import lxml
 import progressbar
 import requests
+from lxml import etree
 from tei_reader import TeiReader
 
-from . import ensure_new_file, open_for_reading, extract_text_from_pdf
-from .dictionary import Dictionary
-from .aligner import Aligner
-from .model import HMM, HMMBuilder
+from . import open_for_reading, extract_text_from_pdf
 from .correcter import Correcter, CorrectionShell
-from .tokenize.string import tokenize_string
+from .model import HMM, HMMBuilder
+from .tokenize import tokenize_str
+from .workspace import Workspace
+
 
 ##########################################################################################
 
 
-def build_dictionary(workspace, config):
+def build_dictionary(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.build_dictionary')
 	
 	if config.corpusFile:
@@ -55,16 +56,16 @@ def build_dictionary(workspace, config):
 						log.info(f'File already copied: {file.name}')
 						continue
 					log.info(f'Copying {file.name} to corpus.')
-					shutil.copy(file, outfile)
+					shutil.copy(str(file), outfile)
 
-	def unzip_recursive(zip):
-		for member in zip.namelist():
+	def unzip_recursive(_zip):
+		for member in _zip.namelist():
 			if member[-4:] == '.zip':
 				log.info(f'Unzipping internal {member}')
-				with zipfile.ZipFile(zip.open(member)) as zf:
-					unzip_recursive(zf)
+				with zipfile.ZipFile(_zip.open(member)) as _zf:
+					unzip_recursive(_zf)
 			else:
-				zip.extract(member, config.corpusPath)
+				_zip.extract(member, config.corpusPath)
 
 	for file in config.corpusPath.iterdir():
 		if file.suffix == '.zip':
@@ -72,7 +73,7 @@ def build_dictionary(workspace, config):
 			with zipfile.ZipFile(file) as zf:
 				unzip_recursive(zf)
 
-	ignore = {
+	ignore: Set[str] = {
 		'.DS_Store',
 		# extraneous files in Joh. V. Jensen zip:
 		'teiHeader.xsd',
@@ -150,13 +151,13 @@ def build_dictionary(workspace, config):
 		log.info(f'Getting words from {file}')
 		if file.suffix == '.pdf':
 			text = extract_text_from_pdf(file)
-			for word in tokenize_string(str(text), config.language.name, objectify=False):
+			for word in tokenize_str(str(text), workspace.language.name):
 				workspace.resources.dictionary.add(word)
 		elif file.suffix == '.xml':
 			try:
 				reader = TeiReader()
 				corpora = reader.read_file(file)
-			except lxml.etree.XMLSyntaxError:
+			except etree.XMLSyntaxError:
 				log.error(f'XML error in {file}')
 				continue
 			# approved = {'corpus', 'document', 'div', 'part', 'p', 'l', 'w'}
@@ -164,11 +165,11 @@ def build_dictionary(workspace, config):
 			# above didn't work. Instead insert extra space, see issue
 			# https://github.com/UUDigitalHumanitieslab/tei_reader/issues/6
 			text = corpora.tostring(lambda e, t: f'{t} ')
-			for word in tokenize_string(text, config.language.name, objectify=False):
+			for word in tokenize_str(text, workspace.language.name):
 				workspace.resources.dictionary.add(word)
 		elif file.suffix == '.txt':
 			with open_for_reading(file) as f:
-				for word in tokenize_string(f.read(), config.language.name, objectify=False):
+				for word in tokenize_str(f.read(), workspace.language.name):
 					workspace.resources.dictionary.add(word)
 		else:
 			log.error(f'Unrecognized filetype:{file}')
@@ -180,22 +181,22 @@ def build_dictionary(workspace, config):
 ##########################################################################################
 
 
-def do_align(workspace, config):
+def do_align(workspace: Workspace, config):
 	if config.fileid:
-		workspace.alignments(config.fileid, config.language.name, force=config.force)
+		workspace.alignments(config.fileid, force=config.force)
 	elif config.allPairs:
 		for goldFile in workspace.goldFiles():
-			workspace.alignments(goldFile.stem, config.language.name, force=config.force)
+			workspace.alignments(goldFile.stem, force=config.force)
 
 
 ##########################################################################################
 
 
-def build_model(workspace, config):
+def build_model(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.build_model')
 	
 	# Extra config
-	remove_chars = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
+	remove_chars: List[str] = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
 
 	# Select the gold files which correspond to the misread count files.
 	misreadCounts = collections.defaultdict(collections.Counter)
@@ -206,7 +207,7 @@ def build_model(workspace, config):
 		gold_files.append(workspace.goldFile(file.stem))
 	
 	confusion = HMMBuilder.generate_confusion(misreadCounts, remove_chars)
-	char_counts = HMMBuilder.text_char_counts(gold_files, workspace.resources.dictionary, remove_chars, config.nheaderlines)
+	char_counts = HMMBuilder.text_char_counts(gold_files, workspace.resources.dictionary, remove_chars)
 
 	charset = set(config.characterSet) | set(char_counts) | set(confusion)
 
@@ -218,7 +219,7 @@ def build_model(workspace, config):
 
 	# Create the initial and transition probabilities from the gold files
 	init, tran = HMMBuilder.init_tran_probabilities(gold_files, workspace.resources.dictionary, config.smoothingParameter,
-                                         remove_chars, config.nheaderlines, extra_chars=charset)
+                                         remove_chars, workspace.language, extra_chars=charset)
 
 	workspace.resources.hmm = HMM(init, tran, emis)
 	workspace.resources.hmm.save(workspace.resources.hmmParamsFile) # TODO keep path inside hmm like dicts?
@@ -227,32 +228,29 @@ def build_model(workspace, config):
 ##########################################################################################
 
 
-def do_tokenize(workspace, config, getWordAlignments=True):
+def do_tokenize(workspace: Workspace, config, getWordAlignments=True):
 	if config.fileid:
-		workspace.tokens(config.fileid, config.nheaderlines, config.k, config.language.name, getWordAlignments, force=config.force)
+		workspace.tokens(config.fileid, config.k, getWordAlignments, force=config.force)
 	elif config.all:
 		for goldFile in workspace.goldFiles():
-			workspace.tokens(goldFile.stem, config.nheaderlines, config.k, config.language.name, getWordAlignments, force=config.force)
+			workspace.tokens(goldFile.stem, config.k, getWordAlignments, force=config.force)
 
 
 ##########################################################################################
 
 
-def make_report(workspace, config):
+def make_report(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.make_report')
-	
-	dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
-	heuristics = Heuristics(dictionary, config.caseInsensitive, k=config.k)
-	
-	for goldTokens in workspace.goldTokens():
-		log.info(f'Collecting stats from {file}')
+
+	for fileid, goldTokens in workspace.goldTokens():
+		log.info(f'Collecting stats from {fileid}')
 		for t in goldTokens:
-			heuristics.add_to_report(t)
+			workspace.resources.heuristics.add_to_report(t)
 	
-	config.reportFile.writelines(heuristics.report())
+	config.reportFile.writelines(workspace.resources.heuristics.report())
 
 
-def make_settings(workspace, config):
+def make_settings(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.make_settings')
 	
 	log.info(f'Reading report from {workspace.resources.reportFile.name}')
@@ -268,7 +266,7 @@ def make_settings(workspace, config):
 ##########################################################################################
 
 
-def do_correct(workspace, config):
+def do_correct(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_correct')
 	
 	correcter = Correcter(
@@ -280,20 +278,20 @@ def do_correct(workspace, config):
 	)
 	
 	# get tokens to use for correction
-	tokens = workspace.tokens(config.fileid, language=config.language.name, getWordAlignments=False)
+	tokens = workspace.tokens(config.fileid, getWordAlignments=False)
 	
 	log.info('Running heuristics on tokens to determine annotator workload.')
 	annotatorRequired = 0
 	for t in progressbar.progressbar(tokens):
 		(t.bin['decision'], t.bin['selection']) = correcter.evaluate(t)
-		annotatorRequired += 1
+		if t.bin['decision'] == 'annotator':
+			annotatorRequired += 1
 	log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
 	
 	path = workspace.binnedTokenFile(config.fileid)
 	rows = [t.as_dict() for t in tokens]
 
-	# TODO:
-	workspace.__class__.save(rows, path, workspace.__class__.CSV, header=workspace.__class__.BINNEDHEADER)
+	Workspace.save(rows, path, Workspace.CSV, header=Workspace.BINNEDHEADER)
 
 	if not config.interactive:
 		return
@@ -304,19 +302,12 @@ def do_correct(workspace, config):
 	log.info(f'Correcting {config.fileid}')
 	origfilename = workspace.originalFile(config.fileid)
 	
-	correctfilename = ensure_new_file(workspace.correctedFile(config.fileid))
-	o = open(correctfilename, 'w', encoding='utf-8')
-
 	# get metadata, if any
 	if config.nheaderlines > 0:
 		with open_for_reading(origfilename) as f:
 			metadata = f.readlines()[:config.nheaderlines]
 	else:
 		metadata = ''
-
-	# and write it to output file, replacing 'Corrected: No' with 'Yes'
-	for l in metadata:
-		o.write(l.replace(u'Corrected: No', u'Corrected: Yes'))
 
 	if linecombine:
 		tokens = correcter.linecombiner(tokens)
@@ -334,15 +325,15 @@ def do_correct(workspace, config):
 
 	# optionally clean up hyphenation in completed tokens
 	if config.dehyphenate:
-		tokens = [dehyph(tk) for tk in tokens]
+		tokens = [correcter.dehyph(tk) for tk in tokens]
 
 	# make print-ready text
 	spaced = u' '.join([token.gold or token.original for token in tokens])
 	despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
-	# write corrected output
-	o.write(despaced)
-	o.close()
+	corrected = metadata.replace(u'Corrected: No', u'Corrected: Yes') + despaced
+	
+	workspace.save(corrected, workspace.correctedFile(config.fileid))
 	
 	# update tracking & memos of annotator's actions
 	for key, count in sorted(tracking['correctionTracking'].items(), key=lambda x: x[1], reverse=True):

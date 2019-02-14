@@ -6,7 +6,6 @@ all:
 
 tokenizer:
 	get tokens from hocr also
-	tokeninfo column in csv (string, hocr, ?)
 	squish abbreviations? something like below?
 	mwes = [
 		('P', 'E'), # Politiets Efterretninger

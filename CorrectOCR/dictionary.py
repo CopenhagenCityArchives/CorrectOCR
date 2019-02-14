@@ -1,32 +1,36 @@
 import logging
-from pathlib import Path
+from typing import List, Iterator
 
-from . import open_for_reading, ensure_new_file, extract_text_from_pdf
+from .workspace import Workspace
 
 
 class Dictionary(object):
+	log = logging.getLogger(f'{__name__}.Dictionary')
+
+	@property
+	def data(self) -> List[str]:
+		return sorted(self.words, key=str.lower)
+	
 	def __init__(self, path=None, caseInsensitive=False):
-		self.log = logging.getLogger(f'{__name__}.Dictionary')
 		self.caseInsensitive = caseInsensitive
 		self.words = set()
 		self.path = path
 		if self.path.exists():
-			self.log.info(f'Loading dictionary from {self.path.name}')
-			with open_for_reading(self.path) as f:
-				for line in f.readlines():
-					if self.caseInsensitive:
-						self.words.add(line.strip().lower())
-					else:
-						self.words.add(line.strip())
-		self.log.info(f'{len(self.words)} words in dictionary')
+			Dictionary.log.info(f'Loading dictionary from {self.path.name}')
+			for line in Workspace.load(self.path).split('\n'):
+				if self.caseInsensitive:
+					self.words.add(line.strip().lower())
+				else:
+					self.words.add(line.strip())
+		Dictionary.log.info(f'{len(self.words)} words in dictionary')
 	
-	def __str__(self):
-		return f'<{self.__class__.__name__} "{len(self.words)}{" caseInsensitive" if self._optional else ""}>'
+	def __str__(self) -> str:
+		return f'<{self.__class__.__name__} "{len(self.words)}{" caseInsensitive" if self.caseInsensitive else ""}>'
 	
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return self.__str__()
 	
-	def __contains__(self, word):
+	def __contains__(self, word: str) -> bool:
 		"""Contains all numbers"""
 		if word.isnumeric():
 			return True
@@ -34,27 +38,23 @@ class Dictionary(object):
 			word = word.lower()
 		return word in self.words
 	
-	def __iter__(self):
+	def __iter__(self) -> Iterator[str]:
 		return self.words.__iter__()
 	
-	def __len__(self):
+	def __len__(self) -> int:
 		return self.words.__len__()
 	
-	def add(self, word):
+	def add(self, word: str):
 		"""Silently drops non-alpha strings"""
 		if word in self or not word.isalpha():
 			return
 		if len(word) > 15:
-			self.log.warn(f'Added word is more than 15 characters long: {word}')
+			Dictionary.log.warning(f'Added word is more than 15 characters long: {word}')
 		if self.caseInsensitive:
 			word = word.lower()
 		self.words.add(word)
 	
 	def save(self, path=None):
 		path = path or self.path
-		backup = ensure_new_file(path)
-		self.log.info(f'Backed up original dictionary file to {backup}')
-		self.log.info(f'Saving dictionary (words: {len(self.words)}) to {path}')
-		with open(path, 'w', encoding='utf-8') as f:
-			for word in sorted(self.words, key=str.lower):
-				f.write(f'{word}\n')
+		Dictionary.log.info(f'Saving dictionary (words: {len(self.words)}) to {path}')
+		Workspace.save('\n'.join(self.data), path)

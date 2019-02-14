@@ -11,19 +11,20 @@ from pprint import pformat
 import progressbar
 from pycountry import languages
 
-from . import workspace
 from . import commands
+from . import workspace
 
 defaults = """
 [configuration]
 characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-language = Danish
 
 [workspace]
 correctedPath = corrected/
 goldPath = gold/
 originalPath = original/
 trainingPath = training/
+nheaderlines = 0
+language = Danish
 
 [resources]
 correctionTrackingFile = resources/correction_tracking.json
@@ -58,6 +59,8 @@ workspaceparser.add_argument('--originalPath', metavar='PATH', type=Path, help='
 workspaceparser.add_argument('--goldPath', metavar='PATH', type=Path, help='Path to directory of known correct "gold" files')
 workspaceparser.add_argument('--trainingPath', metavar='PATH', type=Path, help='Path for generated training files')
 workspaceparser.add_argument('--correctedPath', metavar='PATH', type=Path, help='Directory to output corrected files')
+workspaceparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus headers (default: 0)')
+workspaceparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
 workspaceparser.set_defaults(**dict(config.items('workspace')))
 (workspaceconfig, args) = workspaceparser.parse_known_args()
 #print(workspaceconfig, args)
@@ -82,10 +85,8 @@ rootparser = argparse.ArgumentParser(prog=progname, description='Correct OCR')
 
 commonparser = argparse.ArgumentParser(add_help=False)
 commonparser.add_argument('-k', type=int, default=4, help='Number of k-best candidates to use for tokens (default: 4)')
-commonparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus file headers (default: 0)')
 commonparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
 commonparser.add_argument('--loglevel', type=str, help='Log level', choices=loglevels.keys(), default='INFO')
-commonparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
 
 if sys.version_info >= (3, 7):
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command', required=True)

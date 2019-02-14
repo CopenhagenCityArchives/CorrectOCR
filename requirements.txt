@@ -1,9 +1,9 @@
 beautifulsoup4
+lxml
 nltk
 progressbar2
+pycountry
 PyMuPDF
 regex
 requests
-pycountry
 tei-reader
-lxml
