@@ -3,7 +3,7 @@ import logging
 import progressbar
 
 from ._super import Token, Tokenizer, tokenize_str
-from ..workspace import Workspace
+from .. import FileAccess
 
 
 class StringToken(Token):
@@ -26,7 +26,7 @@ Token.register(StringToken)
 
 
 def tokenize_file(filename, language='English'):
-	data = Workspace.load(filename)
+	data = FileAccess.load(filename)
 
 	return [StringToken(w) for w in tokenize_str(data, language)]
 

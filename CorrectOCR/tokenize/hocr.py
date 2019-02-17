@@ -9,7 +9,7 @@ import progressbar
 from lxml import html
 
 from ._super import Token, Tokenizer
-from ..workspace import Workspace
+from .. import FileAccess
 
 
 @contextmanager
@@ -114,7 +114,7 @@ def tokenize_image(filePath, language='Eng', force=False):
 	outfile = filePath.parent.joinpath(f'{filePath.stem}.json')
 	if not force and outfile.is_file():
 		log.info(f'Found hOCR for {filePath} at {outfile}')
-		return Workspace.load(outfile)
+		return FileAccess.load(outfile)
 
 	tokens = []
 

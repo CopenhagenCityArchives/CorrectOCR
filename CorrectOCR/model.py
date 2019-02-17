@@ -5,10 +5,9 @@ import re
 from pathlib import Path
 from typing import Dict, List
 
-from . import punctuationRE
+from . import punctuationRE, FileAccess
 from .dictionary import Dictionary
 from .tokenize.string import tokenize_file
-from .workspace import Workspace
 
 
 class HMM(object):
@@ -41,7 +40,7 @@ class HMM(object):
 
 	def save(self, path):
 		HMM.log.info(f'Saving HMM parameters to {path}')
-		Workspace.save([self.init, self.tran, self.emis], path, Workspace.JSON)
+		FileAccess.save([self.init, self.tran, self.emis], path, FileAccess.JSON)
 
 
 	def parameter_check(self):
@@ -203,7 +202,7 @@ class HMMBuilder(object):
 			remove = []
 		char_count = collections.Counter()
 		for file in files:
-			text = Workspace.load(file)
+			text = FileAccess.load(file)
 			char_count.update(list(text))
 
 		for word in dictionary:

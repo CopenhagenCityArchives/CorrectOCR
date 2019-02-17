@@ -1,11 +1,9 @@
-import csv
-import json
 import logging
 from pathlib import Path
 from pprint import pformat
-from typing import Iterator, Iterable, Any, List, Tuple
+from typing import Iterator, Iterable, List, Tuple
 
-from . import open_for_reading, ensure_new_file
+from . import FileAccess
 from .aligner import Aligner
 from .tokenize import Token, Tokenizer, tokenize_str
 
@@ -64,7 +62,7 @@ class Workspace(object):
 
 	def originalTokens(self) -> Iterator[Tuple[str, List[Token]]]:
 		for file in self.originalTokenFiles():
-			yield file.stem, [Token.from_dict(row) for row in Workspace.load(file, Workspace.CSV)]
+			yield file.stem, [Token.from_dict(row) for row in FileAccess.load(file, FileAccess.CSV)]
 
 	def goldTokenFile(self, fileid: str) -> Path:
 		return self._trainingPath.joinpath(f'{fileid}_goldTokens.csv')
@@ -74,63 +72,10 @@ class Workspace(object):
 	
 	def goldTokens(self) -> Iterator[Tuple[str, List[Token]]]:
 		for goldFile in self.goldTokenFiles():
-			yield goldFile.stem, [Token.from_dict(row) for row in Workspace.load(goldFile, Workspace.CSV)]
+			yield goldFile.stem, [Token.from_dict(row) for row in FileAccess.load(goldFile, FileAccess.CSV)]
 
 	def binnedTokenFile(self, fileid: str) -> Path:
 		return self._trainingPath.joinpath(f'{fileid}_binnedTokens.csv')
-
-	JSON = 'json'
-	CSV = 'csv'
-	DATA = 'data'
-
-	TOKENHEADER = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', 
-				   '3-best', '3-best prob.', '4-best', '4-best prob.', 
-				   'Token type', 'Token info']
-	GOLDHEADER = ['Gold'] + TOKENHEADER
-	BINNEDHEADER = GOLDHEADER + ['Bin', 'Heuristic', 'Decision', 'Selection']
-
-	# TODO nheaderlines
-	@classmethod
-	def save(cls, data: Any, path, kind=None, header=None, backup=True):
-		if not kind:
-			kind = Workspace.DATA
-		if backup:
-			ensure_new_file(path)
-		with open(path, 'w', encoding='utf-8') as f:
-			if kind == Workspace.JSON:
-				if not path.suffix == '.json':
-					Workspace.log.error(f'Cannot save JSON to file with {path.suffix} extension! path: {path}')
-					raise SystemExit(-1)
-				return json.dump(data, f)
-			elif kind == Workspace.CSV:
-				if not path.suffix == '.csv':
-					Workspace.log.error(f'Cannot save CSV to file with {path.suffix} extension! path: {path}')
-					raise SystemExit(-1)
-				writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
-				writer.writeheader()
-				return writer.writerows(data)
-			else:
-				return f.write(data)
-
-	@classmethod
-	def load(cls, path: Path, kind=None, default=None):
-		if not kind:
-			kind = Workspace.DATA
-		if not path.is_file():
-			return default
-		with open_for_reading(path) as f:
-			if kind == Workspace.JSON:
-				if not path.suffix == '.json':
-					Workspace.log.error(f'Cannot load JSON to file with {path.suffix} extension! path: {path}')
-					raise SystemExit(-1)
-				return json.load(f)
-			elif kind == Workspace.CSV:
-				if not path.suffix == '.csv':
-					Workspace.log.error(f'Cannot load CSV to file with {path.suffix} extension! path: {path}')
-					raise SystemExit(-1)
-				return list(csv.DictReader(f, delimiter='\t'))
-			else:
-				return f.read()
 
 	def alignments(self, fileid, force=False) -> Tuple[list, dict, list]:
 		faPath = self.fullAlignmentsFile(fileid)
@@ -141,20 +86,20 @@ class Workspace(object):
 			# presume correctness, user may clean the files to rerun
 			Workspace.log.info(f'Alignment files for {fileid} exist, will read and return. Use --force or clean files to rerun a subset.')
 			return (
-				Workspace.load(faPath, Workspace.JSON),
-				{o: {int(k): v for k,v in i.items()} for o, i in Workspace.load(waPath, Workspace.JSON).items()},
-				Workspace.load(mcPath, Workspace.JSON)
+				FileAccess.load(faPath, FileAccess.JSON),
+				{o: {int(k): v for k,v in i.items()} for o, i in FileAccess.load(waPath, FileAccess.JSON).items()},
+				FileAccess.load(mcPath, FileAccess.JSON)
 			)
 		Workspace.log.info(f'Creating alignment files for {fileid}')
 		
 		(fullAlignments, wordAlignments, misreadCounts) = Aligner().alignments(
-			tokenize_str(Workspace.load(self.originalFile(fileid)), self.language.name),
-			tokenize_str(Workspace.load(self.goldFile(fileid)), self.language.name)
+			tokenize_str(FileAccess.load(self.originalFile(fileid)), self.language.name),
+			tokenize_str(FileAccess.load(self.goldFile(fileid)), self.language.name)
 		)
 		
-		Workspace.save(fullAlignments, faPath, Workspace.JSON)
-		Workspace.save(wordAlignments, waPath, Workspace.JSON)
-		Workspace.save(misreadCounts, mcPath, Workspace.JSON)
+		FileAccess.save(fullAlignments, faPath, FileAccess.JSON)
+		FileAccess.save(wordAlignments, waPath, FileAccess.JSON)
+		FileAccess.save(misreadCounts, mcPath, FileAccess.JSON)
 		
 		Workspace.log.debug(wordAlignments)
 		
@@ -164,7 +109,7 @@ class Workspace(object):
 		tokenFilePath = self.originalTokenFile(fileid)
 		if not force and tokenFilePath.is_file():
 			Workspace.log.info(f'{tokenFilePath} exists and will be returned as Token objects. Use --force or delete it to rerun.')
-			return [Token.from_dict(row) for row in Workspace.load(tokenFilePath, Workspace.CSV)]
+			return [Token.from_dict(row) for row in FileAccess.load(tokenFilePath, FileAccess.CSV)]
 		Workspace.log.info(f'Creating token files for {fileid}')
 	
 		# Load previously done tokens if any
@@ -199,12 +144,12 @@ class Workspace(object):
 
 		path = self.originalTokenFile(fileid)
 		Workspace.log.info(f'Writing tokens to {path}')
-		Workspace.save(rows, path, Workspace.CSV, header=Workspace.TOKENHEADER)
-	
+		FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.TOKENHEADER)
+
 		if len(wordAlignments) > 0:
 			path = self.goldTokenFile(fileid)
 			Workspace.log.info(f'Writing gold tokens to {path}')
-			Workspace.save(rows, path, Workspace.CSV, header=Workspace.GOLDHEADER)
+			FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.GOLDHEADER)
 		
 		return tokens
 
@@ -224,7 +169,7 @@ class ResourceManager(object):
 		self.dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
 		from .model import HMM
 		self.hmmParamsFile = config.hmmParamsFile
-		self.hmm = HMM(*Workspace.load(self.hmmParamsFile, Workspace.JSON), multichars=self.multiCharacterError)
+		self.hmm = HMM(*FileAccess.load(self.hmmParamsFile, FileAccess.JSON), multichars=self.multiCharacterError)
 		self.report = config.reportFile
 		from .heuristics import Heuristics
 		self.heuristics = Heuristics(JSONResource(config.heuristicSettingsFile), self.dictionary)
@@ -237,12 +182,12 @@ class JSONResource(dict):
 		super().__init__(**kwargs)
 		JSONResource.log.info(f'Loading {path}')
 		self._path = path
-		data = Workspace.load(self._path, Workspace.JSON, default=dict())
+		data = FileAccess.load(self._path, FileAccess.JSON, default=dict())
 		if data:
 			self.update(data)
 	
 	def save(self):
-		Workspace.save(self, self._path, kind=Workspace.JSON)
+		FileAccess.save(self, self._path, kind=FileAccess.JSON)
 
 	def __repr__(self):
 		return f'<JSONResource {self._path}: {dict(self)}>'

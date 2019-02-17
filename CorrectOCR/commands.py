@@ -12,7 +12,7 @@ import requests
 from lxml import etree
 from tei_reader import TeiReader
 
-from . import open_for_reading, extract_text_from_pdf
+from . import open_for_reading, extract_text_from_pdf, FileAccess
 from .correcter import Correcter, CorrectionShell
 from .model import HMM, HMMBuilder
 from .tokenize import tokenize_str
@@ -291,7 +291,7 @@ def do_correct(workspace: Workspace, config):
 	path = workspace.binnedTokenFile(config.fileid)
 	rows = [t.as_dict() for t in tokens]
 
-	Workspace.save(rows, path, Workspace.CSV, header=Workspace.BINNEDHEADER)
+	FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.BINNEDHEADER)
 
 	if not config.interactive:
 		return
@@ -333,7 +333,7 @@ def do_correct(workspace: Workspace, config):
 
 	corrected = metadata.replace(u'Corrected: No', u'Corrected: Yes') + despaced
 	
-	workspace.save(corrected, workspace.correctedFile(config.fileid))
+	FileAccess.save(corrected, workspace.correctedFile(config.fileid))
 	
 	# update tracking & memos of annotator's actions
 	for key, count in sorted(tracking['correctionTracking'].items(), key=lambda x: x[1], reverse=True):

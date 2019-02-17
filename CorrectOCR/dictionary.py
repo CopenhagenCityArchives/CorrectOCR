@@ -1,7 +1,7 @@
 import logging
 from typing import List, Set
 
-from .workspace import Workspace
+from . import FileAccess
 
 
 class Dictionary(Set[str]):
@@ -17,7 +17,7 @@ class Dictionary(Set[str]):
 		self.path = path
 		if self.path and self.path.is_file():
 			Dictionary.log.info(f'Loading dictionary from {self.path.name}')
-			for line in Workspace.load(self.path).split('\n'):
+			for line in FileAccess.load(self.path).split('\n'):
 				if self.caseInsensitive:
 					self.add(line.strip().lower(), nowarn=True)
 				else:
@@ -51,4 +51,4 @@ class Dictionary(Set[str]):
 	def save(self, path=None):
 		path = path or self.path
 		Dictionary.log.info(f'Saving dictionary (words: {len(self)}) to {path}')
-		Workspace.save('\n'.join(self.data), path)
+		FileAccess.save('\n'.join(self.data), path)
