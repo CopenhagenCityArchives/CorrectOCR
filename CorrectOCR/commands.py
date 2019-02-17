@@ -184,7 +184,7 @@ def build_dictionary(workspace: Workspace, config):
 def do_align(workspace: Workspace, config):
 	if config.fileid:
 		workspace.alignments(config.fileid, force=config.force)
-	elif config.allPairs:
+	elif config.all:
 		for fileid, pathManager in filter(lambda x: x[1].goldFile.is_file(), workspace.paths.items()):
 			workspace.alignments(fileid, force=config.force)
 

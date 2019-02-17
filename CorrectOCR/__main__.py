@@ -101,7 +101,7 @@ dictparser.set_defaults(func=commands.build_dictionary, **configuration)
 alignparser = subparsers.add_parser('align', parents=[commonparser], help='Create alignments')
 group = alignparser.add_mutually_exclusive_group(required=True)
 group.add_argument('--fileid', help='Input file ID (filename without path or extension)')
-group.add_argument('--allPairs', action='store_true', help='Align all pairs in original/gold paths')
+group.add_argument('--all', action='store_true', help='Align all pairs in original/gold paths')
 alignparser.set_defaults(func=commands.do_align, **configuration)
 
 modelparser = subparsers.add_parser('build_model', parents=[commonparser], help='Build model')
