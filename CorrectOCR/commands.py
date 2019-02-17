@@ -39,7 +39,7 @@ def build_dictionary(workspace: Workspace, config):
 				else:
 					url = line
 					filename = config.corpusPath.joinpath(Path(line).name)
-				if filename.exists():
+				if filename.is_file():
 					log.info('Download cached, will not download again.')
 					continue
 				r = requests.get(url)
@@ -52,7 +52,7 @@ def build_dictionary(workspace: Workspace, config):
 			elif line[-1] == '/':
 				for file in Path(line).iterdir():
 					outfile = config.corpusPath.joinpath(file.name)
-					if outfile.exists():
+					if outfile.is_file():
 						log.info(f'File already copied: {file.name}')
 						continue
 					log.info(f'Copying {file.name} to corpus.')
@@ -185,8 +185,8 @@ def do_align(workspace: Workspace, config):
 	if config.fileid:
 		workspace.alignments(config.fileid, force=config.force)
 	elif config.allPairs:
-		for goldFile in workspace.goldFiles():
-			workspace.alignments(goldFile.stem, force=config.force)
+		for fileid, pathManager in filter(lambda x: x[1].goldFile.is_file(), workspace.paths.items()):
+			workspace.alignments(fileid, force=config.force)
 
 
 ##########################################################################################
@@ -201,10 +201,10 @@ def build_model(workspace: Workspace, config):
 	# Select the gold files which correspond to the misread count files.
 	misreadCounts = collections.defaultdict(collections.Counter)
 	gold_files = []
-	for file in workspace.goldFiles():
-		(_, _, counts) = workspace.alignments(file.stem)
+	for fileid, pathManager in filter(lambda x: x[1].goldFile.is_file(), workspace.paths.items()):
+		(_, _, counts) = workspace.alignments(fileid)
 		misreadCounts.update(counts)
-		gold_files.append(workspace.goldFile(file.stem))
+		gold_files.append(workspace.paths[fileid].goldFile)
 	
 	confusion = HMMBuilder.generate_confusion(misreadCounts, remove_chars)
 	char_counts = HMMBuilder.text_char_counts(gold_files, workspace.resources.dictionary, remove_chars)
@@ -232,8 +232,8 @@ def do_tokenize(workspace: Workspace, config):
 	if config.fileid:
 		workspace.tokens(config.fileid, config.k, force=config.force)
 	elif config.all:
-		for goldFile in workspace.goldFiles():
-			workspace.tokens(goldFile.stem, config.k, force=config.force)
+		for fileid, pathManager in filter(lambda x: x[1].originalFile.is_file(), workspace.paths.items()):
+			workspace.tokens(fileid, config.k, force=config.force)
 
 
 ##########################################################################################
@@ -288,7 +288,7 @@ def do_correct(workspace: Workspace, config):
 			annotatorRequired += 1
 	log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
 	
-	path = workspace.binnedTokenFile(config.fileid)
+	path = workspace.paths[config.fileid].binnedTokenFile
 	rows = [t.as_dict() for t in tokens]
 
 	FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.BINNEDHEADER)
@@ -300,7 +300,7 @@ def do_correct(workspace: Workspace, config):
 	linecombine = True
 	
 	log.info(f'Correcting {config.fileid}')
-	origfilename = workspace.originalFile(config.fileid)
+	origfilename = workspace.paths[config.fileid].originalFile
 	
 	# get metadata, if any
 	if config.nheaderlines > 0:
@@ -333,7 +333,7 @@ def do_correct(workspace: Workspace, config):
 
 	corrected = metadata.replace(u'Corrected: No', u'Corrected: Yes') + despaced
 	
-	FileAccess.save(corrected, workspace.correctedFile(config.fileid))
+	FileAccess.save(corrected, workspace.paths[config.fileid].correctedFile)
 	
 	# update tracking & memos of annotator's actions
 	for key, count in sorted(tracking['correctionTracking'].items(), key=lambda x: x[1], reverse=True):

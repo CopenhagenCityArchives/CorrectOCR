@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from pprint import pformat
-from typing import Iterator, Iterable, List, Tuple
+from typing import Iterator, List, Tuple
 
 from . import FileAccess
 from .aligner import Aligner
@@ -13,74 +13,40 @@ class Workspace(object):
 
 	def __init__(self, workspaceconfig, resourceconfig):
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(workspaceconfig))}')
-		self._originalPath = workspaceconfig.originalPath
-		self._goldPath = workspaceconfig.goldPath
-		self._trainingPath = workspaceconfig.trainingPath
-		self._correctedPath = workspaceconfig.correctedPath
 		self.nheaderlines: int = workspaceconfig.nheaderlines
 		self.language = workspaceconfig.language
 		self.resources = ResourceManager(resourceconfig)
-
-	def originalFile(self, fileid: str) -> Path:
-		for file in self._originalPath.glob(f'{fileid}.*'):
-			return file # we only want the one file, not the generator
-		return Path('/INVALID.ORIGINAL')
-
-	def originalFiles(self) -> Iterable[Path]:
-		return self._originalPath.iterdir()
-
-	def goldFile(self, fileid: str) -> Path:
-		for file in self._goldPath.glob(f'{fileid}.*'):
-			return file # we only want the one file, not the generator
-		return Path('/INVALID.GOLD')
-
-	def goldFiles(self) -> Iterable[Path]:
-		return self._goldPath.iterdir()
-
-	def correctedFile(self, fileid: str) -> Path:
-		for file in self._correctedPath.glob(f'{fileid}.*'):
-			return file # we only want the one file, not the generator
-		return Path('/INVALID.CORRECTED')
-
-	def correctedFiles(self) -> Iterable[Path]:
-		return self._correctedPath.iterdir()
-
-	def fullAlignmentsFile(self, fileid: str) -> Path:
-		return self._trainingPath.joinpath(f'{fileid}_fullAlignments.json')
-
-	def wordAlignmentsFile(self, fileid: str) -> Path:
-		return self._trainingPath.joinpath(f'{fileid}_wordAlignments.json')
-
-	def misreadCountsFile(self, fileid: str) -> Path:
-		return self._trainingPath.joinpath(f'{fileid}_misreadCounts.json')
-
-	def originalTokenFile(self, fileid: str) -> Path:
-		return self._trainingPath.joinpath(f'{fileid}_tokens.csv')
-
-	def originalTokenFiles(self) -> Iterable[Path]:
-		return self._trainingPath.glob(f'*_tokens.csv')
+		self.paths = dict()
+		for file in workspaceconfig.originalPath.iterdir():
+			if file.name in {'.DS_Store'}:
+				continue
+			fileid = file.stem
+			ext = file.suffix
+			self.paths[fileid] = PathManager(
+				fileid,
+				ext,
+				workspaceconfig.originalPath,
+				workspaceconfig.goldPath,
+				workspaceconfig.trainingPath,
+				workspaceconfig.correctedPath
+			)
 
 	def originalTokens(self) -> Iterator[Tuple[str, List[Token]]]:
-		for file in self.originalTokenFiles():
-			yield file.stem, [Token.from_dict(row) for row in FileAccess.load(file, FileAccess.CSV)]
+		for fileid, pathManager in self.paths.items():
+			if pathManager.originalTokenFile.is_file():
+				Workspace.log.debug(f'Getting original tokens from {fileid}')
+				yield fileid, [Token.from_dict(row) for row in FileAccess.load(pathManager.originalTokenFile, FileAccess.CSV)]
 
-	def goldTokenFile(self, fileid: str) -> Path:
-		return self._trainingPath.joinpath(f'{fileid}_goldTokens.csv')
-
-	def goldTokenFiles(self) -> Iterable[Path]:
-		return self._trainingPath.glob(f'*_goldTokens.csv')
-	
 	def goldTokens(self) -> Iterator[Tuple[str, List[Token]]]:
-		for goldFile in self.goldTokenFiles():
-			yield goldFile.stem, [Token.from_dict(row) for row in FileAccess.load(goldFile, FileAccess.CSV)]
+		for fileid, pathManager in self.paths.items():
+			if pathManager.goldTokenFile.is_file():
+				Workspace.log.debug(f'Getting gold tokens from {fileid}')
+				yield fileid, [Token.from_dict(row) for row in FileAccess.load(pathManager.goldTokenFile, FileAccess.CSV)]
 
-	def binnedTokenFile(self, fileid: str) -> Path:
-		return self._trainingPath.joinpath(f'{fileid}_binnedTokens.csv')
-
-	def alignments(self, fileid, force=False) -> Tuple[list, dict, list]:
-		faPath = self.fullAlignmentsFile(fileid)
-		waPath = self.wordAlignmentsFile(fileid)
-		mcPath = self.misreadCountsFile(fileid)
+	def alignments(self, fileid: str, force=False) -> Tuple[list, dict, list]:
+		faPath = self.paths[fileid].fullAlignmentsFile
+		waPath = self.paths[fileid].wordAlignmentsFile
+		mcPath = self.paths[fileid].misreadCountsFile
 		
 		if not force and (faPath.is_file() and waPath.is_file() and mcPath.is_file()):
 			# presume correctness, user may clean the files to rerun
@@ -93,8 +59,8 @@ class Workspace(object):
 		Workspace.log.info(f'Creating alignment files for {fileid}')
 		
 		(fullAlignments, wordAlignments, misreadCounts) = Aligner().alignments(
-			tokenize_str(FileAccess.load(self.originalFile(fileid)), self.language.name),
-			tokenize_str(FileAccess.load(self.goldFile(fileid)), self.language.name)
+			tokenize_str(FileAccess.load(self.paths[fileid].originalFile), self.language.name),
+			tokenize_str(FileAccess.load(self.paths[fileid].goldFile), self.language.name)
 		)
 		
 		FileAccess.save(fullAlignments, faPath, FileAccess.JSON)
@@ -105,8 +71,9 @@ class Workspace(object):
 		
 		return fullAlignments, wordAlignments, misreadCounts
 
-	def tokens(self, fileid, k=4, getPreviousTokens=True, force=False):
-		tokenFilePath = self.originalTokenFile(fileid)
+	def tokens(self, fileid: str, k=4, getPreviousTokens=True, force=False):
+		tokenFilePath = self.paths[fileid].originalTokenFile
+
 		if not force and tokenFilePath.is_file():
 			Workspace.log.info(f'{tokenFilePath} exists and will be returned as Token objects. Use --force or delete it to rerun.')
 			return [Token.from_dict(row) for row in FileAccess.load(tokenFilePath, FileAccess.CSV)]
@@ -120,14 +87,14 @@ class Workspace(object):
 				for token in tokens:
 					previousTokens[token.original] = token
 
-		if self.goldFile(fileid).is_file():
+		if self.paths[fileid].goldFile.is_file():
 			(_, wordAlignments, _) = self.alignments(fileid)
 		else:
 			wordAlignments = dict()
 
 		Workspace.log.debug(f'wordAlignments: {wordAlignments}')
 
-		tokenizer = Tokenizer.for_extension(self.originalFile(fileid).suffix)(
+		tokenizer = Tokenizer.for_extension(self.paths[fileid].originalFile.suffix)(
 			self.resources.dictionary,
 			self.resources.hmm,
 			self.language,
@@ -136,22 +103,38 @@ class Workspace(object):
 			previousTokens,
 		)
 		tokens = tokenizer.tokenize(
-			self.originalFile(fileid),
+			self.paths[fileid].originalFile,
 			force=force
 		)
 
 		rows = [t.as_dict() for t in tokens]
 
-		path = self.originalTokenFile(fileid)
+		path = self.paths[fileid].originalTokenFile
 		Workspace.log.info(f'Writing tokens to {path}')
 		FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.TOKENHEADER)
 
 		if len(wordAlignments) > 0:
-			path = self.goldTokenFile(fileid)
+			path = self.paths[fileid].goldTokenFile
 			Workspace.log.info(f'Writing gold tokens to {path}')
 			FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.GOLDHEADER)
 		
 		return tokens
+
+
+##########################################################################################
+
+
+class PathManager(object):
+	def __init__(self, fileid: str, ext: str, original: Path, gold: Path, training: Path, corrected: Path):
+		self.originalFile = original.joinpath(f'{fileid}{ext}')
+		self.goldFile = gold.joinpath(f'{fileid}{ext}')
+		self.correctedFile = corrected.joinpath(f'{fileid}{ext}')
+		self.originalTokenFile = training.joinpath(f'{fileid}_tokens.csv')
+		self.goldTokenFile = training.joinpath(f'{fileid}_goldTokens.csv')
+		self.binnedTokenFile = training.joinpath(f'{fileid}_binnedTokens.csv')
+		self.fullAlignmentsFile = training.joinpath(f'{fileid}_fullAlignments.json')
+		self.wordAlignmentsFile = training.joinpath(f'{fileid}_wordAlignments.json')
+		self.misreadCountsFile = training.joinpath(f'{fileid}_misreadCounts.json')
 
 
 ##########################################################################################

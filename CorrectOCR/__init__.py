@@ -15,8 +15,6 @@ from bs4.dammit import UnicodeDammit
 punctuationRE = regex.compile(r'\p{punct}+')
 
 
-
-
 def open_for_reading(file):
 	return open(file, 'r', encoding=FileAccess.get_encoding(file))
 
