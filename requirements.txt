@@ -1,9 +1,12 @@
 beautifulsoup4
 lxml
 nltk
+numpy
+opencv-contrib-python
 progressbar2
 pycountry
 PyMuPDF
 regex
 requests
 tei-reader
+tesserocr

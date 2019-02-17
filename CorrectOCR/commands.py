@@ -228,12 +228,12 @@ def build_model(workspace: Workspace, config):
 ##########################################################################################
 
 
-def do_tokenize(workspace: Workspace, config, getWordAlignments=True):
+def do_tokenize(workspace: Workspace, config):
 	if config.fileid:
-		workspace.tokens(config.fileid, config.k, getWordAlignments, force=config.force)
+		workspace.tokens(config.fileid, config.k, force=config.force)
 	elif config.all:
 		for goldFile in workspace.goldFiles():
-			workspace.tokens(goldFile.stem, config.k, getWordAlignments, force=config.force)
+			workspace.tokens(goldFile.stem, config.k, force=config.force)
 
 
 ##########################################################################################
@@ -278,7 +278,7 @@ def do_correct(workspace: Workspace, config):
 	)
 	
 	# get tokens to use for correction
-	tokens = workspace.tokens(config.fileid, getWordAlignments=False)
+	tokens = workspace.tokens(config.fileid)
 	
 	log.info('Running heuristics on tokens to determine annotator workload.')
 	annotatorRequired = 0

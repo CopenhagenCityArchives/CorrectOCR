@@ -7,7 +7,7 @@ from typing import Iterator, Iterable, Any, List, Tuple
 
 from . import open_for_reading, ensure_new_file
 from .aligner import Aligner
-from .tokenize import Token, tokenize_str
+from .tokenize import Token, Tokenizer, tokenize_str
 
 
 class Workspace(object):
@@ -24,19 +24,25 @@ class Workspace(object):
 		self.resources = ResourceManager(resourceconfig)
 
 	def originalFile(self, fileid: str) -> Path:
-		return self._originalPath.joinpath(f'{fileid}.txt')
+		for file in self._originalPath.glob(f'{fileid}.*'):
+			return file # we only want the one file, not the generator
+		return Path('/INVALID.ORIGINAL')
 
 	def originalFiles(self) -> Iterable[Path]:
 		return self._originalPath.iterdir()
 
 	def goldFile(self, fileid: str) -> Path:
-		return self._goldPath.joinpath(f'{fileid}.txt')
+		for file in self._goldPath.glob(f'{fileid}.*'):
+			return file # we only want the one file, not the generator
+		return Path('/INVALID.GOLD')
 
 	def goldFiles(self) -> Iterable[Path]:
 		return self._goldPath.iterdir()
 
 	def correctedFile(self, fileid: str) -> Path:
-		return self._correctedPath.joinpath(f'{fileid}.txt')
+		for file in self._correctedPath.glob(f'{fileid}.*'):
+			return file # we only want the one file, not the generator
+		return Path('/INVALID.CORRECTED')
 
 	def correctedFiles(self) -> Iterable[Path]:
 		return self._correctedPath.iterdir()
@@ -154,7 +160,7 @@ class Workspace(object):
 		
 		return fullAlignments, wordAlignments, misreadCounts
 
-	def tokens(self, fileid, k=4, getWordAlignments=True, getPreviousTokens=False, force=False):
+	def tokens(self, fileid, k=4, getPreviousTokens=True, force=False):
 		tokenFilePath = self.originalTokenFile(fileid)
 		if not force and tokenFilePath.is_file():
 			Workspace.log.info(f'{tokenFilePath} exists and will be returned as Token objects. Use --force or delete it to rerun.')
@@ -163,22 +169,20 @@ class Workspace(object):
 	
 		# Load previously done tokens if any
 		previousTokens = dict()
-		if getPreviousTokens:
+		if getPreviousTokens and not force:
 			for fid, tokens in self.originalTokens():
 				Workspace.log.debug(f'Getting previous tokens from {fid}')
 				for token in tokens:
 					previousTokens[token.original] = token
 
-		if getWordAlignments:
+		if self.goldFile(fileid).is_file():
 			(_, wordAlignments, _) = self.alignments(fileid)
 		else:
 			wordAlignments = dict()
 
 		Workspace.log.debug(f'wordAlignments: {wordAlignments}')
 
-		# TODO init from Tokenizer superclass instead
-		from .tokenize.string import StringTokenizer
-		tokenizer = StringTokenizer(
+		tokenizer = Tokenizer.for_extension(self.originalFile(fileid).suffix)(
 			self.resources.dictionary,
 			self.resources.hmm,
 			self.language,

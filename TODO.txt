@@ -5,7 +5,6 @@ all:
 	more progressbars where possible
 
 tokenizer:
-	get tokens from hocr also
 	squish abbreviations? something like below?
 	mwes = [
 		('P', 'E'), # Politiets Efterretninger

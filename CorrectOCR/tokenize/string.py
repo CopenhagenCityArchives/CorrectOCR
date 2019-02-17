@@ -2,7 +2,7 @@ import logging
 
 import progressbar
 
-from ..tokenize import Token, Tokenizer, tokenize_str
+from ._super import Token, Tokenizer, tokenize_str
 from ..workspace import Workspace
 
 
@@ -34,15 +34,6 @@ def tokenize_file(filename, language='English'):
 class StringTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.StringTokenizer')
 
-	def __init__(self, dictionary, hmm, language, k=4, wordAlignments=None, previousTokens=None):
-		self.dictionary = dictionary
-		self.hmm = hmm
-		self.language = language
-		self.k = k
-		self.wordAlignments = wordAlignments
-		self.previousTokens = previousTokens or dict()
-		self.tokens = []
-
 	def tokenize(self, file, force=False):
 		tokens = tokenize_file(file, self.language.name)
 		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
@@ -64,3 +55,6 @@ class StringTokenizer(Tokenizer):
 
 		StringTokenizer.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
 		return tokens
+
+
+Tokenizer.register(StringTokenizer, ['.txt'])
