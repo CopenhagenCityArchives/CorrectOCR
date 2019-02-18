@@ -1,3 +1,6 @@
+README:
+	Getting started example (pip, build, etc)
+
 FileAccess:
 	respect --nheaderlines
 
@@ -5,6 +8,7 @@ model:
 	HMM: keep path inside like Dictionary
 
 tokenizer:
+	dehyphenation: create containertoken to hold the partial tokens
 	squish abbreviations? something like below?
 	mwes = [
 		('P', 'E'), # Politiets Efterretninger
@@ -17,3 +21,10 @@ tokenizer:
 
 heuristics:
 	make make_settings interactive?
+
+new build_pdf command:
+	--images 1,2,3 --pdfname
+
+corrected:
+	apply edited binnedTokens to original for new corrected file
+	new original option

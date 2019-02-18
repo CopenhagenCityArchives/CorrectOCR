@@ -12,7 +12,7 @@ See their article _"Low-resource Post Processing of Noisy OCR Output for Histori
 
 The original python 2.7 code (see `original`-tag in the repository) has been licensed under Creative Commons Attribution 4.0 ([CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/), see also `license.txt` in the repository).
 
-It has subsequently been updated to Python 3 and further expanded by Mikkel Eide Eriksen (<mikkel.eriksen@gmail.com>) for the [Copenhagen City Archives](https://www.kbharkiv.dk/) (mainly structural changes, the algorithms are generally preserved as-is). Pull requests welcome!
+The code has subsequently been updated to Python 3 and further expanded by Mikkel Eide Eriksen (<mikkel.eriksen@gmail.com>) for the [Copenhagen City Archives](https://www.kbharkiv.dk/) (mainly structural changes, the algorithms are generally preserved as-is). Pull requests welcome!
 
 Usage
 ========
@@ -22,7 +22,7 @@ Workflow
 
 Usage of CorrectOCR is divided into several successive tasks.
 
-To train the software, one must first obtain set of matching original uncorrected files with corresponding known correct "gold" files. Additionally, a dictionary of the target language is needed.
+To train the software, one must first create or obtain set of matching original uncorrected files with corresponding known-correct "gold" files. Additionally, a dictionary of the target language is needed.
 
 The original+gold file pairs are then used to create _k_ replacement candidates for each token in a new given file. A number of heuristic decisions are configured based on whether a new token is found in the dictionary, are the candidates preferable to the original, etc. Finally, a CLI presents the annotator with the candidates, and a new corrected file is generated.
 
@@ -63,29 +63,40 @@ By default, CorrectOCR requires 4 subdirectories in the working directory, which
 
 Corresponding files in _original_, _gold_, and _corrected_ are named identically. The generated files in `training/` have suffixes according to their kind.
 
-If generated files exist, CorrectOCR will generally avoid doing redundant calculations. The `--force` switch overrides this, forcing CorrectOCR to create new files and overwrite the new ones. Alternately, one may delete a subset of the generated files to only recreate those.
+If generated files exist, CorrectOCR will generally avoid doing redundant calculations. The `--force` switch overrides this, forcing CorrectOCR to create new files (after moving the existing ones out of the way). Alternately, one may delete a subset of the generated files to only recreate those.
 
 The `Workspace` also has a `ResourceManager` (accessible via `.resources`) that handles access to the dictionary, HMM parameter files, etc.
 
 Commands
 --------
 
-*  `build_dictionary` creates a dictionary from a set of files.
-   Input files can be either .pdf or .txt. It is strongly recommended to generate a large dictionary for best performance.
+Commands and their arguments are called directly on the module, like so: `python -m CorrectOCR [command] [args...]`.
+
+*  `build_dictionary` creates a dictionary 
+   Input files can be either `.pdf`, `.txt`, or `.xml` (in [TEI format](https://en.wikipedia.org/wiki/Text_Encoding_Initiative)). They may be contained in `.zip`-files. 
+   The `--corpusPath` option specifies a directory of files.
+   The `--corpusFile` option specifies a list of paths and URLs to files. One such file for a dictionary covering 1800–1948 Danish is provided under `resources/`.
+   It is strongly recommended to generate a large dictionary for best performance.
 
 1. `align` aligns a pair of (original, gold) files in order to determine which characters and words were misread in the original and corrected in the gold.
+	The `--fileid` option specifies a single pair.
+	The `--all` option aligns all matching pairs available.
 
 2. `build_model` uses the alignments to create parameters for a HMM.
+	The `--smoothingParameter` option can be adjusted as needed.
 
-3. `tokenize` tokenizes original texts and uses the HMM to create _k_-best correction candidates.
+3. `tokenize` tokenizes texts and uses the HMM to create _k_-best correction candidates.
+	The `--fileid` option specifies a single file.
+	The `--all` option tokenizes all available texts.
 
 4. Heuristic decisions: 
 
-	* `make_report` generates a statistical report on whether originals/_k_-best equal & are in dictionary, etc.
+	* `make_report` generates a statistical report on whether originals/_k_-best equal & are in dictionary, etc. This report can then be inspected and annotated with the proper decisions.
 
-	* `make_settings` creates settings based on annotated report.
+	* `make_settings` creates correction settings based on the annotated report.
 
-5. `correct` run interactive correction CLI using settings.
+5. `correct` uses the settings to sort the tokens into _bins_ and makes automated decisions where appropriate.
+	The `--interactive` option runs an interactive correction CLI for the remaining undecided.
 
 Heuristics
 ----------
