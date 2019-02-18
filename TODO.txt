@@ -1,6 +1,3 @@
-general:
-	strip/replace character method so model doesnt have to be updated constantly
-
 all:
 	more progressbars where possible
 

@@ -1,7 +1,7 @@
-import collections
 import itertools
 import logging
 import re
+from collections import defaultdict, Counter
 from pathlib import Path
 from typing import Dict, List
 
@@ -16,9 +16,19 @@ class HMM(object):
 	def __init__(self, initial, transition, emission, multichars=None):
 		if multichars is None:
 			multichars = {}
-		self.init = initial
-		self.tran = transition
-		self.emis = emission
+
+		self.init = defaultdict(float)
+		self.init.update(initial)
+
+		self.tran = defaultdict(lambda: defaultdict(float))
+		for outer, d in transition.items():
+			for inner, e in d.items():
+				self.tran[outer][inner] = e
+
+		self.emis = defaultdict(lambda: defaultdict(float))
+		for outer, d in emission.items():
+			for inner, e in d.items():
+				self.emis[outer][inner] = e
 		self.multichars = multichars
 		
 		self.states = initial.keys()
@@ -103,13 +113,8 @@ class HMM(object):
 		else:
 			# Create the N*N sequences for the first two characters
 			# of the word.
-			try:
-				paths = [((i, j), (self.init[i] * self.emis[i][word[0]] * self.tran[i][j] * self.emis[j][word[1]]))
-								for i in self.states for j in self.states]
-			except KeyError as e:
-				character = e.args[0]
-				HMM.log.critical(f'[word: {word}] Model is missing character: {character} ({character.encode("utf-8")})')
-				raise SystemExit(-1)
+			paths = [((i, j), (self.init[i] * self.emis[i][word[0]] * self.tran[i][j] * self.emis[j][word[1]]))
+							for i in self.states for j in self.states]
 			
 			# Keep the k best sequences.
 			paths = sorted(paths, key=lambda x: x[1], reverse=True)[:k]
@@ -168,7 +173,7 @@ class HMMBuilder(object):
 		# what each character was read as.
 		if remove is None:
 			remove = []
-		confusion = collections.defaultdict(collections.Counter)
+		confusion = defaultdict(Counter)
 
 		confusion.update(misreadCounts)
 
@@ -200,7 +205,7 @@ class HMMBuilder(object):
 	def text_char_counts(files: List[Path], dictionary: Dictionary, remove=None) -> Dict[str, int]:
 		if remove is None:
 			remove = []
-		char_count = collections.Counter()
+		char_count = Counter()
 		for file in files:
 			text = FileAccess.load(file)
 			char_count.update(list(text))
@@ -270,8 +275,8 @@ class HMMBuilder(object):
 								remove=None, language=None, extra_chars=None):
 		if remove is None:
 			remove = []
-		tran = collections.defaultdict(lambda: collections.defaultdict(int))
-		init = collections.defaultdict(int)
+		tran = defaultdict(lambda: defaultdict(int))
+		init = defaultdict(int)
 
 		def add_word(_word):
 			if len(_word) > 0:
