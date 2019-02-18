@@ -25,53 +25,7 @@ class Correcter(object):
 		self.k = k
 		self.dictionary = dictionary
 		self.heuristics = heuristics
-	
-	# remove selected hyphens from inside a single token - postprocessing step
-	def dehyph(self, tk: str):
-		o = tk
-		# if - in token, and token is not only punctuation, and - is not at end or start of token:
-		if (u'-' in tk) & ((len(punctuationRE.sub('', tk)) > 0) & ((tk[-1] != u'-') & (tk[0] != u'-'))):
-			# if - doesn't precede capital letter, and the word including dash form isn't in dictionary:
-			if (not tk[tk.index(u'-') + 1].isupper()) & ((tk not in self.dictionary) & (tk.lower() not in self.dictionary)):
-				# if the word not including dash form is in dictionary, only then take out the dash
-				if (punctuationRE.sub('', tk) in self.dictionary) or (punctuationRE.sub('', tk).lower() in self.dictionary):
-					o = tk.replace(u'-', u'')
-		return o
-	
-	# try putting together some lines that were split by hyphenation - preprocessing step
-	def linecombiner(self, ls: List[Token]):
-		for i in range(len(ls) - 2):
-			if ls[i] != u'BLANK':
-				#Correcter.log.debug(ls[i])
-				curw = ls[i].original
-				newl = ls[i+1].original
-				nexw = ls[i+2].original
-				# look for pattern: wordstart-, newline, restofword.
-				
-				if (newl in [u'_NEWLINE_N_', u'_NEWLINE_R_']) and (len(curw) > 1) and (curw[-1] == u'-'):
-					# check that: wordstart isn't in dictionary,
-					# combining it with restofword is in dictionary,
-					# and restofword doesn't start with capital letter
-					# -- this is generally approximately good enough
-					if (not punctuationRE.sub('', curw) in self.dictionary
-						and punctuationRE.sub('', curw+nexw) in self.dictionary
-						and nexw[0].islower()):
-						# make a new row to put combined form into the output later
-						ls[i] = Token.from_dict({
-							'Original': curw[:-1]+nexw,
-							'1-best': curw[:-1]+nexw,
-							'1-best prob.': 0.99,
-							'2-best': '_PRE_COMBINED_',
-							'2-best prob.': 1.11e-25,
-							'3-best': '_PRE_COMBINED_',
-							'3-best prob.': 1.11e-25,
-							'4-best': '_PRE_COMBINED_',
-							'4-best prob.': 1.11e-25,
-						})
-						ls[i+1] = Token.from_dict({'Original': 'BLANK'})
-						ls[i+2] = Token.from_dict({'Original': 'BLANK'})
-		return [lin for lin in ls if lin.original != u'BLANK']
-	
+
 	def evaluate(self, token: Token):
 		#Correcter.log.debug(token)
 		

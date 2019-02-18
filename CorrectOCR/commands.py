@@ -230,10 +230,10 @@ def build_model(workspace: Workspace, config):
 
 def do_tokenize(workspace: Workspace, config):
 	if config.fileid:
-		workspace.tokens(config.fileid, config.k, force=config.force)
+		workspace.tokens(config.fileid, config.k, config.dehyphenate, force=config.force)
 	elif config.all:
 		for fileid, pathManager in filter(lambda x: x[1].originalFile.is_file(), workspace.paths.items()):
-			workspace.tokens(fileid, config.k, force=config.force)
+			workspace.tokens(fileid, config.k, config.dehyphenate, force=config.force)
 
 
 ##########################################################################################
@@ -296,9 +296,6 @@ def do_correct(workspace: Workspace, config):
 	if not config.interactive:
 		return
 
-	# try to combine hyphenated linebreaks before correction
-	linecombine = True
-	
 	log.info(f'Correcting {config.fileid}')
 	origfilename = workspace.paths[config.fileid].originalFile
 	
@@ -308,9 +305,6 @@ def do_correct(workspace: Workspace, config):
 			metadata = f.readlines()[:config.nheaderlines]
 	else:
 		metadata = ''
-
-	if linecombine:
-		tokens = correcter.linecombiner(tokens)
 
 	# print info to annotator
 	log.info(f'{config.fileid} contains about {len(tokens)} words')
@@ -322,10 +316,6 @@ def do_correct(workspace: Workspace, config):
 	#log.debug(tokens)
 	log.debug(tracking['newWords'])
 	log.debug(tracking['correctionTracking'])
-
-	# optionally clean up hyphenation in completed tokens
-	if config.dehyphenate:
-		tokens = [correcter.dehyph(tk) for tk in tokens]
 
 	# make print-ready text
 	spaced = u' '.join([token.gold or token.original for token in tokens])

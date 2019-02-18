@@ -5,7 +5,7 @@ from typing import Iterator, List, Tuple
 
 from . import FileAccess
 from .aligner import Aligner
-from .tokenize import Token, Tokenizer, tokenize_str
+from .tokenize import Token, Tokenizer, tokenize_str, dehyphenate_tokens
 
 
 class Workspace(object):
@@ -71,7 +71,7 @@ class Workspace(object):
 		
 		return fullAlignments, wordAlignments, misreadCounts
 
-	def tokens(self, fileid: str, k=4, getPreviousTokens=True, force=False):
+	def tokens(self, fileid: str, k=4, dehyphenate=False, getPreviousTokens=True, force=False):
 		tokenFilePath = self.paths[fileid].originalTokenFile
 
 		if not force and tokenFilePath.is_file():
@@ -106,6 +106,9 @@ class Workspace(object):
 			self.paths[fileid].originalFile,
 			force=force
 		)
+
+		if dehyphenate:
+			tokens = dehyphenate_tokens(tokens)
 
 		rows = [t.as_dict() for t in tokens]
 
