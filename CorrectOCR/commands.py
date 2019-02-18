@@ -222,7 +222,7 @@ def build_model(workspace: Workspace, config):
                                          remove_chars, workspace.language, extra_chars=charset)
 
 	workspace.resources.hmm = HMM(init, tran, emis)
-	workspace.resources.hmm.save(workspace.resources.hmmParamsFile) # TODO keep path inside hmm like dicts?
+	workspace.resources.hmm.save(workspace.resources.hmmParamsFile)
 	
 
 ##########################################################################################

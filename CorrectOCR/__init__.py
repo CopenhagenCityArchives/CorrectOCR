@@ -74,7 +74,6 @@ class FileAccess(object):
 			logging.getLogger(f'{__name__}.ensure_new_file').info(f'Existing file moved to {path}')
 			originalpath.rename(path)
 
-	# TODO nheaderlines
 	@classmethod
 	def save(cls, data: Any, path, kind=None, header=None, backup=True):
 		if not kind:

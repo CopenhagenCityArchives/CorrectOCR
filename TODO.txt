@@ -1,5 +1,8 @@
-all:
-	more progressbars where possible
+FileAccess:
+	respect --nheaderlines
+
+model:
+	HMM: keep path inside like Dictionary
 
 tokenizer:
 	squish abbreviations? something like below?
