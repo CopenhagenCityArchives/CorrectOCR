@@ -2,10 +2,13 @@ import locale
 import logging
 from contextlib import contextmanager
 from functools import partial
+from io import BytesIO
 
 import cv2
+import fitz
 import numpy as np
 from lxml import html
+from PIL import Image
 
 from ._super import Token, Tokenizer
 from .. import FileAccess
@@ -17,9 +20,10 @@ def c_locale():
 		currlocale = locale.getlocale()
 	except ValueError:
 		currlocale = ('en_US', 'UTF-8')
-	logging.getLogger(f'{__name__}.c_locale').debug(f'Current locale: {currlocale}')
-	locale.setlocale(locale.LC_CTYPE, "C")
+	logging.getLogger(f'{__name__}.c_locale').debug(f'Switching to C from {currlocale}')
+	locale.setlocale(locale.LC_ALL, "C")
 	yield
+	logging.getLogger(f'{__name__}.c_locale').debug(f'Switching to {currlocale} from C')
 	locale.setlocale(locale.LC_ALL, currlocale)
 
 
@@ -67,14 +71,15 @@ def replace_ids(el, replace, index):
 		replace_ids(sub, replace, index)
 
 
-def columnize(filePath, columncount):
+def columnize(image, columncount):
 	log = logging.getLogger(f'{__name__}.columnize')
 
 	if columncount != 2:
 		log.error(f'Cannot columnize {columncount} columns, only 2')
 		raise SystemExit(-1)
 
-	image = cv2.imread(filePath)
+	# convert from Pillow:
+	image = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
 
 	(height, width, channels) = image.shape
 
@@ -107,15 +112,22 @@ def columnize(filePath, columncount):
 		yield (left, 0, right-left, height)
 
 
-def tokenize_image(filePath, language='Eng', force=False):
+class PDFColumn(object):
+	log = logging.getLogger(f'{__name__}.PDFColumn')
+
+	def __init__(self, name, image, index, rect, hocr, tokens):
+		self.name = name
+		self.image = image
+		self.index = index
+		self.rect = rect
+		self.hocr = hocr
+		self.tokens = tokens
+
+
+def tokenize_image(name, image, language='Eng', force=False):
 	log = logging.getLogger(f'{__name__}.tokenize_image')
 
-	outfile = filePath.parent.joinpath(f'{filePath.stem}.json')
-	if not force and outfile.is_file():
-		log.info(f'Found hOCR for {filePath} at {outfile}')
-		return FileAccess.load(outfile)
-
-	tokens = []
+	columns = []
 
 	with c_locale():
 		# C locale workaround, see:
@@ -124,58 +136,61 @@ def tokenize_image(filePath, language='Eng', force=False):
 		# noinspection PyUnresolvedReferences
 		from tesserocr import PyTessBaseAPI
 		with PyTessBaseAPI(lang=language) as tesseract:
-			tesseract.SetImageFile(str(filePath))
+			tesseract.SetImage(image)
 
-			for i, column in enumerate(columnize(str(filePath), 2)):
-				log.info(f'Going to generate hOCR for column {i} of {filePath} at {outfile}')
+			for index, rect in enumerate(columnize(image, 2)):
+				log.info(f'Generating hOCR for column {index} of {name}')
 
-				tesseract.SetRectangle(*column)
+				tesseract.SetRectangle(*rect)
 
 				hocr = tesseract.GetHOCRText(0)
 
 				doc = html.fromstring(hocr)
 				elements = doc.xpath("//*[@class='ocrx_word']")
 
-				tokens.extend([HOCRToken(e) for e in elements if e.text.strip() != ''])
-				#tokens.append({
-				#	'image': str(filePath),
-				#	'index': i,
-				#	'rect': column,
-				#	'hocr': hocr,
-				#	'tokens': [HOCRToken(e) for e in elements]
-				#})
+				columns.append(PDFColumn(
+					name,
+					image,
+					index,
+					rect,
+					hocr,
+					[HOCRToken(e) for e in elements if e.text.strip() != '']
+				))
 
-	return tokens
-
-
-def tokenize_directory(dirPath, language, extension='*.tiff', force=False):
-	log = logging.getLogger(f'{__name__}.tokenize_directory')
-	
-	tokens = []
-	
-	log.info(f'Going to tokenize {extension} images in {dirPath}')
-	for file in dirPath.glob(extension):
-		tokens.extend(tokenize_image(file, language, force=force))
-	
-	return tokens
+	return columns
 
 
 class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
 	def tokenize(self, file, force=False):
-		if file.suffix == '.tiff':
-			tokens = tokenize_image(file, self.language.alpha_3)
+		if file.suffix in {'.tiff', '.png'}:
+			columns = tokenize_image(file, cv2.imread(str(file)), self.language.alpha_3)
 		elif file.suffix == '.pdf':
-			tokens = [] # TODO
-			pass
+			doc = fitz.open(str(file))
+			columns = []
+			for pageno in range(1, len(doc)):
+				HOCRTokenizer.log.info(f'Extracting images from page {pageno}')
+				for image_info in doc.getPageImageList(pageno):
+					# [xref, smask, width, height, bpc, colorspace, alt. colorspace, name, filter]
+					HOCRTokenizer.log.debug(f'Image info: {image_info}')
+					if image_info[1] != 0:
+						HOCRTokenizer.log.error('Cannot handle images with smasks')
+						raise SystemExit(-1)
+					image = doc.extractImage(image_info[0])
+					# https://pymupdf.readthedocs.io/en/latest/functions/#Document.extractImage
+					HOCRTokenizer.log.debug(f'Image format: {image["ext"]}')
+					img = Image.open(BytesIO(image['image']))
+					columns.extend(tokenize_image(f'{file.stem}-page{pageno}', img, self.language.alpha_3))
 		else:
 			HOCRTokenizer.log.error(f'Cannot handle {file}')
 			raise SystemExit(-1)
 
-		HOCRTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
+		all_tokens = [t for c in columns for t in c.tokens]
+
+		HOCRTokenizer.log.debug(f'Found {len(all_tokens)} tokens, first 10: {all_tokens[:10]}')
 	
-		return self.generate_kbest(tokens)
+		return self.generate_kbest(all_tokens)
 
 
-Tokenizer.register(HOCRTokenizer, ['.pdf', '.tiff'])
+Tokenizer.register(HOCRTokenizer, ['.pdf', '.tiff', '.png'])

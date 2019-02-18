@@ -3,6 +3,7 @@ lxml
 nltk
 numpy
 opencv-contrib-python
+Pillow
 progressbar2
 pycountry
 PyMuPDF
