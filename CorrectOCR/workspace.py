@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from pprint import pformat
-from typing import Iterator, List, Tuple
+from typing import Dict, Iterator, List, Tuple
 
 from . import FileAccess
 from .aligner import Aligner
@@ -80,7 +80,7 @@ class Workspace(object):
 		Workspace.log.info(f'Creating token files for {fileid}')
 	
 		# Load previously done tokens if any
-		previousTokens = dict()
+		previousTokens: Dict[str, Token] = dict()
 		if getPreviousTokens and not force:
 			for fid, tokens in self.originalTokens():
 				Workspace.log.debug(f'Getting previous tokens from {fid}')

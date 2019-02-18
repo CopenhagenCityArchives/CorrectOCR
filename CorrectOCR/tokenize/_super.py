@@ -1,8 +1,9 @@
 import abc
 import logging
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import nltk
+import progressbar
 import regex
 
 
@@ -146,6 +147,7 @@ class Token(abc.ABC):
 
 	def update(self, other: 'Token' = None, kbest: List[Tuple[str, float]] = None, d: dict = None):
 		if other:
+			#self.__class__.log.debug(f'{self} -- {other}')
 			if not self.gold: self.gold = other.gold
 			self._kbest = other._kbest
 		elif kbest:
@@ -181,7 +183,7 @@ class Tokenizer(abc.ABC):
 		Tokenizer.log.debug(f'subclasses: {Tokenizer.subclasses}')
 		return Tokenizer.subclasses[ext]
 
-	def __init__(self, dictionary, hmm, language, k=4, wordAlignments=None, previousTokens=None):
+	def __init__(self, dictionary, hmm, language, k=4, wordAlignments=None, previousTokens: Dict[str, Token] = None):
 		self.dictionary = dictionary
 		self.hmm = hmm
 		self.language = language
@@ -193,3 +195,22 @@ class Tokenizer(abc.ABC):
 	@abc.abstractmethod
 	def tokenize(self, file, force):
 		pass
+
+	def generate_kbest(self, tokens: List[Token]) -> List[Token]:
+		Tokenizer.log.info(f'Generating {self.k}-best suggestions for each token')
+		for i, token in enumerate(progressbar.progressbar(tokens)):
+			if token.original in self.previousTokens:
+				token.update(other=self.previousTokens[token.original])
+			else:
+				token.update(kbest=self.hmm.kbest_for_word(token.original, self.k, self.dictionary))
+			if not token.gold and token.original in self.wordAlignments:
+				wa = self.wordAlignments.get(token.original, dict())
+				closest = sorted(wa.items(), key=lambda x: x[0], reverse=True)
+				#Tokenizer.log.debug(f'{i} {token.original} {closest}')
+				token.gold = closest[0][1]
+			self.previousTokens[token.original] = token
+			#Tokenizer.log.debug(token.as_dict())
+
+		Tokenizer.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
+		return tokens
+	
