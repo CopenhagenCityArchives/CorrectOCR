@@ -202,13 +202,12 @@ class HMMBuilder(object):
 	# Get the character counts of the training files. Used for filling in
 	# gaps in the confusion probabilities.
 	@staticmethod
-	def text_char_counts(files: List[Path], dictionary: Dictionary, remove=None) -> Dict[str, int]:
+	def text_char_counts(words: List[str], dictionary: Dictionary, remove=None) -> Dict[str, int]:
 		if remove is None:
 			remove = []
 		char_count = Counter()
-		for file in files:
-			text = FileAccess.load(file)
-			char_count.update(list(text))
+		for word in words:
+			char_count.update(list(word))
 
 		for word in dictionary:
 			char_count.update(list(word))
@@ -271,7 +270,7 @@ class HMMBuilder(object):
 	# Create the initial and transition probabilities from the gold
 	# text in the training data.
 	@staticmethod
-	def init_tran_probabilities(goldfiles, dictionary, alpha,
+	def init_tran_probabilities(gold_words, dictionary, alpha,
 								remove=None, language=None, extra_chars=None):
 		if remove is None:
 			remove = []
@@ -285,11 +284,8 @@ class HMMBuilder(object):
 				for (a, b) in zip(_word[0:], _word[1:]):
 					tran[a][b] += 1
 
-		for file in goldfiles:
-			words = tokenize_file(file, language.name)
-	
-			for word in words:
-				add_word(word)
+		for word in gold_words:
+			add_word(word)
 
 		for word in dictionary:
 			add_word(word)

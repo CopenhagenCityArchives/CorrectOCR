@@ -200,14 +200,14 @@ def build_model(workspace: Workspace, config):
 
 	# Select the gold files which correspond to the misread count files.
 	misreadCounts = collections.defaultdict(collections.Counter)
-	gold_files = []
-	for fileid, pathManager in filter(lambda x: x[1].goldFile.is_file(), workspace.paths.items()):
+	gold_words = []
+	for fileid, tokens in workspace.goldTokens():
 		(_, _, counts) = workspace.alignments(fileid)
 		misreadCounts.update(counts)
-		gold_files.append(workspace.paths[fileid].goldFile)
+		gold_words.extend([t.original for t in tokens])
 	
 	confusion = HMMBuilder.generate_confusion(misreadCounts, remove_chars)
-	char_counts = HMMBuilder.text_char_counts(gold_files, workspace.resources.dictionary, remove_chars)
+	char_counts = HMMBuilder.text_char_counts(gold_words, workspace.resources.dictionary, remove_chars)
 
 	charset = set(config.characterSet) | set(char_counts) | set(confusion)
 
@@ -218,7 +218,7 @@ def build_model(workspace: Workspace, config):
                                extra_chars=charset)
 
 	# Create the initial and transition probabilities from the gold files
-	init, tran = HMMBuilder.init_tran_probabilities(gold_files, workspace.resources.dictionary, config.smoothingParameter,
+	init, tran = HMMBuilder.init_tran_probabilities(gold_words, workspace.resources.dictionary, config.smoothingParameter,
                                          remove_chars, workspace.language, extra_chars=charset)
 
 	workspace.resources.hmm = HMM(init, tran, emis)
