@@ -205,25 +205,12 @@ def build_model(workspace: Workspace, config):
 		(_, _, counts) = workspace.alignments(fileid)
 		misreadCounts.update(counts)
 		gold_words.extend([t.original for t in tokens])
-	
-	confusion = HMMBuilder.generate_confusion(misreadCounts, remove_chars)
-	char_counts = HMMBuilder.text_char_counts(gold_words, workspace.resources.dictionary, remove_chars)
 
-	charset = set(config.characterSet) | set(char_counts) | set(confusion)
+	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, workspace.language, config.characterSet, misreadCounts, remove_chars, gold_words)
 
-	log.debug(sorted(charset))
-
-	# Create the emission probabilities from the misread counts and the character counts
-	emis = HMMBuilder.emission_probabilities(confusion, char_counts, config.smoothingParameter, remove_chars,
-                               extra_chars=charset)
-
-	# Create the initial and transition probabilities from the gold files
-	init, tran = HMMBuilder.init_tran_probabilities(gold_words, workspace.resources.dictionary, config.smoothingParameter,
-                                         remove_chars, workspace.language, extra_chars=charset)
-
-	workspace.resources.hmm.init = init
-	workspace.resources.hmm.tran = tran
-	workspace.resources.hmm.emis = emis
+	workspace.resources.hmm.init = builder.init
+	workspace.resources.hmm.tran = builder.tran
+	workspace.resources.hmm.emis = builder.emis
 	workspace.resources.hmm.save()
 	
 
