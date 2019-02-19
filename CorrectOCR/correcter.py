@@ -70,7 +70,7 @@ class CorrectionShell(cmd.Cmd):
 		self.selection = None
 		self.tokenwindow = split_window(tokens, before=7, after=7)
 		self.dictionary = dictionary
-		self.tracking = {
+		self.metrics = {
 			'tokenCount': 0,
 			'humanCount': 0,
 			'tokenTotal': len(tokens),
@@ -83,7 +83,7 @@ class CorrectionShell(cmd.Cmd):
 	def start(cls, tokens: List[Token], dictionary, correctionTracking: dict, intro=None):
 		sh = CorrectionShell(tokens, dictionary, correctionTracking)
 		sh.cmdloop(intro)
-		return sh.tracking
+		return sh.metrics
 
 	def preloop(self):
 		return self.nexttoken()
@@ -95,9 +95,9 @@ class CorrectionShell(cmd.Cmd):
 				return self.nexttoken()
 			(self.decision, self.selection) = (self.token.bin['decision'], self.token.bin['selection'])
 			
-			self.tracking['tokenCount'] += 1
+			self.metrics['tokenCount'] += 1
 			if self.decision == 'annotator':
-				self.tracking['humanCount'] +=1 # increment human-effort count
+				self.metrics['humanCount'] +=1 # increment human-effort count
 				
 				left = ' '.join([c.gold or c.original for c in ctxr])
 				right = ' '.join([c.original for c in ctxl])
@@ -107,7 +107,7 @@ class CorrectionShell(cmd.Cmd):
 					inDict = ' * is in dictionary' if k in self.selection else ''
 					print(f'\t{k}. {candidate} ({probability}){inDict}\n')
 				
-				self.prompt = f"CorrectOCR {self.tracking['tokenCount']}/{self.tracking['tokenTotal']} ({self.tracking['humanCount']}) > "
+				self.prompt = f"CorrectOCR {self.metrics['tokenCount']}/{self.metrics['tokenTotal']} ({self.metrics['humanCount']}) > "
 			else:
 				self.cmdqueue.insert(0, f'{self.decision} {self.selection}')
 		except StopIteration:
@@ -120,11 +120,11 @@ class CorrectionShell(cmd.Cmd):
 		if save:
 			cleanword = punctuationRE.sub('', word)
 			if cleanword not in self.dictionary:
-				self.tracking['newWords'].append(cleanword) # add to suggestions for dictionary review
+				self.metrics['newWords'].append(cleanword) # add to suggestions for dictionary review
 			self.dictionary.add(cleanword) # add to current dictionary for subsequent heuristic decisions
-			if f'{self.token.original}\t{cleanword}' not in self.tracking['correctionTracking']:
-				self.tracking['correctionTracking'][f'{self.token.original}\t{cleanword}'] = 0
-			self.tracking['correctionTracking'][f'{self.token.original}\t{cleanword}'] += 1
+			if f'{self.token.original}\t{cleanword}' not in self.metrics['correctionTracking']:
+				self.metrics['correctionTracking'][f'{self.token.original}\t{cleanword}'] = 0
+			self.metrics['correctionTracking'][f'{self.token.original}\t{cleanword}'] += 1
 		return self.nexttoken()
 
 	def emptyline(self):

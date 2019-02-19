@@ -300,11 +300,11 @@ def do_correct(workspace: Workspace, config):
 	for l in metadata:
 		log.info(l)
 	
-	tracking = CorrectionShell.start(tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
+	metrics = CorrectionShell.start(tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
 
 	#log.debug(tokens)
-	log.debug(tracking['newWords'])
-	log.debug(tracking['correctionTracking'])
+	log.debug(metrics['newWords'])
+	log.debug(metrics['correctionTracking'])
 
 	# make print-ready text
 	spaced = u' '.join([token.gold or token.original for token in tokens])
@@ -315,7 +315,7 @@ def do_correct(workspace: Workspace, config):
 	FileAccess.save(corrected, workspace.paths[config.fileid].correctedFile)
 	
 	# update tracking & memos of annotator's actions
-	for key, count in sorted(tracking['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
+	for key, count in sorted(metrics['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
 		(original, gold) = key.split('\t')
 		workspace.resources.memoizedCorrections[original] = gold
 		workspace.resources.correctionTracking[f'{original}\t{gold}'] = count
