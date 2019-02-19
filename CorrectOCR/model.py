@@ -2,56 +2,79 @@ import itertools
 import logging
 import re
 from collections import defaultdict, Counter
-from pathlib import Path
-from typing import Dict, List
+from typing import DefaultDict, Dict, List
 
 from . import punctuationRE, FileAccess
 from .dictionary import Dictionary
-from .tokenize.string import tokenize_file
 
 
 class HMM(object):
 	log = logging.getLogger(f'{__name__}.HMM')
 
-	def __init__(self, initial, transition, emission, multichars=None):
-		if multichars is None:
-			multichars = {}
+	@property
+	def init(self) -> DefaultDict[str, float]:
+		return self._init
 
-		self.init = defaultdict(float)
-		self.init.update(initial)
+	@init.setter
+	def init(self, initial: Dict[str, float]):
+		self._init = defaultdict(float)
+		self._init.update(initial)
 
-		self.tran = defaultdict(lambda: defaultdict(float))
+	@property
+	def tran(self) -> DefaultDict[str, DefaultDict[str, float]]:
+		return self._tran
+
+	@tran.setter
+	def tran(self, transition: Dict[str, Dict[str, float]]):
+		self._tran = defaultdict(lambda: defaultdict(float))
 		for outer, d in transition.items():
 			for inner, e in d.items():
-				self.tran[outer][inner] = e
+				self._tran[outer][inner] = e
 
-		self.emis = defaultdict(lambda: defaultdict(float))
+	@property
+	def emis(self) -> DefaultDict[str, DefaultDict[str, float]]:
+		return self._emis
+
+	@emis.setter
+	def emis(self, emission: Dict[str, Dict[str, float]]):
+		self._emis = defaultdict(lambda: defaultdict(float))
 		for outer, d in emission.items():
 			for inner, e in d.items():
-				self.emis[outer][inner] = e
+				self._emis[outer][inner] = e
+
+	def __init__(self, path, multichars=None):
+		if multichars is None:
+			multichars = {}
 		self.multichars = multichars
-		
-		self.states = initial.keys()
+		self.path = path
+
+		if self.path:
+			HMM.log.info(f'Loading HMM parameters from {path}')
+			(self.init, self.tran, self.emis) = FileAccess.load(path, FileAccess.JSON)
+		else:
+			(self.init, self.tran, self.emis) = (None, None, None)
+
+		self.states = self.init.keys()
 		#HMM.log.debug(f'init: {self.init}')
 		#HMM.log.debug(f'tran: {self.tran}')
 		#HMM.log.debug(f'emis: {self.emis}')
 		HMM.log.debug(f'states: {self.states}')
-		
+
 		if not self.parameter_check():
 			HMM.log.critical(f'Parameter check failed for {self}')
 		else:
 			HMM.log.debug(f'HMM initialized: {self}')
-	
+
 	def __str__(self):
 		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
-	
+
 	def __repr__(self):
 		return self.__str__()
 
-	def save(self, path):
+	def save(self, path=None):
 		HMM.log.info(f'Saving HMM parameters to {path}')
+		path = path or self.path
 		FileAccess.save([self.init, self.tran, self.emis], path, FileAccess.JSON)
-
 
 	def parameter_check(self):
 		all_match = True

@@ -14,7 +14,7 @@ from tei_reader import TeiReader
 
 from . import open_for_reading, extract_text_from_pdf, FileAccess
 from .correcter import Correcter, CorrectionShell
-from .model import HMM, HMMBuilder
+from .model import HMMBuilder
 from .tokenize import tokenize_str
 from .workspace import Workspace
 
@@ -221,8 +221,10 @@ def build_model(workspace: Workspace, config):
 	init, tran = HMMBuilder.init_tran_probabilities(gold_words, workspace.resources.dictionary, config.smoothingParameter,
                                          remove_chars, workspace.language, extra_chars=charset)
 
-	workspace.resources.hmm = HMM(init, tran, emis)
-	workspace.resources.hmm.save(workspace.resources.hmmParamsFile)
+	workspace.resources.hmm.init = init
+	workspace.resources.hmm.tran = tran
+	workspace.resources.hmm.emis = emis
+	workspace.resources.hmm.save()
 	
 
 ##########################################################################################

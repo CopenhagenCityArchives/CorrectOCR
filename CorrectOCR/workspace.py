@@ -5,6 +5,9 @@ from typing import Dict, Iterator, List, Tuple
 
 from . import FileAccess
 from .aligner import Aligner
+from .dictionary import Dictionary
+from .heuristics import Heuristics
+from .model import HMM
 from .tokenize import Token, Tokenizer, tokenize_str, dehyphenate_tokens
 
 
@@ -151,13 +154,9 @@ class ResourceManager(object):
 		self.correctionTracking = JSONResource(config.correctionTrackingFile)
 		self.memoizedCorrections = JSONResource(config.memoizedCorrectionsFile)
 		self.multiCharacterError = JSONResource(config.multiCharacterErrorFile)
-		from .dictionary import Dictionary
 		self.dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
-		from .model import HMM
-		self.hmmParamsFile = config.hmmParamsFile
-		self.hmm = HMM(*FileAccess.load(self.hmmParamsFile, FileAccess.JSON), multichars=self.multiCharacterError)
+		self.hmm = HMM(config.hmmParamsFile, self.multiCharacterError)
 		self.report = config.reportFile
-		from .heuristics import Heuristics
 		self.heuristics = Heuristics(JSONResource(config.heuristicSettingsFile), self.dictionary)
 
 

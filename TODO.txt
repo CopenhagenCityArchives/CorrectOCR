@@ -4,9 +4,6 @@ README:
 FileAccess:
 	respect --nheaderlines
 
-model:
-	HMM: keep path inside like Dictionary
-
 tokenizer:
 	dehyphenation: create containertoken to hold the partial tokens
 	squish abbreviations? something like below?
