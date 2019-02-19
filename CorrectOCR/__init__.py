@@ -40,12 +40,40 @@ def extract_text_from_pdf(filename: str):
 	return text
 
 
+class CorpusFile(object):
+	log = logging.getLogger(f'{__name__}.CorpusFile')
+
+	def __init__(self, path, nheaderlines=0):
+		self.path = path
+		self.nheaderlines = nheaderlines
+		if self.path.is_file():
+			lines = FileAccess.load(self.path, FileAccess.LINES)
+			(self.header, self.body) = (
+				str.join('', lines[:self.nheaderlines-1]),
+				str.join('', lines[nheaderlines:])
+			)
+		else:
+			(self.header, self.body) = ('', '')
+
+	def save(self):
+		if not self.header or self.header.strip() == '':
+			self.header = ''
+		elif self.header[-1] != '\n':
+			self.header += '\n'
+		CorpusFile.log.info(f'Saving file to {self.path}')
+		FileAccess.save(self.header + self.body, self.path, FileAccess.DATA)
+
+	def is_file(self):
+		return self.path.is_file()
+
+
 class FileAccess(object):
 	log = logging.getLogger(f'{__name__}.FileAccess')
 
 	JSON = 'json'
 	CSV = 'csv'
 	DATA = 'data'
+	LINES = 'lines'
 
 	TOKENHEADER = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', 
 				   '3-best', '3-best prob.', '4-best', '4-best prob.', 
@@ -57,7 +85,7 @@ class FileAccess(object):
 	def get_encoding(cls, file: str) -> str:
 		with open(file, 'rb') as f:
 			dammit = UnicodeDammit(f.read(1024*500), ['utf-8', 'Windows-1252'])
-			logging.getLogger(f'{__name__}.get_encoding').debug(f'detected {dammit.original_encoding} for {file}')
+			cls.log.debug(f'detected {dammit.original_encoding} for {file}')
 			return dammit.original_encoding
 
 	@classmethod
@@ -113,5 +141,7 @@ class FileAccess(object):
 					cls.log.error(f'Cannot load CSV to file with {path.suffix} extension! path: {path}')
 					raise SystemExit(-1)
 				return list(csv.DictReader(f, delimiter='\t'))
+			elif kind == cls.LINES:
+				return f.readlines()
 			else:
 				return f.read()

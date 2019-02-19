@@ -3,7 +3,7 @@ from pathlib import Path
 from pprint import pformat
 from typing import Dict, Iterator, List, Tuple
 
-from . import FileAccess
+from . import FileAccess, CorpusFile
 from .aligner import Aligner
 from .dictionary import Dictionary
 from .heuristics import Heuristics
@@ -19,7 +19,7 @@ class Workspace(object):
 		self.nheaderlines: int = workspaceconfig.nheaderlines
 		self.language = workspaceconfig.language
 		self.resources = ResourceManager(resourceconfig)
-		self.paths = dict()
+		self.paths: Dict[str, 'PathManager'] = dict()
 		for file in workspaceconfig.originalPath.iterdir():
 			if file.name in {'.DS_Store'}:
 				continue
@@ -31,7 +31,8 @@ class Workspace(object):
 				workspaceconfig.originalPath,
 				workspaceconfig.goldPath,
 				workspaceconfig.trainingPath,
-				workspaceconfig.correctedPath
+				workspaceconfig.correctedPath,
+				workspaceconfig.nheaderlines,
 			)
 
 	def originalTokens(self) -> Iterator[Tuple[str, List[Token]]]:
@@ -62,8 +63,8 @@ class Workspace(object):
 		Workspace.log.info(f'Creating alignment files for {fileid}')
 		
 		(fullAlignments, wordAlignments, misreadCounts) = Aligner().alignments(
-			tokenize_str(FileAccess.load(self.paths[fileid].originalFile), self.language.name),
-			tokenize_str(FileAccess.load(self.paths[fileid].goldFile), self.language.name)
+			tokenize_str(self.paths[fileid].originalFile.body, self.language.name),
+			tokenize_str(self.paths[fileid].goldFile.body, self.language.name)
 		)
 		
 		FileAccess.save(fullAlignments, faPath, FileAccess.JSON)
@@ -97,7 +98,7 @@ class Workspace(object):
 
 		Workspace.log.debug(f'wordAlignments: {wordAlignments}')
 
-		tokenizer = Tokenizer.for_extension(self.paths[fileid].originalFile.suffix)(
+		tokenizer = Tokenizer.for_extension(self.paths[fileid].ext)(
 			self.resources.dictionary,
 			self.resources.hmm,
 			self.language,
@@ -131,10 +132,16 @@ class Workspace(object):
 
 
 class PathManager(object):
-	def __init__(self, fileid: str, ext: str, original: Path, gold: Path, training: Path, corrected: Path):
-		self.originalFile = original.joinpath(f'{fileid}{ext}')
-		self.goldFile = gold.joinpath(f'{fileid}{ext}')
-		self.correctedFile = corrected.joinpath(f'{fileid}{ext}')
+	def __init__(self, fileid: str, ext: str, original: Path, gold: Path, training: Path, corrected: Path, nheaderlines: int = 0):
+		self.ext = ext
+		if self.ext == '.txt':
+			self.originalFile = CorpusFile(original.joinpath(f'{fileid}{ext}'), nheaderlines)
+			self.goldFile = CorpusFile(gold.joinpath(f'{fileid}{ext}'), nheaderlines)
+			self.correctedFile = CorpusFile(corrected.joinpath(f'{fileid}{ext}'), nheaderlines)
+		else:
+			self.originalFile = original.joinpath(f'{fileid}{ext}')
+			self.goldFile = gold.joinpath(f'{fileid}{ext}')
+			self.correctedFile = corrected.joinpath(f'{fileid}{ext}')
 		self.originalTokenFile = training.joinpath(f'{fileid}_tokens.csv')
 		self.goldTokenFile = training.joinpath(f'{fileid}_goldTokens.csv')
 		self.binnedTokenFile = training.joinpath(f'{fileid}_binnedTokens.csv')

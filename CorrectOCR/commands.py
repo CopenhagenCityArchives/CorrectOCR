@@ -288,17 +288,12 @@ def do_correct(workspace: Workspace, config):
 	log.info(f'Correcting {config.fileid}')
 	origfilename = workspace.paths[config.fileid].originalFile
 	
-	# get metadata, if any
-	if config.nheaderlines > 0:
-		with open_for_reading(origfilename) as f:
-			metadata = f.readlines()[:config.nheaderlines]
-	else:
-		metadata = ''
+	# get header, if any
+	header = workspace.paths[config.fileid].correctedFile.header
 
 	# print info to annotator
+	log.info(f'header: {header}')
 	log.info(f'{config.fileid} contains about {len(tokens)} words')
-	for l in metadata:
-		log.info(l)
 	
 	metrics = CorrectionShell.start(tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
 
@@ -307,12 +302,12 @@ def do_correct(workspace: Workspace, config):
 	log.debug(metrics['correctionTracking'])
 
 	# make print-ready text
-	spaced = u' '.join([token.gold or token.original for token in tokens])
+	spaced = str.join(' ', [token.gold or token.original for token in tokens])
 	despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
-	corrected = metadata.replace(u'Corrected: No', u'Corrected: Yes') + despaced
-	
-	FileAccess.save(corrected, workspace.paths[config.fileid].correctedFile)
+	workspace.paths[config.fileid].correctedFile.header = header.replace(u'Corrected: No', u'Corrected: Yes') 
+	workspace.paths[config.fileid].correctedFile.body = despaced
+	workspace.paths[config.fileid].correctedFile.save()
 	
 	# update tracking & memos of annotator's actions
 	for key, count in sorted(metrics['correctionTracking'].items(), key=lambda x: x[1], reverse=True):

@@ -1,9 +1,6 @@
 README:
 	Getting started example (pip, build, etc)
 
-FileAccess:
-	respect --nheaderlines
-
 tokenizer:
 	dehyphenation: create containertoken to hold the partial tokens
 	squish abbreviations? something like below?

@@ -7,11 +7,10 @@ from io import BytesIO
 import cv2
 import fitz
 import numpy as np
-from lxml import html
 from PIL import Image
+from lxml import html
 
 from ._super import Token, Tokenizer
-from .. import FileAccess
 
 
 @contextmanager
