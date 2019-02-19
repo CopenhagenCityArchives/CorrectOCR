@@ -236,14 +236,14 @@ def make_report(workspace: Workspace, config):
 		for t in goldTokens:
 			workspace.resources.heuristics.add_to_report(t)
 	
-	config.reportFile.writelines(workspace.resources.heuristics.report())
+	FileAccess.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
 
 
 def make_settings(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.make_settings')
 	
 	log.info(f'Reading report from {workspace.resources.reportFile.name}')
-	bins = [ln for ln in workspace.resources.reportFile.readlines() if "BIN" in ln]
+	bins = [ln for ln in FileAccess.load(workspace.resources.reportFile).split('\n') if "BIN" in ln]
 	
 	log.info(f'Writing settings to {workspace.resources.heuristicSettingsFile.name}')
 	for b in bins:

@@ -156,7 +156,7 @@ class ResourceManager(object):
 		self.multiCharacterError = JSONResource(config.multiCharacterErrorFile)
 		self.dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
 		self.hmm = HMM(config.hmmParamsFile, self.multiCharacterError)
-		self.report = config.reportFile
+		self.reportFile = config.reportFile
 		self.heuristics = Heuristics(JSONResource(config.heuristicSettingsFile), self.dictionary)
 
 
