@@ -144,6 +144,9 @@ class Heuristics(object):
 		#   with results for each bin reported wrt matching gold standard
 		
 		(_, _bin) = self.evaluate(token)
+
+		if not _bin:
+			return # was unable to make heuristic decision
 		
 		if _bin['number'] == 1:
 			# k1 = orig and this is in dict.
