@@ -7,7 +7,6 @@ import zipfile
 from pathlib import Path
 from typing import List, Set
 
-import progressbar
 import requests
 from lxml import etree
 from tei_reader import TeiReader
@@ -15,7 +14,7 @@ from tei_reader import TeiReader
 from . import open_for_reading, extract_text_from_pdf, FileAccess
 from .correcter import Correcter, CorrectionShell
 from .model import HMMBuilder
-from .tokenize import tokenize_str
+from .tokenize import tokenize_str, Token
 from .workspace import Workspace
 
 
@@ -265,54 +264,54 @@ def do_correct(workspace: Workspace, config):
 		workspace.resources.dictionary.caseInsensitive,
 		config.k
 	)
-	
-	# get tokens to use for correction
-	tokens = workspace.tokens(config.fileid)
-	
-	log.info('Running heuristics on tokens to determine annotator workload.')
-	annotatorRequired = 0
-	for t in progressbar.progressbar(tokens):
-		(t.bin['decision'], t.bin['selection']) = correcter.evaluate(t)
-		if t.bin['decision'] == 'annotator':
-			annotatorRequired += 1
-	log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
-	
-	path = workspace.paths[config.fileid].binnedTokenFile
-	rows = [t.as_dict() for t in tokens]
 
+	binned_tokens = correcter.bin_tokens(workspace.tokens(config.fileid))
+
+	path = workspace.paths[config.fileid].binnedTokenFile
+	rows = [t.as_dict() for t in binned_tokens]
 	FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.BINNEDHEADER)
 
-	if not config.interactive:
+	if config.bin_only:
 		return
 
 	log.info(f'Correcting {config.fileid}')
-	origfilename = workspace.paths[config.fileid].originalFile
-	
+
 	# get header, if any
 	header = workspace.paths[config.fileid].correctedFile.header
 
 	# print info to annotator
 	log.info(f'header: {header}')
-	log.info(f'{config.fileid} contains about {len(tokens)} words')
+	log.info(f'{config.fileid} contains about {len(binned_tokens)} words')
 	
-	metrics = CorrectionShell.start(tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
+	if config.interactive:
+		metrics = CorrectionShell.start(binned_tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
+		corrected = binned_tokens
+		log.debug(metrics['newWords'])
+		log.debug(metrics['correctionTracking'])
+	else: # config.apply is set since the options are exclusive and required
+		if not config.apply.is_file():
+			log.error(f'Unable to apply non-file path {config.apply}')
+			raise SystemExit(-1)
+		metrics = None
+		corrected = [Token.from_dict(row) for row in FileAccess.load(config.apply, FileAccess.CSV)]
 
-	#log.debug(tokens)
-	log.debug(metrics['newWords'])
-	log.debug(metrics['correctionTracking'])
+	if len(corrected) != len(binned_tokens):
+		log.error(f'The corrected tokens had different length ({len(corrected)}) from the original ({len(binned_tokens)})!')
+		raise SystemExit(-1)
 
 	# make print-ready text
-	spaced = str.join(' ', [token.gold or token.original for token in tokens])
+	spaced = str.join(' ', [token.gold or token.original for token in corrected])
 	despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
 	workspace.paths[config.fileid].correctedFile.header = header.replace(u'Corrected: No', u'Corrected: Yes') 
 	workspace.paths[config.fileid].correctedFile.body = despaced
 	workspace.paths[config.fileid].correctedFile.save()
-	
-	# update tracking & memos of annotator's actions
-	for key, count in sorted(metrics['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
-		(original, gold) = key.split('\t')
-		workspace.resources.memoizedCorrections[original] = gold
-		workspace.resources.correctionTracking[f'{original}\t{gold}'] = count
-	workspace.resources.correctionTracking.save()
-	workspace.resources.memoizedCorrections.save()
+
+	if metrics:
+		# update tracking & memos of annotator's actions
+		for key, count in sorted(metrics['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
+			(original, gold) = key.split('\t')
+			workspace.resources.memoizedCorrections[original] = gold
+			workspace.resources.correctionTracking[f'{original}\t{gold}'] = count
+		workspace.resources.correctionTracking.save()
+		workspace.resources.memoizedCorrections.save()

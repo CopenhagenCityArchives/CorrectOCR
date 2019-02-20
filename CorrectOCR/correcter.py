@@ -2,6 +2,8 @@ import cmd
 import logging
 from typing import Dict, List
 
+import progressbar
+
 from . import punctuationRE, split_window
 from .tokenize import Token
 
@@ -57,6 +59,17 @@ class Correcter(object):
 		else:
 			# heuristic is 'a' or unrecognized
 			return 'annotator', filtids
+
+	def bin_tokens(self, tokens: List[Token]):
+		Correcter.log.info('Running heuristics on tokens to determine annotator workload.')
+		annotatorRequired = 0
+		for t in progressbar.progressbar(tokens):
+			(t.bin['decision'], t.bin['selection']) = self.evaluate(t)
+			if t.bin['decision'] == 'annotator':
+				annotatorRequired += 1
+		Correcter.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
+
+		return tokens
 
 
 class CorrectionShell(cmd.Cmd):

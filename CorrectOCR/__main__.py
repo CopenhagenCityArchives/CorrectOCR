@@ -123,7 +123,10 @@ settingsparser.set_defaults(func=commands.make_settings, **configuration)
 
 correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Run assisted correction interface')
 correctparser.add_argument('--fileid', required=True, help='Input file ID (filename without path or extension)')
-correctparser.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
+group = correctparser.add_mutually_exclusive_group(required=True)
+group.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
+group.add_argument('--bin_only', action='store_true', default=False, help='Just bin tokens without generating corrected file')
+group.add_argument('--apply', help='Apply externally corrected token CSV to original file')
 correctparser.set_defaults(func=commands.do_correct, **configuration)
 
 args = rootparser.parse_args(args)

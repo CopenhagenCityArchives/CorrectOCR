@@ -97,7 +97,13 @@ Commands and their arguments are called directly on the module, like so: `python
 
 5. `correct` uses the settings to sort the tokens into bins and makes automated decisions as configured.
 	The `--fileid` option specifies which file to correct.
-	The `--interactive` option runs an interactive correction CLI for the remaining undecided tokens (see [Correction Interface](#correction-interace) below).
+	There are three ways to run corrections:
+
+	* `--interactive` runs an interactive correction CLI for the remaining undecided tokens (see [Correction Interface](#correction-interace) below).
+
+	* `--bin_only` simply exits after binning the tokens. The resulting CSV can then be edited manually or via an external tool.
+
+	* `--apply` takes a path argument to an edited CSV file and applies the corrections therein.
 
 Heuristics
 ----------

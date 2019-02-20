@@ -17,5 +17,4 @@ new build_pdf command:
 	--images 1,2,3 --pdfname
 
 corrected:
-	apply edited binnedTokens to original for new corrected file
 	new original option
