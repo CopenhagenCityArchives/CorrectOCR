@@ -89,11 +89,11 @@ Commands and their arguments are called directly on the module, like so: `python
 	The `--fileid` option specifies which file to tokenize.
 	The `--all` option tokenizes all available texts.
 
-4. Heuristic decisions (see also [Heuristics](#heuristics) below): 
+4. `heuristics` is used to configure which decisions the program should make about tokens (see [Heuristics](#heuristics) below): 
 
-	* `make_report` generates a statistical report on whether originals/_k_-best equal are in the dictionary, etc. This report can then be inspected and annotated with the desired decision for each _bin_.
+	* `--make_report` generates a statistical report on whether originals/_k_-best equal are in the dictionary, etc. This report can then be inspected and annotated with the desired decision for each _bin_.
 
-	* `make_settings` creates correction settings based on the annotated report.
+	* `--make_settings` creates correction settings based on the annotated report.
 
 5. `correct` uses the settings to sort the tokens into bins and makes automated decisions as configured.
 	The `--fileid` option specifies which file to correct.

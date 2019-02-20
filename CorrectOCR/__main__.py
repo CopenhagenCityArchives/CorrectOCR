@@ -115,11 +115,11 @@ group.add_argument('--all', action='store_true', help='Tokenize all files in ori
 tokenizerparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation')
 tokenizerparser.set_defaults(func=commands.do_tokenize, **configuration)
 
-tunerparser = subparsers.add_parser('make_report', parents=[commonparser], help='Make heuristics report')
-tunerparser.set_defaults(func=commands.make_report, **configuration)
-
-settingsparser = subparsers.add_parser('make_settings', parents=[commonparser], help='Make heuristics settings')
-settingsparser.set_defaults(func=commands.make_settings, **configuration)
+heuristicsparser = subparsers.add_parser('heuristics', parents=[commonparser], help='Make heuristics report')
+group = heuristicsparser.add_mutually_exclusive_group(required=True)
+group.add_argument('--make_report', action='store_true', help='Make heuristics statistics report from tokens')
+group.add_argument('--make_settings', action='store_true', help='Make heuristics settings from report')
+heuristicsparser.set_defaults(func=commands.do_heuristics, **configuration)
 
 correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Run assisted correction interface')
 group1 = correctparser.add_mutually_exclusive_group(required=True)

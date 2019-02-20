@@ -226,28 +226,26 @@ def do_tokenize(workspace: Workspace, config):
 ##########################################################################################
 
 
-def make_report(workspace: Workspace, config):
-	log = logging.getLogger(f'{__name__}.make_report')
+def do_heuristics(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.do_heuristics')
 
-	for fileid, goldTokens in workspace.goldTokens():
-		log.info(f'Collecting stats from {fileid}')
-		for t in goldTokens:
-			workspace.resources.heuristics.add_to_report(t)
-	
-	FileAccess.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
+	if config.make_report:
+		for fileid, goldTokens in workspace.goldTokens():
+			log.info(f'Collecting stats from {fileid}')
+			for t in goldTokens:
+				workspace.resources.heuristics.add_to_report(t)
 
-
-def make_settings(workspace: Workspace, config):
-	log = logging.getLogger(f'{__name__}.make_settings')
+		log.info(f'Saving report to {workspace.resources.reportFile}')
+		FileAccess.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
+	elif config.make_settings:
+		log.info(f'Reading report from {workspace.resources.reportFile.name}')
+		bins = [ln for ln in FileAccess.load(workspace.resources.reportFile).split('\n') if "BIN" in ln]
 	
-	log.info(f'Reading report from {workspace.resources.reportFile.name}')
-	bins = [ln for ln in FileAccess.load(workspace.resources.reportFile).split('\n') if "BIN" in ln]
-	
-	log.info(f'Writing settings to {workspace.resources.heuristicSettingsFile.name}')
-	for b in bins:
-		binID = b.split()[1]
-		action = b.split()[-1]
-		workspace.resources.heuristicSettingsFile.write(binID + u'\t' + action + u'\n')
+		log.info(f'Saving settings to {workspace.resources.heuristicSettingsFile.name}')
+		for b in bins:
+			binID = b.split()[1]
+			action = b.split()[-1]
+			workspace.resources.heuristicSettingsFile.write(binID + u'\t' + action + u'\n')
 
 
 ##########################################################################################
