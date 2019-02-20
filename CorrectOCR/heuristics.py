@@ -84,22 +84,19 @@ class Heuristics(object):
 		# original form
 		original = punctuationRE.sub('', token.original)
 
-		# top k best
-		kbest = list(token.kbest())
-
 		# k best candidate words that are in dictionary
 		nkdict = [c for k, (c,p) in token.kbest() if c in self.dictionary]
 
 		dcode = None
 		if len(nkdict) == 0:
 			dcode = 'zerokd'
-		elif len(nkdict) == len(kbest):
-			dcode = 'allkd'
-		elif 0 < len(nkdict) < len(kbest):
+		elif 0 < len(nkdict) < token.k:
 			dcode = 'somekd'
+		elif len(nkdict) == token.k:
+			dcode = 'allkd'
 
 		for num, _bin in self.bins.items():
-			if _bin['matcher'](original, kbest[0][1][0], self.dictionary, dcode):
+			if _bin['matcher'](original, token.kbest(1)[0], self.dictionary, dcode):
 				return _bin['heuristic'], dict(_bin)
 
 		Heuristics.log.critical(f'Unable to make decision for token: {token}')

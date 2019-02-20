@@ -49,6 +49,10 @@ class Token(abc.ABC):
 	def token_info(self):
 		pass
 
+	@property
+	def k(self):
+		return len(self._kbest)
+
 	def __init__(self, gold: str = None, kbest: List[Tuple[str, float]] = None):
 		self.bin = dict()
 		# Newline characters are kept to recreate the text later,
