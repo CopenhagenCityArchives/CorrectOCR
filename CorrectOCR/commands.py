@@ -1,7 +1,6 @@
 import collections
 import logging
 import random
-import shutil
 import time
 import zipfile
 from pathlib import Path
@@ -55,7 +54,7 @@ def build_dictionary(workspace: Workspace, config):
 						log.info(f'File already copied: {file.name}')
 						continue
 					log.info(f'Copying {file.name} to corpus.')
-					shutil.copy(str(file), outfile)
+					FileAccess.copy(file, outfile)
 
 	def unzip_recursive(_zip):
 		for member in _zip.namelist():
@@ -265,23 +264,32 @@ def do_correct(workspace: Workspace, config):
 		config.k
 	)
 
-	binned_tokens = correcter.bin_tokens(workspace.tokens(config.fileid))
+	if config.filePath:
+		fileid = config.filePath.stem
+		if fileid in workspace.paths:
+			log.error(f'File ID already exists: {fileid}! You must rename the file first.')
+			raise SystemExit(-1)
+		workspace.add_new_path(fileid, config.filePath.suffix, new_original=config.filePath)
+	else:
+		fileid = config.fileid
 
-	path = workspace.paths[config.fileid].binnedTokenFile
+	binned_tokens = correcter.bin_tokens(workspace.tokens(fileid))
+
+	path = workspace.paths[fileid].binnedTokenFile
 	rows = [t.as_dict() for t in binned_tokens]
 	FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.BINNEDHEADER)
 
 	if config.bin_only:
 		return
 
-	log.info(f'Correcting {config.fileid}')
+	log.info(f'Correcting {fileid}')
 
 	# get header, if any
-	header = workspace.paths[config.fileid].correctedFile.header
+	header = workspace.paths[fileid].correctedFile.header
 
 	# print info to annotator
 	log.info(f'header: {header}')
-	log.info(f'{config.fileid} contains about {len(binned_tokens)} words')
+	log.info(f'{fileid} contains about {len(binned_tokens)} words')
 	
 	if config.interactive:
 		metrics = CorrectionShell.start(binned_tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
@@ -303,9 +311,9 @@ def do_correct(workspace: Workspace, config):
 	spaced = str.join(' ', [token.gold or token.original for token in corrected])
 	despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
-	workspace.paths[config.fileid].correctedFile.header = header.replace(u'Corrected: No', u'Corrected: Yes') 
-	workspace.paths[config.fileid].correctedFile.body = despaced
-	workspace.paths[config.fileid].correctedFile.save()
+	workspace.paths[fileid].correctedFile.header = header.replace(u'Corrected: No', u'Corrected: Yes') 
+	workspace.paths[fileid].correctedFile.body = despaced
+	workspace.paths[fileid].correctedFile.save()
 
 	if metrics:
 		# update tracking & memos of annotator's actions

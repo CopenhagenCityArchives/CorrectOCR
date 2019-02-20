@@ -155,7 +155,7 @@ class HMM(object):
 	
 	def kbest_for_word(self, word: str, k: int, dictionary: Dictionary) -> List[Tuple[str, float]]:
 		if len(word) == 0:
-			return [''] + ['', 0.0] * k
+			return [('', 0.0)] * k
 
 		k_best = self.k_best_beam(word, k)
 		# Check for common multi-character errors. If any are present,

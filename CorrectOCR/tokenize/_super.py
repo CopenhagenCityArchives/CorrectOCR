@@ -197,6 +197,10 @@ class Tokenizer(abc.ABC):
 		pass
 
 	def generate_kbest(self, tokens: List[Token]) -> List[Token]:
+		if len(tokens) == 0:
+			Tokenizer.log.error(f'No tokens were supplied?!')
+			raise SystemExit(-1)
+
 		Tokenizer.log.info(f'Generating {self.k}-best suggestions for each token')
 		for i, token in enumerate(progressbar.progressbar(tokens)):
 			if token.original in self.previousTokens:

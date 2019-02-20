@@ -3,6 +3,7 @@
 import csv
 import json
 import logging
+import shutil
 from collections import deque
 from pathlib import Path
 from typing import List, Iterator, TypeVar, Tuple, Any
@@ -101,6 +102,11 @@ class FileAccess(object):
 		if counter > 0:
 			logging.getLogger(f'{__name__}.ensure_new_file').info(f'Existing file moved to {path}')
 			originalpath.rename(path)
+
+	@classmethod
+	def copy(cls, src: Path, dest: Path):
+		cls.log.info(f'Copying {src} to {dest}')
+		shutil.copy(src, dest)
 
 	@classmethod
 	def save(cls, data: Any, path, kind=None, header=None, backup=True):

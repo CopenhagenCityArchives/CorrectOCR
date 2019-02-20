@@ -122,11 +122,13 @@ settingsparser = subparsers.add_parser('make_settings', parents=[commonparser], 
 settingsparser.set_defaults(func=commands.make_settings, **configuration)
 
 correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Run assisted correction interface')
-correctparser.add_argument('--fileid', required=True, help='Input file ID (filename without path or extension)')
-group = correctparser.add_mutually_exclusive_group(required=True)
-group.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
-group.add_argument('--bin_only', action='store_true', default=False, help='Just bin tokens without generating corrected file')
-group.add_argument('--apply', help='Apply externally corrected token CSV to original file')
+group1 = correctparser.add_mutually_exclusive_group(required=True)
+group1.add_argument('--fileid', help='Input file ID (filename without path or extension)')
+group1.add_argument('--filePath', type=Path, help='Input file path (will be copied to originalPath directory)')
+group2 = correctparser.add_mutually_exclusive_group(required=True)
+group2.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
+group2.add_argument('--bin_only', action='store_true', default=False, help='Just bin tokens without generating corrected file')
+group2.add_argument('--apply', help='Apply externally corrected token CSV to original file')
 correctparser.set_defaults(func=commands.do_correct, **configuration)
 
 args = rootparser.parse_args(args)

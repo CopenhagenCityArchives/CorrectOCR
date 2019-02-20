@@ -20,20 +20,28 @@ class Workspace(object):
 		self.language = workspaceconfig.language
 		self.resources = ResourceManager(resourceconfig)
 		self.paths: Dict[str, 'PathManager'] = dict()
+		self._originalPath = workspaceconfig.originalPath
+		self._goldPath = workspaceconfig.goldPath
+		self._trainingPath = workspaceconfig.trainingPath
+		self._correctedPath = workspaceconfig.correctedPath
+		self._nheaderlines = workspaceconfig.nheaderlines
 		for file in workspaceconfig.originalPath.iterdir():
 			if file.name in {'.DS_Store'}:
 				continue
-			fileid = file.stem
-			ext = file.suffix
-			self.paths[fileid] = PathManager(
-				fileid,
-				ext,
-				workspaceconfig.originalPath,
-				workspaceconfig.goldPath,
-				workspaceconfig.trainingPath,
-				workspaceconfig.correctedPath,
-				workspaceconfig.nheaderlines,
-			)
+			self.add_new_path(file.stem, file.suffix)
+
+	def add_new_path(self, fileid, ext, new_original: Path = None):
+		if new_original:
+			FileAccess.copy(new_original, self._originalPath)
+		self.paths[fileid] = PathManager(
+			fileid,
+			ext,
+			self._originalPath,
+			self._goldPath,
+			self._trainingPath,
+			self._correctedPath,
+			self._nheaderlines,
+		)
 
 	def originalTokens(self) -> Iterator[Tuple[str, List[Token]]]:
 		for fileid, pathManager in self.paths.items():
