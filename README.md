@@ -24,9 +24,9 @@ Usage of CorrectOCR is divided into several successive tasks.
 
 To train the software, one must first create or obtain set of matching original uncorrected files with corresponding known-correct "gold" files. Additionally, a dictionary of the target language is needed.
 
-The original+gold file pairs are then used to create _k_ replacement candidates for each token in a new given file. A number of heuristic decisions are configured based on whether a new token is found in the dictionary, are the candidates preferable to the original, etc. Finally, a CLI presents the annotator with the candidates, and a new corrected file is generated.
+The pairs (original, gold) files are then used to create _k_ replacement candidates for each token (word) in a new given file. A number of heuristic decisions are configured based on whether a given token is found in the dictionary, are the candidates preferable to the original, etc. Finally, a CLI can be used by the annotator to select among the candidates, and a new corrected file is generated.
 
-When a corrected file is satisfactory, it can be moved to the gold folder and used to tune the HMM further and improve the _k_-best correction candidates for subsequent files.
+When a corrected file is satisfactory, it can be moved or copied to the gold directory and in turn be used to tune the HMM further, thus improving the _k_-best candidates for subsequent files.
 
 Configuration
 -------------
@@ -72,31 +72,32 @@ Commands
 
 Commands and their arguments are called directly on the module, like so: `python -m CorrectOCR [command] [args...]`.
 
-*  `build_dictionary` creates a dictionary 
+*  `build_dictionary` creates a dictionary.
    Input files can be either `.pdf`, `.txt`, or `.xml` (in [TEI format](https://en.wikipedia.org/wiki/Text_Encoding_Initiative)). They may be contained in `.zip`-files. 
    The `--corpusPath` option specifies a directory of files.
    The `--corpusFile` option specifies a list of paths and URLs to files. One such file for a dictionary covering 1800–1948 Danish is provided under `resources/`.
    It is strongly recommended to generate a large dictionary for best performance.
 
 1. `align` aligns a pair of (original, gold) files in order to determine which characters and words were misread in the original and corrected in the gold.
-	The `--fileid` option specifies a single pair.
-	The `--all` option aligns all matching pairs available.
+	The `--fileid` option specifies a single pair of files to align.
+	The `--all` option aligns all available pairs.
 
-2. `build_model` uses the alignments to create parameters for a HMM.
+2. `build_model` uses the alignments to create parameters for the HMM.
 	The `--smoothingParameter` option can be adjusted as needed.
 
 3. `tokenize` tokenizes texts and uses the HMM to create _k_-best correction candidates.
-	The `--fileid` option specifies a single file.
+	The `--fileid` option specifies which file to tokenize.
 	The `--all` option tokenizes all available texts.
 
-4. Heuristic decisions: 
+4. Heuristic decisions (see also [Heuristics](#heuristics) below): 
 
-	* `make_report` generates a statistical report on whether originals/_k_-best equal & are in dictionary, etc. This report can then be inspected and annotated with the proper decisions.
+	* `make_report` generates a statistical report on whether originals/_k_-best equal are in the dictionary, etc. This report can then be inspected and annotated with the desired decision for each _bin_.
 
 	* `make_settings` creates correction settings based on the annotated report.
 
-5. `correct` uses the settings to sort the tokens into _bins_ and makes automated decisions where appropriate.
-	The `--interactive` option runs an interactive correction CLI for the remaining undecided.
+5. `correct` uses the settings to sort the tokens into bins and makes automated decisions as configured.
+	The `--fileid` option specifies which file to correct.
+	The `--interactive` option runs an interactive correction CLI for the remaining undecided tokens (see [Correction Interface](#correction-interace) below).
 
 Heuristics
 ----------
@@ -117,7 +118,7 @@ Each _bin_ must be assigned a setting that determines what decision is made:
 * `d` / _kdict_: select the first lower-ranked candidate that is in the dictionary.
 * `a` / _annotator_: defer selection to annotator.
 
-Once the report and settings are generated, it is not strictly necessary to update them every single time the model is updated. It is however a good idea to do it regularly as the corpus grows.
+Once the report and settings are generated, it is not strictly necessary to update them every single time the model is updated. It is however a good idea to do it regularly as the corpus grows and more tokens become available for the statistics.
 
 Correction Interface
 --------------------
