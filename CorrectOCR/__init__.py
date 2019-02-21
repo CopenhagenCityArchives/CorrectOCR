@@ -12,6 +12,8 @@ import fitz
 import regex
 from bs4.dammit import UnicodeDammit
 
+from .codecs import COCRJSONCodec
+
 
 punctuationRE = regex.compile(r'\p{punct}+')
 
@@ -125,7 +127,7 @@ class FileAccess(object):
 				if not path.suffix == '.json':
 					cls.log.error(f'Cannot save JSON to file with {path.suffix} extension! path: {path}')
 					raise SystemExit(-1)
-				return json.dump(data, f)
+				return json.dump(data, f, cls=COCRJSONCodec)
 			elif kind == cls.CSV:
 				if not path.suffix == '.csv':
 					cls.log.error(f'Cannot save CSV to file with {path.suffix} extension! path: {path}')
@@ -147,7 +149,7 @@ class FileAccess(object):
 				if not path.suffix == '.json':
 					cls.log.error(f'Cannot load JSON to file with {path.suffix} extension! path: {path}')
 					raise SystemExit(-1)
-				return json.load(f)
+				return json.load(f, object_hook=COCRJSONCodec.object_hook)
 			elif kind == cls.CSV:
 				if not path.suffix == '.csv':
 					cls.log.error(f'Cannot load CSV to file with {path.suffix} extension! path: {path}')

@@ -13,7 +13,7 @@ from tei_reader import TeiReader
 from . import open_for_reading, extract_text_from_pdf, FileAccess
 from .correcter import Correcter, CorrectionShell
 from .model import HMMBuilder
-from .tokenize import tokenize_str, Token
+from .tokenize import tokenize_str, Token, Tokenizer
 from .workspace import Workspace
 
 
@@ -283,10 +283,10 @@ def do_correct(workspace: Workspace, config):
 	log.info(f'Correcting {fileid}')
 
 	# get header, if any
-	header = workspace.paths[fileid].correctedFile.header
+	#header = workspace.paths[fileid].correctedFile.header
 
 	# print info to annotator
-	log.info(f'header: {header}')
+	#log.info(f'header: {header}')
 	log.info(f'{fileid} contains about {len(binned_tokens)} words')
 	
 	if config.interactive:
@@ -305,19 +305,18 @@ def do_correct(workspace: Workspace, config):
 		log.error(f'The corrected tokens had different length ({len(corrected)}) from the original ({len(binned_tokens)})!')
 		raise SystemExit(-1)
 
-	# make print-ready text
-	spaced = str.join(' ', [token.gold or token.original for token in corrected])
-	despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
-
-	workspace.paths[fileid].correctedFile.header = header.replace(u'Corrected: No', u'Corrected: Yes') 
-	workspace.paths[fileid].correctedFile.body = despaced
-	workspace.paths[fileid].correctedFile.save()
-
 	if metrics:
-		# update tracking & memos of annotator's actions
+		log.info(f'Saving metrics.')
 		for key, count in sorted(metrics['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
 			(original, gold) = key.split('\t')
 			workspace.resources.memoizedCorrections[original] = gold
 			workspace.resources.correctionTracking[f'{original}\t{gold}'] = count
 		workspace.resources.correctionTracking.save()
 		workspace.resources.memoizedCorrections.save()
+
+	log.info(f'Applying corrections to {fileid}')
+	Tokenizer.for_extension(workspace.paths[fileid].ext).apply(
+		workspace.paths[fileid].originalFile,
+		corrected,
+		workspace.paths[fileid].correctedFile,
+	)

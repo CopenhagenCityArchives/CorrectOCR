@@ -1,16 +1,21 @@
 import locale
 import logging
+import re
 from contextlib import contextmanager
 from functools import partial
 from io import BytesIO
+from pathlib import Path
+from typing import List
 
 import cv2
 import fitz
 import numpy as np
+import progressbar
 from PIL import Image
 from lxml import html
 
-from ._super import Token, Tokenizer
+from ._super import Token, Tokenizer, TokenSegment
+from .. import FileAccess
 
 
 @contextmanager
@@ -26,8 +31,12 @@ def c_locale():
 	locale.setlocale(locale.LC_ALL, currlocale)
 
 
+##########################################################################################
+
+
 class HOCRToken(Token):
 	log = logging.getLogger(f'{__name__}.HOCRToken')
+	bbox = re.compile(r'bbox (\d+) (\d+) (\d+) (\d+)')
 
 	@property
 	def original(self):
@@ -35,32 +44,26 @@ class HOCRToken(Token):
 
 	@property
 	def token_info(self):
-		return html.tostring(self._element)
+		return (html.tostring(self._element, encoding='unicode'), self.page)
 
-	def __init__(self, element, **kwargs):
+	def __init__(self, info, **kwargs):
+		(element, page) = info
 		if isinstance(element, str):
 			self._element = html.fromstring(element)
 		else:
 			self._element = element
+		self.page = page
 		super().__init__(**kwargs)
 
+	def rect(self):
+		# example: title='bbox 77 204 93 234; x_wconf 95'
+		m = HOCRToken.bbox.search(self._element.attrib['title'])
+		if m:
+			return tuple(map(int, list(m.group(1, 2, 3, 4))))
+		else:
+			return (0, 0, 0, 0)
 
 Token.register(HOCRToken)
-
-
-##########################################################################################
-
-
-class PDFColumn(object):
-	log = logging.getLogger(f'{__name__}.PDFColumn')
-
-	def __init__(self, name, image, index, rect, hocr, tokens):
-		self.name = name
-		self.image = image
-		self.index = index
-		self.rect = rect
-		self.hocr = hocr
-		self.tokens = tokens
 
 
 ##########################################################################################
@@ -129,7 +132,7 @@ def columnize(image, columncount):
 		yield (left, 0, right-left, height)
 
 
-def tokenize_image(name, image, language='Eng', force=False):
+def tokenize_image(fileid: str, page: int, image: Image, language='Eng', force=False):
 	log = logging.getLogger(f'{__name__}.tokenize_image')
 
 	columns = []
@@ -144,7 +147,7 @@ def tokenize_image(name, image, language='Eng', force=False):
 			tesseract.SetImage(image)
 
 			for index, rect in enumerate(columnize(image, 2)):
-				log.info(f'Generating hOCR for column {index} of {name}')
+				log.info(f'Generating hOCR for column {index} of {fileid} page {page}')
 
 				tesseract.SetRectangle(*rect)
 
@@ -153,16 +156,14 @@ def tokenize_image(name, image, language='Eng', force=False):
 				doc = html.fromstring(hocr)
 				elements = doc.xpath("//*[@class='ocrx_word']")
 
-				columns.append(PDFColumn(
-					name,
-					image,
+				yield (
+					page,
 					index,
 					rect,
+					image,
 					hocr,
-					[HOCRToken(e) for e in elements if e.text.strip() != '']
-				))
-
-	return columns
+					[HOCRToken((e, page)) for e in elements if e.text.strip() != '']
+				)
 
 
 ##########################################################################################
@@ -172,33 +173,77 @@ class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
 	def tokenize(self, file, force=False):
-		if file.suffix in {'.tiff', '.png'}:
-			columns = tokenize_image(file, Image.open(str(file)), self.language.alpha_3)
-		elif file.suffix == '.pdf':
-			doc = fitz.open(str(file))
-			columns = []
-			for pageno in range(1, len(doc)):
-				HOCRTokenizer.log.info(f'Extracting images from page {pageno}')
-				for image_info in doc.getPageImageList(pageno):
-					# [xref, smask, width, height, bpc, colorspace, alt. colorspace, name, filter]
-					HOCRTokenizer.log.debug(f'Image info: {image_info}')
-					if image_info[1] != 0:
-						HOCRTokenizer.log.error('Cannot handle images with smasks')
-						raise SystemExit(-1)
-					image = doc.extractImage(image_info[0])
-					# https://pymupdf.readthedocs.io/en/latest/functions/#Document.extractImage
-					HOCRTokenizer.log.debug(f'Image format: {image["ext"]}')
-					img = Image.open(BytesIO(image['image']))
-					columns.extend(tokenize_image(f'{file.stem}-page{pageno}', img, self.language.alpha_3))
+		columns = []
+		cachefile = Path('__hocrcache__/').joinpath(f'{file.stem}.cache.json')
+
+		if cachefile.is_file():
+			columns = FileAccess.load(cachefile, FileAccess.JSON)
 		else:
-			HOCRTokenizer.log.error(f'Cannot handle {file}')
-			raise SystemExit(-1)
+			if file.suffix in {'.tiff', '.png'}:
+				for page, index, rect, image, hocr, tokens in tokenize_image(file.stem, 0, Image.open(str(file)), self.language.alpha_3):
+					columns.append(TokenSegment(
+						file.stem,
+						page,
+						index,
+						rect,
+						image,
+						hocr,
+						tokens
+					))
+			elif file.suffix == '.pdf':
+				doc = fitz.open(str(file))
+				for pageno in range(1, len(doc)):
+					HOCRTokenizer.log.info(f'Extracting images from page {pageno}')
+					for image_info in doc.getPageImageList(pageno):
+						# [xref, smask, width, height, bpc, colorspace, alt. colorspace, name, filter]
+						HOCRTokenizer.log.debug(f'Image info: {image_info}')
+						if image_info[1] != 0:
+							HOCRTokenizer.log.error('Cannot handle images with smasks')
+							raise SystemExit(-1)
+						image = doc.extractImage(image_info[0])
+						# https://pymupdf.readthedocs.io/en/latest/functions/#Document.extractImage
+						HOCRTokenizer.log.debug(f'Image format: {image["ext"]}')
+						img = Image.open(BytesIO(image['image']))
+						for page, index, rect, image, hocr, tokens in tokenize_image(file.stem, pageno, img, self.language.alpha_3):
+							columns.append(TokenSegment(
+								file.stem,
+								page,
+								index,
+								rect,
+								image,
+								hocr,
+								tokens
+							))
+			else:
+				HOCRTokenizer.log.error(f'Cannot handle {file}')
+				raise SystemExit(-1)
+
+		FileAccess.save(columns, cachefile, FileAccess.JSON)
 
 		all_tokens = [t for c in columns for t in c.tokens]
 
 		HOCRTokenizer.log.debug(f'Found {len(all_tokens)} tokens, first 10: {all_tokens[:10]}')
-	
+
 		return self.generate_kbest(all_tokens)
+
+	def apply(original, tokens: List[HOCRToken], corrected):
+		if original.suffix == '.pdf':
+			doc = fitz.open(str(original))
+		else:
+			doc = fitz.open()
+			pix = fitz.Pixmap(str(original))
+			page = doc.newPage(-1, width=pix.width, height=pix.height)
+			page.insertImage(page.rect, pixmap = pix)
+
+		for token in progressbar.progressbar(tokens):
+			(x0, y0, x1, y1) = token.rect()
+			HOCRTokenizer.log.debug(f'{token.gold or token.original} -- rect: {x0}, {y0}, {x1}, {y1}')
+			rect = fitz.Rect(x0, y0, x1, y1)
+			center = fitz.Point((x1-x0)/2,(y1-y0)/2)
+			scale = fitz.Matrix(0.5, 0.5)
+			doc[token.page].insertTextbox(rect, token.gold or token.original, morph=(center, scale))
+
+		doc.save(str(corrected.parent.joinpath(corrected.stem + '.pdf')))
 
 
 Tokenizer.register(HOCRTokenizer, ['.pdf', '.tiff', '.png'])

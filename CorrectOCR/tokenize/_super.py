@@ -1,10 +1,13 @@
 import abc
+import json
 import logging
 from typing import Dict, List, Tuple
 
 import nltk
 import progressbar
 import regex
+from PIL import Image
+from lxml import html
 
 
 def tokenize_str(data: str, language='English') -> List[str]:
@@ -141,14 +144,15 @@ class Token(abc.ABC):
 			output['Decision'] = self.bin.get('decision', None)
 			output['Selection'] = self.bin.get('selection', None)
 		output['Token type'] = self.__class__.__name__
-		output['Token info'] = self.token_info
+		output['Token info'] = json.dumps(self.token_info)
 
 		return output
 
 	@classmethod
 	def from_dict(cls, d: dict) -> 'Token':
 		classname = d['Token type']
-		t = Token.subclasses[classname](d['Token info'] or d['Original'])
+		Token.subclasses[classname].log.debug(f'{d}')
+		t = Token.subclasses[classname](json.loads(d['Token info']))
 		t.update(d=d)
 		return t
 
@@ -206,6 +210,11 @@ class Tokenizer(abc.ABC):
 	def tokenize(self, file, force):
 		pass
 
+	@staticmethod
+	@abc.abstractmethod
+	def apply(original, tokens: List[Token], corrected):
+		pass
+
 	def generate_kbest(self, tokens: List[Token]) -> List[Token]:
 		if len(tokens) == 0:
 			Tokenizer.log.error(f'No tokens were supplied?!')
@@ -227,4 +236,19 @@ class Tokenizer(abc.ABC):
 
 		Tokenizer.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
 		return tokens
-	
+
+
+##########################################################################################
+
+
+class TokenSegment(object):
+	log = logging.getLogger(f'{__name__}.TokenSegment')
+
+	def __init__(self, fileid: str, page: int, column: int, rect: Tuple[int, int, int, int], image: Image, hocr: html.Element, tokens: List[Token]):
+		self.fileid = fileid
+		self.page = page
+		self.column = column
+		self.rect = rect
+		self.image = image
+		self.hocr = hocr
+		self.tokens = tokens
