@@ -183,7 +183,7 @@ def do_align(workspace: Workspace, config):
 	if config.fileid:
 		workspace.alignments(config.fileid, force=config.force)
 	elif config.all:
-		for fileid, pathManager in filter(lambda x: x[1].goldFile.is_file(), workspace.paths.items()):
+		for fileid, pathManager in filter(lambda x: x[1].goldFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
 			workspace.alignments(fileid, force=config.force)
 
 
@@ -219,7 +219,7 @@ def do_tokenize(workspace: Workspace, config):
 	if config.fileid:
 		workspace.tokens(config.fileid, config.k, config.dehyphenate, force=config.force)
 	elif config.all:
-		for fileid, pathManager in filter(lambda x: x[1].originalFile.is_file(), workspace.paths.items()):
+		for fileid, pathManager in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
 			workspace.tokens(fileid, config.k, config.dehyphenate, force=config.force)
 
 

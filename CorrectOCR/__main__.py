@@ -102,6 +102,7 @@ alignparser = subparsers.add_parser('align', parents=[commonparser], help='Creat
 group = alignparser.add_mutually_exclusive_group(required=True)
 group.add_argument('--fileid', help='Input file ID (filename without path or extension)')
 group.add_argument('--all', action='store_true', help='Align all pairs in original/gold paths')
+alignparser.add_argument('--exclude', action='append', default=[], help='File ID to exclude (can be specified multiple times)')
 alignparser.set_defaults(func=commands.do_align, **configuration)
 
 modelparser = subparsers.add_parser('build_model', parents=[commonparser], help='Build model')
@@ -112,6 +113,7 @@ tokenizerparser = subparsers.add_parser('tokenize', parents=[commonparser], help
 group = tokenizerparser.add_mutually_exclusive_group(required=True)
 group.add_argument('--fileid', help='Input file ID (filename without path or extension)')
 group.add_argument('--all', action='store_true', help='Tokenize all files in original/gold paths')
+tokenizerparser.add_argument('--exclude', action='append', default=[], help='File ID to exclude (can be specified multiple times)')
 tokenizerparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation')
 tokenizerparser.set_defaults(func=commands.do_tokenize, **configuration)
 
