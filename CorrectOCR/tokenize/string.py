@@ -22,6 +22,9 @@ class StringToken(Token):
 Token.register(StringToken)
 
 
+##########################################################################################
+
+
 class StringTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.StringTokenizer')
 

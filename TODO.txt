@@ -12,3 +12,6 @@ tokenizer:
 
 new build_pdf command:
 	--images 1,2,3 --pdfname
+
+hocr:
+	improve segmentation/columnization

@@ -54,6 +54,8 @@ config.optionxform = lambda option: option
 config.read_string(defaults)
 config.read(['CorrectOCR.ini'], encoding='utf-8')
 
+##########################################################################################
+
 workspaceparser = argparse.ArgumentParser()
 workspaceparser.add_argument('--originalPath', metavar='PATH', type=Path, help='Path to directory of original, uncorrected files')
 workspaceparser.add_argument('--goldPath', metavar='PATH', type=Path, help='Path to directory of known correct "gold" files')
@@ -80,6 +82,8 @@ resourceparser.set_defaults(**dict(config.items('resources')))
 
 configuration = dict(config.items('configuration'))
 #print(configuration)
+
+##########################################################################################
 
 rootparser = argparse.ArgumentParser(prog=progname, description='Correct OCR')
 
@@ -134,6 +138,8 @@ group2.add_argument('--apply', help='Apply externally corrected token CSV to ori
 correctparser.set_defaults(func=commands.do_correct, **configuration)
 
 args = rootparser.parse_args(args)
+
+##########################################################################################
 
 logging.basicConfig(
 	stream=sys.stdout,

@@ -186,6 +186,9 @@ class HMM(object):
 		return variant_words
 
 
+##########################################################################################
+
+
 class HMMBuilder(object):
 	log = logging.getLogger(f'{__name__}.HMMBuilder')
 

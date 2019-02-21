@@ -48,6 +48,24 @@ class HOCRToken(Token):
 Token.register(HOCRToken)
 
 
+##########################################################################################
+
+
+class PDFColumn(object):
+	log = logging.getLogger(f'{__name__}.PDFColumn')
+
+	def __init__(self, name, image, index, rect, hocr, tokens):
+		self.name = name
+		self.image = image
+		self.index = index
+		self.rect = rect
+		self.hocr = hocr
+		self.tokens = tokens
+
+
+##########################################################################################
+
+
 def local_maximum(thresh, section):
 	(left, right) = section
 	(height, width) = thresh.shape
@@ -111,18 +129,6 @@ def columnize(image, columncount):
 		yield (left, 0, right-left, height)
 
 
-class PDFColumn(object):
-	log = logging.getLogger(f'{__name__}.PDFColumn')
-
-	def __init__(self, name, image, index, rect, hocr, tokens):
-		self.name = name
-		self.image = image
-		self.index = index
-		self.rect = rect
-		self.hocr = hocr
-		self.tokens = tokens
-
-
 def tokenize_image(name, image, language='Eng', force=False):
 	log = logging.getLogger(f'{__name__}.tokenize_image')
 
@@ -157,6 +163,9 @@ def tokenize_image(name, image, language='Eng', force=False):
 				))
 
 	return columns
+
+
+##########################################################################################
 
 
 class HOCRTokenizer(Tokenizer):

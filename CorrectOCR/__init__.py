@@ -41,6 +41,9 @@ def extract_text_from_pdf(filename: str):
 	return text
 
 
+##########################################################################################
+
+
 class CorpusFile(object):
 	log = logging.getLogger(f'{__name__}.CorpusFile')
 
@@ -66,6 +69,9 @@ class CorpusFile(object):
 
 	def is_file(self):
 		return self.path.is_file()
+
+
+##########################################################################################
 
 
 class FileAccess(object):

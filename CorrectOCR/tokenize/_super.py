@@ -32,6 +32,9 @@ def dehyphenate_tokens(tokens: List['Token']) -> List['Token']:
 	return dehyphenated
 
 
+##########################################################################################
+
+
 class Token(abc.ABC):
 	subclasses = dict()
 
@@ -171,6 +174,9 @@ class Token(abc.ABC):
 			self.gold = d.get('Gold', None)
 			self._kbest = kbest
 			#self.__class__.log.debug(self)
+
+
+##########################################################################################
 
 
 class Tokenizer(abc.ABC):

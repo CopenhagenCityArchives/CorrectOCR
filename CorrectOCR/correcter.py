@@ -72,6 +72,9 @@ class Correcter(object):
 		return tokens
 
 
+##########################################################################################
+
+
 class CorrectionShell(cmd.Cmd):
 	log = logging.getLogger(f'{__name__}.CorrectionShell')
 	prompt = 'CorrectOCR> '
