@@ -118,7 +118,7 @@ class CorrectionShell(cmd.Cmd):
 				print(f'\nSELECT for {self.token.original} :\n')
 				for k, (candidate, probability) in self.token.kbest():
 					inDict = ' * is in dictionary' if k in self.selection else ''
-					print(f'\t{k}. {candidate} ({probability}){inDict}\n')
+					print(f'\t{k}. {candidate} ({probability:.2e}){inDict}\n')
 				
 				self.prompt = f"CorrectOCR {self.metrics['tokenCount']}/{self.metrics['tokenTotal']} ({self.metrics['humanCount']}) > "
 			else:
