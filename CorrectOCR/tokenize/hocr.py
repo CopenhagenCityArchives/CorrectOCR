@@ -164,7 +164,7 @@ class HOCRTokenizer(Tokenizer):
 
 	def tokenize(self, file, force=False):
 		if file.suffix in {'.tiff', '.png'}:
-			columns = tokenize_image(file, cv2.imread(str(file)), self.language.alpha_3)
+			columns = tokenize_image(file, Image.open(str(file)), self.language.alpha_3)
 		elif file.suffix == '.pdf':
 			doc = fitz.open(str(file))
 			columns = []
