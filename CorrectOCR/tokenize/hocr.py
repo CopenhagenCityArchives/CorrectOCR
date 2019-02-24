@@ -15,7 +15,7 @@ from PIL import Image
 from lxml import html
 
 from ._super import Token, Tokenizer, TokenSegment
-from .. import FileAccess
+from ..fileio import FileIO
 
 
 @contextmanager
@@ -177,7 +177,7 @@ class HOCRTokenizer(Tokenizer):
 		cachefile = Path('__hocrcache__/').joinpath(f'{file.stem}.cache.json')
 
 		if cachefile.is_file():
-			columns = FileAccess.load(cachefile, FileAccess.JSON)
+			columns = FileIO.load(cachefile)
 		else:
 			if file.suffix in {'.tiff', '.png'}:
 				for page, index, rect, image, hocr, tokens in tokenize_image(file.stem, 0, Image.open(str(file)), self.language.alpha_3):
@@ -218,7 +218,7 @@ class HOCRTokenizer(Tokenizer):
 				HOCRTokenizer.log.error(f'Cannot handle {file}')
 				raise SystemExit(-1)
 
-		FileAccess.save(columns, cachefile, FileAccess.JSON)
+		FileIO.save(columns, cachefile)
 
 		all_tokens = [t for c in columns for t in c.tokens]
 

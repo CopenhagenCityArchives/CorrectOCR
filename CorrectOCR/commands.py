@@ -6,18 +6,32 @@ import zipfile
 from pathlib import Path
 from typing import List, Set
 
+import fitz
 import requests
 from lxml import etree
 from tei_reader import TeiReader
 
-from . import open_for_reading, extract_text_from_pdf, FileAccess
 from .correcter import Correcter, CorrectionShell
+from .fileio import open_for_reading, FileIO
 from .model import HMMBuilder
 from .tokenize import tokenize_str, Token, Tokenizer
 from .workspace import Workspace
 
 
 ##########################################################################################
+
+
+def extract_text_from_pdf(filename: str):
+	doc = fitz.open(filename)
+
+	text = ''
+
+	for p in range(0, doc.pageCount):
+		page = doc.loadPage(p)
+
+		text += page.getText()
+
+	return text
 
 
 def build_dictionary(workspace: Workspace, config):
@@ -54,7 +68,7 @@ def build_dictionary(workspace: Workspace, config):
 						log.info(f'File already copied: {file.name}')
 						continue
 					log.info(f'Copying {file.name} to corpus.')
-					FileAccess.copy(file, outfile)
+					FileIO.copy(file, outfile)
 
 	def unzip_recursive(_zip):
 		for member in _zip.namelist():
@@ -236,10 +250,10 @@ def do_heuristics(workspace: Workspace, config):
 				workspace.resources.heuristics.add_to_report(t)
 
 		log.info(f'Saving report to {workspace.resources.reportFile}')
-		FileAccess.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
+		FileIO.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
 	elif config.make_settings:
 		log.info(f'Reading report from {workspace.resources.reportFile.name}')
-		bins = [ln for ln in FileAccess.load(workspace.resources.reportFile).split('\n') if "BIN" in ln]
+		bins = [ln for ln in FileIO.load(workspace.resources.reportFile).split('\n') if "BIN" in ln]
 	
 		log.info(f'Saving settings to {workspace.resources.heuristicSettingsFile.name}')
 		for b in bins:
@@ -275,7 +289,7 @@ def do_correct(workspace: Workspace, config):
 
 	path = workspace.paths[fileid].binnedTokenFile
 	rows = [t.as_dict() for t in binned_tokens]
-	FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.BINNEDHEADER)
+	FileIO.save(rows, path)
 
 	if config.bin_only:
 		return
@@ -299,7 +313,7 @@ def do_correct(workspace: Workspace, config):
 			log.error(f'Unable to apply non-file path {config.apply}')
 			raise SystemExit(-1)
 		metrics = None
-		corrected = [Token.from_dict(row) for row in FileAccess.load(config.apply, FileAccess.CSV)]
+		corrected = [Token.from_dict(row) for row in FileIO.load(config.apply)]
 
 	if len(corrected) != len(binned_tokens):
 		log.error(f'The corrected tokens had different length ({len(corrected)}) from the original ({len(binned_tokens)})!')

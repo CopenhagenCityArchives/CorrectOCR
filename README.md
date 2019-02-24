@@ -24,7 +24,7 @@ Usage of CorrectOCR is divided into several successive tasks.
 
 To train the software, one must first create or obtain set of matching original uncorrected files with corresponding known-correct "gold" files. Additionally, a dictionary of the target language is needed.
 
-The pairs (original, gold) files are then used to create _k_ replacement candidates for each token (word) in a new given file. A number of heuristic decisions are configured based on whether a given token is found in the dictionary, are the candidates preferable to the original, etc. Finally, a CLI can be used by the annotator to select among the candidates, and a new corrected file is generated.
+The pairs of (original, gold) files are then used to create _k_ replacement candidates for each token (word) in a new given file. A number of heuristic decisions are configured based on whether a given token is found in the dictionary, are the candidates preferable to the original, etc. Finally, a CLI can be used by the annotator to select among the candidates, and a new corrected file is generated.
 
 When a corrected file is satisfactory, it can be moved or copied to the gold directory and in turn be used to tune the HMM further, thus improving the _k_-best candidates for subsequent files.
 
@@ -72,7 +72,7 @@ Commands
 
 Commands and their arguments are called directly on the module, like so:
 
-	`python -m CorrectOCR [command] [args...]`.
+	python -m CorrectOCR [command] [args...]
 
 The following commands are available:
 

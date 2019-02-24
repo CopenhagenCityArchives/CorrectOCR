@@ -4,8 +4,9 @@ import re
 from collections import defaultdict, Counter
 from typing import DefaultDict, Dict, List, Tuple
 
-from . import punctuationRE, FileAccess
+from . import punctuationRE
 from .dictionary import Dictionary
+from .fileio import FileIO
 
 
 class HMM(object):
@@ -50,7 +51,7 @@ class HMM(object):
 
 		if self.path:
 			HMM.log.info(f'Loading HMM parameters from {path}')
-			(self.init, self.tran, self.emis) = FileAccess.load(path, FileAccess.JSON)
+			(self.init, self.tran, self.emis) = FileIO.load(path)
 		else:
 			(self.init, self.tran, self.emis) = (None, None, None)
 
@@ -74,7 +75,7 @@ class HMM(object):
 	def save(self, path=None):
 		path = path or self.path
 		HMM.log.info(f'Saving HMM parameters to {path}')
-		FileAccess.save([self.init, self.tran, self.emis], path, FileAccess.JSON)
+		FileIO.save([self.init, self.tran, self.emis], path)
 
 	def parameter_check(self):
 		all_match = True

@@ -3,9 +3,9 @@ from pathlib import Path
 from pprint import pformat
 from typing import Dict, Iterator, List, Tuple
 
-from . import FileAccess, CorpusFile
 from .aligner import Aligner
 from .dictionary import Dictionary
+from .fileio import FileIO
 from .heuristics import Heuristics
 from .model import HMM
 from .tokenize import Token, Tokenizer, tokenize_str, dehyphenate_tokens
@@ -19,7 +19,7 @@ class Workspace(object):
 		self.nheaderlines: int = workspaceconfig.nheaderlines
 		self.language = workspaceconfig.language
 		self.resources = ResourceManager(resourceconfig)
-		self.paths: Dict[str, 'PathManager'] = dict()
+		self.paths: Dict[str, PathManager] = dict()
 		self._originalPath = workspaceconfig.originalPath
 		self._goldPath = workspaceconfig.goldPath
 		self._trainingPath = workspaceconfig.trainingPath
@@ -32,7 +32,7 @@ class Workspace(object):
 
 	def add_new_path(self, fileid, ext, new_original: Path = None):
 		if new_original:
-			FileAccess.copy(new_original, self._originalPath)
+			FileIO.copy(new_original, self._originalPath)
 		self.paths[fileid] = PathManager(
 			fileid,
 			ext,
@@ -47,13 +47,13 @@ class Workspace(object):
 		for fileid, pathManager in self.paths.items():
 			if pathManager.originalTokenFile.is_file():
 				Workspace.log.debug(f'Getting original tokens from {fileid}')
-				yield fileid, [Token.from_dict(row) for row in FileAccess.load(pathManager.originalTokenFile, FileAccess.CSV)]
+				yield fileid, [Token.from_dict(row) for row in FileIO.load(pathManager.originalTokenFile)]
 
 	def goldTokens(self) -> Iterator[Tuple[str, List[Token]]]:
 		for fileid, pathManager in self.paths.items():
 			if pathManager.goldTokenFile.is_file():
 				Workspace.log.debug(f'Getting gold tokens from {fileid}')
-				yield fileid, [Token.from_dict(row) for row in FileAccess.load(pathManager.goldTokenFile, FileAccess.CSV)]
+				yield fileid, [Token.from_dict(row) for row in FileIO.load(pathManager.goldTokenFile)]
 
 	def alignments(self, fileid: str, force=False) -> Tuple[list, dict, list]:
 		faPath = self.paths[fileid].fullAlignmentsFile
@@ -64,9 +64,9 @@ class Workspace(object):
 			# presume correctness, user may clean the files to rerun
 			Workspace.log.info(f'Alignment files for {fileid} exist, will read and return. Use --force or clean files to rerun a subset.')
 			return (
-				FileAccess.load(faPath, FileAccess.JSON),
-				{o: {int(k): v for k,v in i.items()} for o, i in FileAccess.load(waPath, FileAccess.JSON).items()},
-				FileAccess.load(mcPath, FileAccess.JSON)
+				FileIO.load(faPath),
+				{o: {int(k): v for k,v in i.items()} for o, i in FileIO.load(waPath).items()},
+				FileIO.load(mcPath)
 			)
 		Workspace.log.info(f'Creating alignment files for {fileid}')
 		
@@ -75,11 +75,11 @@ class Workspace(object):
 			tokenize_str(self.paths[fileid].goldFile.body, self.language.name)
 		)
 		
-		FileAccess.save(fullAlignments, faPath, FileAccess.JSON)
-		FileAccess.save(wordAlignments, waPath, FileAccess.JSON)
-		FileAccess.save(misreadCounts, mcPath, FileAccess.JSON)
-		
-		Workspace.log.debug(wordAlignments)
+		FileIO.save(fullAlignments, faPath)
+		FileIO.save(wordAlignments, waPath)
+		FileIO.save(misreadCounts, mcPath)
+
+		#Workspace.log.debug(f'wordAlignments: {wordAlignments}')
 		
 		return fullAlignments, wordAlignments, misreadCounts
 
@@ -88,7 +88,7 @@ class Workspace(object):
 
 		if not force and tokenFilePath.is_file():
 			Workspace.log.info(f'{tokenFilePath} exists and will be returned as Token objects. Use --force or delete it to rerun.')
-			return [Token.from_dict(row) for row in FileAccess.load(tokenFilePath, FileAccess.CSV)]
+			return [Token.from_dict(row) for row in FileIO.load(tokenFilePath)]
 		Workspace.log.info(f'Creating token files for {fileid}')
 	
 		# Load previously done tokens if any
@@ -104,7 +104,7 @@ class Workspace(object):
 		else:
 			wordAlignments = dict()
 
-		Workspace.log.debug(f'wordAlignments: {wordAlignments}')
+		#Workspace.log.debug(f'wordAlignments: {wordAlignments}')
 
 		tokenizer = Tokenizer.for_extension(self.paths[fileid].ext)(
 			self.resources.dictionary,
@@ -126,14 +126,65 @@ class Workspace(object):
 
 		path = self.paths[fileid].originalTokenFile
 		Workspace.log.info(f'Writing tokens to {path}')
-		FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.TOKENHEADER)
+		FileIO.save(rows, path)
 
 		if len(wordAlignments) > 0:
 			path = self.paths[fileid].goldTokenFile
 			Workspace.log.info(f'Writing gold tokens to {path}')
-			FileAccess.save(rows, path, FileAccess.CSV, header=FileAccess.GOLDHEADER)
+			FileIO.save(rows, path)
 		
 		return tokens
+
+
+##########################################################################################
+
+
+class CorpusFile(object):
+	log = logging.getLogger(f'{__name__}.CorpusFile')
+
+	def __init__(self, path, nheaderlines=0):
+		self.path = path
+		self.nheaderlines = nheaderlines
+		if self.path.is_file():
+			lines = FileIO.load(self.path).split('\n')
+			(self.header, self.body) = (
+				str.join('', lines[:self.nheaderlines-1]),
+				str.join('', lines[nheaderlines:])
+			)
+		else:
+			(self.header, self.body) = ('', '')
+
+	def save(self):
+		if not self.header or self.header.strip() == '':
+			self.header = ''
+		elif self.header[-1] != '\n':
+			self.header += '\n'
+		CorpusFile.log.info(f'Saving file to {self.path}')
+		FileIO.save(self.header + self.body, self.path)
+
+	def is_file(self):
+		return self.path.is_file()
+
+
+##########################################################################################
+
+
+class JSONResource(dict):
+	log = logging.getLogger(f'{__name__}.JSONResource')
+
+	def __init__(self, path, **kwargs):
+		super().__init__(**kwargs)
+		JSONResource.log.info(f'Loading {path}')
+		self._path = path
+		data = FileIO.load(self._path, default=dict())
+		if data:
+			self.update(data)
+	
+	def save(self):
+		FileIO.save(self, self._path)
+
+	def __repr__(self):
+		return f'<JSONResource {self._path}: {dict(self)}>'
 
 
 ##########################################################################################
@@ -150,12 +201,12 @@ class PathManager(object):
 			self.originalFile = original.joinpath(f'{fileid}{ext}')
 			self.goldFile = gold.joinpath(f'{fileid}{ext}')
 			self.correctedFile = corrected.joinpath(f'{fileid}{ext}')
-		self.originalTokenFile = training.joinpath(f'{fileid}_tokens.csv')
-		self.goldTokenFile = training.joinpath(f'{fileid}_goldTokens.csv')
-		self.binnedTokenFile = training.joinpath(f'{fileid}_binnedTokens.csv')
-		self.fullAlignmentsFile = training.joinpath(f'{fileid}_fullAlignments.json')
-		self.wordAlignmentsFile = training.joinpath(f'{fileid}_wordAlignments.json')
-		self.misreadCountsFile = training.joinpath(f'{fileid}_misreadCounts.json')
+		self.originalTokenFile = training.joinpath(f'{fileid}.tokens.csv')
+		self.goldTokenFile = training.joinpath(f'{fileid}.goldTokens.csv')
+		self.binnedTokenFile = training.joinpath(f'{fileid}.binnedTokens.csv')
+		self.fullAlignmentsFile = training.joinpath(f'{fileid}.fullAlignments.json')
+		self.wordAlignmentsFile = training.joinpath(f'{fileid}.wordAlignments.json')
+		self.misreadCountsFile = training.joinpath(f'{fileid}.misreadCounts.json')
 
 
 ##########################################################################################
@@ -173,21 +224,3 @@ class ResourceManager(object):
 		self.hmm = HMM(config.hmmParamsFile, self.multiCharacterError)
 		self.reportFile = config.reportFile
 		self.heuristics = Heuristics(JSONResource(config.heuristicSettingsFile), self.dictionary)
-
-
-class JSONResource(dict):
-	log = logging.getLogger(f'{__name__}.JSONResource')
-
-	def __init__(self, path, **kwargs):
-		super().__init__(**kwargs)
-		JSONResource.log.info(f'Loading {path}')
-		self._path = path
-		data = FileAccess.load(self._path, FileAccess.JSON, default=dict())
-		if data:
-			self.update(data)
-	
-	def save(self):
-		FileAccess.save(self, self._path, kind=FileAccess.JSON)
-
-	def __repr__(self):
-		return f'<JSONResource {self._path}: {dict(self)}>'
