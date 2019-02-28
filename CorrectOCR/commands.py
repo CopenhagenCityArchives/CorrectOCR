@@ -267,14 +267,6 @@ def do_heuristics(workspace: Workspace, config):
 
 def do_correct(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_correct')
-	
-	correcter = Correcter(
-		workspace.resources.dictionary,
-		workspace.resources.heuristics,
-		workspace.resources.memoizedCorrections,
-		workspace.resources.dictionary.caseInsensitive,
-		config.k
-	)
 
 	if config.filePath:
 		fileid = config.filePath.stem
@@ -284,49 +276,55 @@ def do_correct(workspace: Workspace, config):
 		workspace.add_new_path(fileid, config.filePath.suffix, new_original=config.filePath)
 	else:
 		fileid = config.fileid
-
-	binned_tokens = correcter.bin_tokens(workspace.tokens(fileid))
-
-	path = workspace.paths[fileid].binnedTokenFile
-	rows = [t.as_dict() for t in binned_tokens]
-	FileIO.save(rows, path)
-
-	if config.bin_only:
-		return
-
+	
 	log.info(f'Correcting {fileid}')
 
-	# get header, if any
-	#header = workspace.paths[fileid].correctedFile.header
+	if not config.apply:
+		correcter = Correcter(
+			workspace.resources.dictionary,
+			workspace.resources.heuristics,
+			workspace.resources.memoizedCorrections,
+			workspace.resources.dictionary.caseInsensitive,
+			config.k
+		)
 
-	# print info to annotator
-	#log.info(f'header: {header}')
-	log.info(f'{fileid} contains about {len(binned_tokens)} words')
+		binned_tokens = correcter.bin_tokens(workspace.tokens(fileid))
+
+		path = workspace.paths[fileid].binnedTokenFile
+		log.info(f'Saving binned tokens to {path}')
+		rows = [t.as_dict() for t in binned_tokens]
+		FileIO.save(rows, path)
+
+		if config.bin_only:
+			return
+
+		# Ok, we must be interactive...
+
+		# get header, if any
+		#header = workspace.paths[fileid].correctedFile.header
+		# print info to annotator
+		#log.info(f'header: {header}')
+
+		log.info(f'{fileid} contains about {len(binned_tokens)} words')
 	
-	if config.interactive:
 		metrics = CorrectionShell.start(binned_tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
 		corrected = binned_tokens
 		log.debug(metrics['newWords'])
 		log.debug(metrics['correctionTracking'])
-	else: # config.apply is set since the options are exclusive and required
+
+		if metrics:
+			log.info(f'Saving metrics.')
+			for key, count in sorted(metrics['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
+				(original, gold) = key.split('\t')
+				workspace.resources.memoizedCorrections[original] = gold
+				workspace.resources.correctionTracking[f'{original}\t{gold}'] = count
+			workspace.resources.correctionTracking.save()
+			workspace.resources.memoizedCorrections.save()
+	else:
 		if not config.apply.is_file():
 			log.error(f'Unable to apply non-file path {config.apply}')
 			raise SystemExit(-1)
-		metrics = None
 		corrected = [Token.from_dict(row) for row in FileIO.load(config.apply)]
-
-	if len(corrected) != len(binned_tokens):
-		log.error(f'The corrected tokens had different length ({len(corrected)}) from the original ({len(binned_tokens)})!')
-		raise SystemExit(-1)
-
-	if metrics:
-		log.info(f'Saving metrics.')
-		for key, count in sorted(metrics['correctionTracking'].items(), key=lambda x: x[1], reverse=True):
-			(original, gold) = key.split('\t')
-			workspace.resources.memoizedCorrections[original] = gold
-			workspace.resources.correctionTracking[f'{original}\t{gold}'] = count
-		workspace.resources.correctionTracking.save()
-		workspace.resources.memoizedCorrections.save()
 
 	log.info(f'Applying corrections to {fileid}')
 	Tokenizer.for_extension(workspace.paths[fileid].ext).apply(

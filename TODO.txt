@@ -15,3 +15,6 @@ new build_pdf command:
 
 hocr:
 	improve segmentation/columnization
+
+all:
+	organize caches

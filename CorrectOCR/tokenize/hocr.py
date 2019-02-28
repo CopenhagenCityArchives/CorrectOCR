@@ -3,7 +3,6 @@ import logging
 import re
 from contextlib import contextmanager
 from functools import partial
-from io import BytesIO
 from pathlib import Path
 from typing import List
 
@@ -59,9 +58,9 @@ class HOCRToken(Token):
 		# example: title='bbox 77 204 93 234; x_wconf 95'
 		m = HOCRToken.bbox.search(self._element.attrib['title'])
 		if m:
-			return tuple(map(int, list(m.group(1, 2, 3, 4))))
+			return fitz.Rect(map(float, list(m.group(1, 2, 3, 4))))
 		else:
-			return (0, 0, 0, 0)
+			return fitz.Rect(0.0, 0.0, 0.0, 0.0)
 
 Token.register(HOCRToken)
 
@@ -179,44 +178,16 @@ class HOCRTokenizer(Tokenizer):
 		if cachefile.is_file():
 			columns = FileIO.load(cachefile)
 		else:
-			if file.suffix in {'.tiff', '.png'}:
-				for page, index, rect, image, hocr, tokens in tokenize_image(file.stem, 0, Image.open(str(file)), self.language.alpha_3):
-					columns.append(TokenSegment(
-						file.stem,
-						page,
-						index,
-						rect,
-						image,
-						hocr,
-						tokens
-					))
-			elif file.suffix == '.pdf':
-				doc = fitz.open(str(file))
-				for pageno in range(1, len(doc)):
-					HOCRTokenizer.log.info(f'Extracting images from page {pageno}')
-					for image_info in doc.getPageImageList(pageno):
-						# [xref, smask, width, height, bpc, colorspace, alt. colorspace, name, filter]
-						HOCRTokenizer.log.debug(f'Image info: {image_info}')
-						if image_info[1] != 0:
-							HOCRTokenizer.log.error('Cannot handle images with smasks')
-							raise SystemExit(-1)
-						image = doc.extractImage(image_info[0])
-						# https://pymupdf.readthedocs.io/en/latest/functions/#Document.extractImage
-						HOCRTokenizer.log.debug(f'Image format: {image["ext"]}')
-						img = Image.open(BytesIO(image['image']))
-						for page, index, rect, image, hocr, tokens in tokenize_image(file.stem, pageno, img, self.language.alpha_3):
-							columns.append(TokenSegment(
-								file.stem,
-								page,
-								index,
-								rect,
-								image,
-								hocr,
-								tokens
-							))
-			else:
-				HOCRTokenizer.log.error(f'Cannot handle {file}')
-				raise SystemExit(-1)
+			for page, index, rect, image, hocr, tokens in tokenize_image(file.stem, 0, Image.open(str(file)), self.language.alpha_3):
+				columns.append(TokenSegment(
+					file.stem,
+					page,
+					index,
+					rect,
+					image,
+					hocr,
+					tokens
+				))
 
 		FileIO.save(columns, cachefile)
 
@@ -227,23 +198,31 @@ class HOCRTokenizer(Tokenizer):
 		return self.generate_kbest(all_tokens)
 
 	def apply(original, tokens: List[HOCRToken], corrected):
-		if original.suffix == '.pdf':
-			doc = fitz.open(str(original))
-		else:
-			doc = fitz.open()
-			pix = fitz.Pixmap(str(original))
-			page = doc.newPage(-1, width=pix.width, height=pix.height)
-			page.insertImage(page.rect, pixmap = pix)
+		pdf = fitz.open()
+		pix = fitz.Pixmap(str(original))
+		page = pdf.newPage(-1, width=pix.width, height=pix.height)
+		page.insertImage(page.rect, pixmap = pix)
 
 		for token in progressbar.progressbar(tokens):
-			(x0, y0, x1, y1) = token.rect()
-			HOCRTokenizer.log.debug(f'{token.gold or token.original} -- rect: {x0}, {y0}, {x1}, {y1}')
-			rect = fitz.Rect(x0, y0, x1, y1)
-			center = fitz.Point((x1-x0)/2,(y1-y0)/2)
-			scale = fitz.Matrix(0.5, 0.5)
-			doc[token.page].insertTextbox(rect, token.gold or token.original, morph=(center, scale))
+			page = pdf[token.page]
+			word = token.gold or token.original
+			# Adjust rectangle to fit word:
+			fontfactor = 0.70
+			size = token.rect.height * fontfactor
+			textwidth = fitz.getTextlength(word, fontsize=size)
+			rect = fitz.Rect(token.rect.x0, token.rect.y0, max(token.rect.x1, token.rect.x0+textwidth+1.0), token.rect.y1 + token.rect.height*2)
+			res = page.insertTextbox(rect, f'{word} ', fontsize=size, color=(1,0,0))
+			if res < 0:
+				HOCRTokenizer.log.warning(
+					f'Token was not inserted properly: {word}\n'
+					f' -- token.rect: {token.rect}\n'
+					f' -- rect: {rect}\n'
+					f' -- font size: {size}\n'
+					f' -- calc.width: {textwidth} rect.width: {rect.width}\n'
+					f' -- rect.height: {rect.height} result: {res}\n'
+				)
 
-		doc.save(str(corrected.parent.joinpath(corrected.stem + '.pdf')))
+		pdf.save(str(corrected.parent.joinpath(corrected.stem + '.pdf')))
 
 
-Tokenizer.register(HOCRTokenizer, ['.pdf', '.tiff', '.png'])
+Tokenizer.register(HOCRTokenizer, ['.tiff', '.png'])

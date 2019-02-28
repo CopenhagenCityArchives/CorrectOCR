@@ -90,7 +90,7 @@ class Heuristics(object):
 			dcode = 'allkd'
 
 		for num, _bin in self.bins.items():
-			if _bin['matcher'](token.original, token.kbest(1)[0], self.dictionary, dcode):
+			if _bin['matcher'](punctuationRE.sub('', token.original), token.kbest(1)[0], self.dictionary, dcode):
 				return _bin['heuristic'], dict(_bin)
 
 		Heuristics.log.critical(f'Unable to make decision for token: {token}')

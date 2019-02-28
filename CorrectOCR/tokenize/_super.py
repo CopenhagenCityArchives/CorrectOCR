@@ -9,6 +9,8 @@ import regex
 from PIL import Image
 from lxml import html
 
+from .. import punctuationRE
+
 
 def tokenize_str(data: str, language='English') -> List[str]:
 	return nltk.tokenize.word_tokenize(data, language)
@@ -151,7 +153,7 @@ class Token(abc.ABC):
 	@classmethod
 	def from_dict(cls, d: dict) -> 'Token':
 		classname = d['Token type']
-		Token.subclasses[classname].log.debug(f'{d}')
+		#Token.subclasses[classname].log.debug(f'{d}')
 		t = Token.subclasses[classname](json.loads(d['Token info']))
 		t.update(d=d)
 		return t
@@ -222,16 +224,17 @@ class Tokenizer(abc.ABC):
 
 		Tokenizer.log.info(f'Generating {self.k}-best suggestions for each token')
 		for i, token in enumerate(progressbar.progressbar(tokens)):
-			if token.original in self.previousTokens:
-				token.update(other=self.previousTokens[token.original])
+			original = punctuationRE.sub('', token.original)
+			if original in self.previousTokens:
+				token.update(other=self.previousTokens[original])
 			else:
-				token.update(kbest=self.hmm.kbest_for_word(token.original, self.k, self.dictionary))
-			if not token.gold and token.original in self.wordAlignments:
-				wa = self.wordAlignments.get(token.original, dict())
+				token.update(kbest=self.hmm.kbest_for_word(original, self.k, self.dictionary))
+			if not token.gold and original in self.wordAlignments:
+				wa = self.wordAlignments.get(original, dict())
 				closest = sorted(wa.items(), key=lambda x: x[0], reverse=True)
 				#Tokenizer.log.debug(f'{i} {token.original} {closest}')
 				token.gold = closest[0][1]
-			self.previousTokens[token.original] = token
+			self.previousTokens[original] = token
 			#Tokenizer.log.debug(token.as_dict())
 
 		Tokenizer.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
