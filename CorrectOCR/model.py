@@ -2,9 +2,11 @@ import itertools
 import logging
 import re
 from collections import defaultdict, Counter
+from operator import attrgetter
 from typing import DefaultDict, Dict, List, Tuple
 
 from . import punctuationRE
+from .cache import PickledLRUCache, cachedmethod
 from .dictionary import Dictionary
 from .fileio import FileIO
 
@@ -43,10 +45,11 @@ class HMM(object):
 			for inner, e in d.items():
 				self._emis[outer][inner] = e
 
-	def __init__(self, path, multichars=None):
+	def __init__(self, path, multichars=None, dictionary: Dictionary = None):
 		if multichars is None:
 			multichars = {}
 		self.multichars = multichars
+		self.dictionary = dictionary
 		self.path = path
 
 		if self.path:
@@ -66,6 +69,8 @@ class HMM(object):
 		else:
 			HMM.log.debug(f'HMM initialized: {self}')
 
+		self.cache = PickledLRUCache.by_name(f'{__name__}.HMM')
+
 	def __str__(self):
 		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
 
@@ -76,6 +81,7 @@ class HMM(object):
 		path = path or self.path
 		HMM.log.info(f'Saving HMM parameters to {path}')
 		FileIO.save([self.init, self.tran, self.emis], path)
+		self.cache.delete() # redoing the model invalidates the cache
 
 	def parameter_check(self):
 		all_match = True
@@ -126,9 +132,8 @@ class HMM(object):
 			selected_states[t-1] = best_state
 
 		return ''.join(selected_states)
-	
+
 	def k_best_beam(self, word: str, k: int) -> List[Tuple[str, float]]:
-		#HMM.log.debug(f'word: {word}')
 		# Single symbol input is just initial * emission.
 		if len(word) == 1:
 			paths = [(i, self.init[i] * self.emis[i][word[0]])
@@ -152,9 +157,10 @@ class HMM(object):
 				#print(t, len(temp), temp[:5], len(paths), temp[:5])
 
 		return [(''.join(seq), prob) for seq, prob in paths[:k]]
-	
-	
-	def kbest_for_word(self, word: str, k: int, dictionary: Dictionary) -> List[Tuple[str, float]]:
+
+	@cachedmethod(attrgetter('cache'))
+	def kbest_for_word(self, word: str, k: int) -> List[Tuple[str, float]]:
+		#HMM.log.debug(f'kbest_for_word: {word}')
 		if len(word) == 0:
 			return [('', 0.0)] * k
 
@@ -163,7 +169,7 @@ class HMM(object):
 		# make substitutions and compare probabilties of results.
 		for sub in self.multichars:
 			# Only perform the substitution if none of the k-best candidates are present in the dictionary
-			if sub in word and all(punctuationRE.sub('', x[0]) not in dictionary for x in k_best):
+			if sub in word and all(punctuationRE.sub('', x[0]) not in self.dictionary for x in k_best):
 				variant_words = HMM.multichar_variants(word, sub, self.multichars[sub])
 				for v in variant_words:
 					if v != word:

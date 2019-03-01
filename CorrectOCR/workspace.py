@@ -221,6 +221,6 @@ class ResourceManager(object):
 		self.memoizedCorrections = JSONResource(config.memoizedCorrectionsFile)
 		self.multiCharacterError = JSONResource(config.multiCharacterErrorFile)
 		self.dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
-		self.hmm = HMM(config.hmmParamsFile, self.multiCharacterError)
+		self.hmm = HMM(config.hmmParamsFile, self.multiCharacterError, self.dictionary)
 		self.reportFile = config.reportFile
 		self.heuristics = Heuristics(JSONResource(config.heuristicSettingsFile), self.dictionary)

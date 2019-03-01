@@ -228,7 +228,7 @@ class Tokenizer(abc.ABC):
 			if original in self.previousTokens:
 				token.update(other=self.previousTokens[original])
 			else:
-				token.update(kbest=self.hmm.kbest_for_word(original, self.k, self.dictionary))
+				token.update(kbest=self.hmm.kbest_for_word(original, self.k))
 			if not token.gold and original in self.wordAlignments:
 				wa = self.wordAlignments.get(original, dict())
 				closest = sorted(wa.items(), key=lambda x: x[0], reverse=True)
