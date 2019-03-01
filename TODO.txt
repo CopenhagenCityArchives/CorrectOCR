@@ -1,4 +1,12 @@
+all:
+	organize all caching in __COCRcache__
+
+dictionary:
+	names, places
+	prefilter tokens to avoid needles k-bests?
+
 tokenizer:
+	punctuationME -- gold should have begin/end punctuation reapplied from original
 	dehyphenation: create containertoken to hold the partial tokens
 	squish abbreviations? something like below?
 	mwes = [
@@ -10,11 +18,6 @@ tokenizer:
 	mwe = nltk.tokenize.MWETokenizer(mwes, separator='.')
 	words = mwe.tokenize(words)
 
-new build_pdf command:
-	--images 1,2,3 --pdfname
-
 hocr:
 	improve segmentation/columnization
-
-all:
-	organize caches
+	--build_pdf --images 1,2,3 --pdfname etc
