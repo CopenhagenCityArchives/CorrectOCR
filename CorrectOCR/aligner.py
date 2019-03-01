@@ -57,9 +57,9 @@ class Aligner(object):
 		return [t for t in left if t not in remove], right
 
 	def alignments(self, originalTokens: List[str], goldTokens: List[str]):
-		self.fullAlignments = []
-		self.wordAlignments = collections.defaultdict(dict)
-		self.misreadCounts = collections.defaultdict(collections.Counter)
+		self.fullAlignments: List[List[str, str]] = []
+		self.wordAlignments: DefaultDict[str, Dict[int, str]] = collections.defaultdict(dict)
+		self.misreadCounts: DefaultDict[str, Counter[str]] = collections.defaultdict(collections.Counter)
 		
 		#nopunct = lambda t: not t.is_punctuation()
 		#
@@ -74,7 +74,7 @@ class Aligner(object):
 		
 		leftRest = []
 		rightRest = []
-		
+
 		for tag, i1, i2, j1, j2 in matcher.get_opcodes():
 			if tag == 'equal':
 				for token in a[i1:i2]:
