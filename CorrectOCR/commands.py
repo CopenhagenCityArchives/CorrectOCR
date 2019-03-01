@@ -216,7 +216,7 @@ def build_model(workspace: Workspace, config):
 	for fileid, tokens in workspace.goldTokens():
 		(_, _, counts) = workspace.alignments(fileid)
 		misreadCounts.update(counts)
-		gold_words.extend([t.original for t in tokens])
+		gold_words.extend([t.gold for t in tokens])
 
 	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, workspace.language, config.characterSet, misreadCounts, remove_chars, gold_words)
 

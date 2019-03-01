@@ -197,19 +197,20 @@ class HMMBuilder(object):
 		self.dictionary = dictionary
 		self.smoothingParameter = smoothingParameter
 		self.remove_chars = remove_chars
-		
+		self.charset = set(characterSet)
+
 		confusion = self.generate_confusion(misreadCounts)
 		char_counts = self.text_char_counts(gold_words)
 
-		charset = set(characterSet) | set(char_counts) | set(confusion)
+		self.charset = self.charset | set(char_counts) | set(confusion)
 
-		HMMBuilder.log.debug(sorted(charset))
+		HMMBuilder.log.debug(f'Charset: {sorted(self.charset)}')
 
 		# Create the emission probabilities from the misread counts and the character counts
-		self.emis = self.emission_probabilities(confusion, char_counts, extra_chars=charset)
+		self.emis = self.emission_probabilities(confusion, char_counts)
 
 		# Create the initial and transition probabilities from the gold files
-		self.init, self.tran = self.init_tran_probabilities(gold_words, language, extra_chars=charset)
+		self.init, self.tran = self.init_tran_probabilities(gold_words, language)
 
 	# Start with misread counts, remove any keys which are not single
 	# characters, remove specified characters, and combine into a single
@@ -254,6 +255,10 @@ class HMMBuilder(object):
 		for word in self.dictionary:
 			char_count.update(list(word))
 
+		for char in set(char_count.keys()):
+			if char not in self.charset:
+				del char_count[char]
+
 		for unwanted in self.remove_chars:
 			if unwanted in char_count:
 				del char_count[unwanted]
@@ -264,7 +269,7 @@ class HMMBuilder(object):
 	# counts. Optionally a file of expected characters can be used to add
 	# expected characters as model states whose emission probabilities are set to
 	# only output themselves.
-	def emission_probabilities(self, confusion, char_counts, extra_chars=None):
+	def emission_probabilities(self, confusion, char_counts):
 		# Add missing dictionary elements.
 		# Missing outer terms are ones which were always read correctly.
 		for char in char_counts:
@@ -287,7 +292,7 @@ class HMMBuilder(object):
 
 		# Add characters that are expected to occur in the texts.
 		# Get the characters which aren't already present.
-		extra_chars = extra_chars - set(self.remove_chars)
+		extra_chars = self.charset - set(self.remove_chars)
 
 		# Add them as new states.
 		for char in extra_chars:
@@ -307,7 +312,7 @@ class HMMBuilder(object):
 
 	# Create the initial and transition probabilities from the gold
 	# text in the training data.
-	def init_tran_probabilities(self, gold_words, language=None, extra_chars=None):
+	def init_tran_probabilities(self, gold_words, language=None):
 		tran = defaultdict(lambda: defaultdict(int))
 		init = defaultdict(int)
 
@@ -330,7 +335,7 @@ class HMMBuilder(object):
 			charset.update(set(tran[key].keys()))
 
 		# Add characters that are expected to occur in the texts.
-		charset.update(extra_chars)
+		charset.update(self.charset)
 
 		for unwanted in self.remove_chars:
 			if unwanted in charset:
@@ -343,12 +348,15 @@ class HMMBuilder(object):
 				if unwanted in tran[i]:
 					del tran[i][unwanted]
 
+		tran_out = defaultdict(lambda: defaultdict(float))
+		init_out = defaultdict(float)
+
 		# Add missing characters to the parameter dictionaries and apply smoothing.
 		init_denom = sum(init.values()) + (self.smoothingParameter * len(charset))
 		for i in charset:
-			init[i] = (init[i] + self.smoothingParameter) / init_denom
+			init_out[i] = (init[i] + self.smoothingParameter) / init_denom
 			tran_denom = sum(tran[i].values()) + (self.smoothingParameter * len(charset))
 			for j in charset:
-				tran[i][j] = (tran[i][j] + self.smoothingParameter) / tran_denom
+				tran_out[i][j] = (tran[i][j] + self.smoothingParameter) / tran_denom
 
-		return init, tran
+		return init_out, tran_out
