@@ -3,7 +3,6 @@ dictionary:
 
 tokenizer:
 	punctuationME -- gold should have begin/end punctuation reapplied from original
-	dehyphenation: create containertoken to hold the partial tokens
 	squish abbreviations? something like below?
 	mwes = [
 		('P', 'E'), # Politiets Efterretninger

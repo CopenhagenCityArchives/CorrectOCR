@@ -16,27 +16,6 @@ def tokenize_str(data: str, language='English') -> List[str]:
 	return nltk.tokenize.word_tokenize(data, language)
 
 
-def dehyphenate_tokens(tokens: List['Token']) -> List['Token']:
-	log = logging.getLogger(f'{__name__}.dehyphenate_tokens')
-	r = regex.compile(r'\p{Dash}$') # ends in char from 'Dash' category of Unicode
-
-	dehyphenated = []
-	tokens = iter(tokens)
-	for token in tokens:
-		if r.search(token.original):
-			newtoken = Token.from_dict({
-				'Original': token.original[:-1] + next(tokens).original,
-				'Token type': 'StringToken', # hmmm... :/
-				'Token info': '',
-			})
-			log.debug(f'Dehyphenated: {newtoken}')
-			dehyphenated.append(newtoken)
-		else:
-			dehyphenated.append(token)
-
-	return dehyphenated
-
-
 ##########################################################################################
 
 
@@ -255,3 +234,38 @@ class TokenSegment(object):
 		self.image = image
 		self.hocr = hocr
 		self.tokens = tokens
+
+
+##########################################################################################
+
+
+def dehyphenate_tokens(tokens: List[Token]) -> List[Token]:
+	log = logging.getLogger(f'{__name__}.dehyphenate_tokens')
+	r = regex.compile(r'\p{Dash}$') # ends in char from 'Dash' category of Unicode
+
+	dehyphenated = []
+	tokens = iter(tokens)
+	for token in tokens:
+		if r.search(token.original):
+			newtoken = DehyphenationToken(token, next(tokens))
+			log.debug(f'Dehyphenated: {newtoken}')
+			dehyphenated.append(newtoken)
+		else:
+			dehyphenated.append(token)
+
+	return dehyphenated
+
+
+class DehyphenationToken(Token):
+	def __init__(self, first: Token, second: Token):
+		self.first = first
+		self.second = second
+		super().__init__()
+
+	@property
+	def original(self):
+		return f'{self.first.original[:-1]}{self.second.original}'
+
+	@property
+	def token_info(self):
+		return {'first': self.first, 'second': self.second}
