@@ -210,7 +210,7 @@ class HMMBuilder(object):
 
 		self.charset = self.charset | set(char_counts) | set(confusion)
 
-		HMMBuilder.log.debug(f'Charset: {sorted(self.charset)}')
+		HMMBuilder.log.debug(f'Final characterSet: {sorted(self.charset)}')
 
 		# Create the emission probabilities from the misread counts and the character counts
 		self.emis = self.emission_probabilities(confusion, char_counts)
@@ -313,6 +313,14 @@ class HMMBuilder(object):
 		for char in extra_chars:
 			confusion[char][char] = 1.0
 
+		for outer in set(confusion.keys()):
+			if outer not in self.charset:
+				del confusion[outer]
+			else:
+				for inner in set(confusion[outer].keys()):
+					if inner not in self.charset:
+						del confusion[outer][inner]
+
 		#logging.getLogger(f'{__name__}.emission_probabilities').debug(confusion)
 		return confusion
 
@@ -335,17 +343,9 @@ class HMMBuilder(object):
 		for word in self.dictionary:
 			add_word(word)
 
-		# Create a set of all the characters that have been seen.
-		charset = set(tran.keys()) & set(init.keys())
-		for key in tran:
-			charset.update(set(tran[key].keys()))
-
-		# Add characters that are expected to occur in the texts.
-		charset.update(self.charset)
-
 		for unwanted in self.remove_chars:
-			if unwanted in charset:
-				charset.remove(unwanted)
+			if unwanted in self.charset:
+				self.charset.remove(unwanted)
 			if unwanted in init:
 				del init[unwanted]
 			if unwanted in tran:
@@ -358,11 +358,11 @@ class HMMBuilder(object):
 		init_out = defaultdict(float)
 
 		# Add missing characters to the parameter dictionaries and apply smoothing.
-		init_denom = sum(init.values()) + (self.smoothingParameter * len(charset))
-		for i in charset:
+		init_denom = sum(init.values()) + (self.smoothingParameter * len(self.charset))
+		for i in self.charset:
 			init_out[i] = (init[i] + self.smoothingParameter) / init_denom
-			tran_denom = sum(tran[i].values()) + (self.smoothingParameter * len(charset))
-			for j in charset:
+			tran_denom = sum(tran[i].values()) + (self.smoothingParameter * len(self.charset))
+			for j in self.charset:
 				tran_out[i][j] = (tran[i][j] + self.smoothingParameter) / tran_denom
 
 		return init_out, tran_out
