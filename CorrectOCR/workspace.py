@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from pprint import pformat
-from typing import Dict, Iterator, List, Tuple
+from typing import Dict, Iterator, List, Tuple, Union
 
 from .aligner import Aligner
 from .dictionary import Dictionary
@@ -194,13 +194,13 @@ class PathManager(object):
 	def __init__(self, fileid: str, ext: str, original: Path, gold: Path, training: Path, corrected: Path, nheaderlines: int = 0):
 		self.ext = ext
 		if self.ext == '.txt':
-			self.originalFile = CorpusFile(original.joinpath(f'{fileid}{ext}'), nheaderlines)
-			self.goldFile = CorpusFile(gold.joinpath(f'{fileid}{ext}'), nheaderlines)
-			self.correctedFile = CorpusFile(corrected.joinpath(f'{fileid}{ext}'), nheaderlines)
+			self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(f'{fileid}{ext}'), nheaderlines)
+			self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(f'{fileid}{ext}'), nheaderlines)
+			self.correctedFile: Union[CorpusFile, Path] = CorpusFile(corrected.joinpath(f'{fileid}{ext}'), nheaderlines)
 		else:
-			self.originalFile = original.joinpath(f'{fileid}{ext}')
-			self.goldFile = gold.joinpath(f'{fileid}{ext}')
-			self.correctedFile = corrected.joinpath(f'{fileid}{ext}')
+			self.originalFile: Union[CorpusFile, Path] = original.joinpath(f'{fileid}{ext}')
+			self.goldFile: Union[CorpusFile, Path] = gold.joinpath(f'{fileid}{ext}')
+			self.correctedFile: Union[CorpusFile, Path] = corrected.joinpath(f'{fileid}{ext}')
 		self.originalTokenFile = training.joinpath(f'{fileid}.tokens.csv')
 		self.goldTokenFile = training.joinpath(f'{fileid}.goldTokens.csv')
 		self.binnedTokenFile = training.joinpath(f'{fileid}.binnedTokens.csv')
