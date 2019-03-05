@@ -2,11 +2,10 @@ import itertools
 import logging
 import re
 from collections import defaultdict, Counter
-from operator import attrgetter
 from typing import DefaultDict, Dict, List, Tuple
 
 from . import punctuationRE
-from .cache import PickledLRUCache, cachedmethod
+from .cache import PickledLRUCache, cached
 from .dictionary import Dictionary
 from .fileio import FileIO
 
@@ -69,7 +68,7 @@ class HMM(object):
 		else:
 			HMM.log.debug(f'HMM initialized: {self}')
 
-		self.cache = PickledLRUCache.by_name(f'{__name__}.HMM')
+		self.cache = PickledLRUCache.by_name(f'{__name__}.HMM.kbest')
 
 	def __str__(self):
 		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
@@ -161,7 +160,7 @@ class HMM(object):
 
 		return [(''.join(seq), prob) for seq, prob in paths[:k]]
 
-	@cachedmethod(attrgetter('cache'))
+	@cached
 	def kbest_for_word(self, word: str, k: int) -> List[Tuple[str, float]]:
 		#HMM.log.debug(f'kbest_for_word: {word}')
 		if len(word) == 0:

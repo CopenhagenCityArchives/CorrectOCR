@@ -1,5 +1,6 @@
 import logging
 import weakref
+from operator import attrgetter
 from pathlib import Path
 
 from cachetools import LRUCache, cachedmethod
@@ -29,8 +30,12 @@ class PickledLRUCache(LRUCache):
 		self._finalize = weakref.finalize(self, PickledLRUCache.save, self)
 
 	def save(self):
+		# TODO check if there is anything to save?
 		PickledLRUCache.log.info(f'Saving {self.currsize} items to {self.path}')
 		FileIO.save(self, self.path, backup=False)
 
 	def delete(self):
 		FileIO.delete(self.path)
+
+def cached(func):
+	return cachedmethod(attrgetter('cache'))(func)
