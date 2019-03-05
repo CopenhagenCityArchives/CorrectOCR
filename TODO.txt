@@ -1,5 +1,10 @@
+all:
+	testing
+	documentation
+
 dictionary:
-	names, places
+	autogen filename with language
+	names, places -- skip k-best?
 
 tokenizer:
 	punctuationME -- gold should have begin/end punctuation reapplied from original
@@ -15,4 +20,10 @@ tokenizer:
 
 hocr:
 	improve segmentation/columnization
+	* https://www.slideshare.net/MarkHollow/pycon-apac-2017-page-layout-analysis-of-19th-century-siamese-newspapers-using-python-and-opencv
+	* https://www.danvk.org/2015/01/07/finding-blocks-of-text-in-an-image-using-python-opencv-and-numpy.html
+	** https://github.com/danvk/oldnyc/blob/master/ocr/tess/crop_morphology.py
+	** https://gist.github.com/luipillmann/d76eb4f4eea0320bb35dcd1b2a4575ee
+	* https://github.com/glazzara/olena
+	* https://github.com/phatn/lapdftext
 	--build_pdf --images 1,2,3 --pdfname etc
