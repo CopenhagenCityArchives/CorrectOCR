@@ -33,4 +33,4 @@ class PickledLRUCache(LRUCache):
 		FileIO.save(self, self.path, backup=False)
 
 	def delete(self):
-		self.path.unlink()
+		FileIO.delete(self.path)

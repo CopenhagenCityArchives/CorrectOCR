@@ -71,6 +71,11 @@ class FileIO(object):
 		shutil.copy(str(src), str(dest))
 
 	@classmethod
+	def delete(cls, path: Path):
+		if path.exists():
+			path.unlink()
+
+	@classmethod
 	def save(cls, data: Any, path: Path, binary=False, backup=True):
 		if path.suffix == '.pickle':
 			binary = True
