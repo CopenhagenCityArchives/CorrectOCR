@@ -1,7 +1,6 @@
 import logging
 import weakref
 from operator import attrgetter
-from pathlib import Path
 
 from cachetools import LRUCache, cachedmethod
 
@@ -10,11 +9,11 @@ from .fileio import FileIO
 
 class PickledLRUCache(LRUCache):
 	log = logging.getLogger(f'{__name__}.PickledLRUCache')
-	size = 1024*10
+	size = 1024*100
 
 	@classmethod
 	def by_name(cls, name):
-		path = Path('./__COCRcache__/').joinpath(f'{name}.pickle')
+		path = FileIO.cachePath.joinpath(f'{name}.pickle')
 		if path.is_file():
 			cache = FileIO.load(path)
 			PickledLRUCache.log.info(f'Loaded {path}: {cache.currsize} items.')
@@ -32,6 +31,7 @@ class PickledLRUCache(LRUCache):
 	def save(self):
 		# TODO check if there is anything to save?
 		PickledLRUCache.log.info(f'Saving {self.currsize} items to {self.path}')
+		FileIO.ensure_directories(self.path.parent)
 		FileIO.save(self, self.path, backup=False)
 
 	def delete(self):

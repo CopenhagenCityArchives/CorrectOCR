@@ -35,6 +35,8 @@ class FileIO(object):
 		'.goldTokens': GOLDHEADER,
 		'.binnedTokens': BINNEDHEADER,
 	}
+	
+	cachePath = Path('./__COCRcache__/')
 
 	@classmethod
 	def get_encoding(cls, file: Path) -> str:
@@ -59,11 +61,7 @@ class FileIO(object):
 
 	@classmethod
 	def ensure_directories(cls, path):
-		#if not path.parent.exists():
-		#	
-		#else:
-		#	path.parent.mkdir()
-		pass # TODO
+		path.mkdir(parents=True, exist_ok=True)
 
 	@classmethod
 	def copy(cls, src: Path, dest: Path):

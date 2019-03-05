@@ -3,7 +3,6 @@ import logging
 import re
 from contextlib import contextmanager
 from functools import partial
-from pathlib import Path
 from typing import List
 
 import cv2
@@ -173,7 +172,8 @@ class HOCRTokenizer(Tokenizer):
 
 	def tokenize(self, file, force=False):
 		columns = []
-		cachefile = Path('__hocrcache__/').joinpath(f'{file.stem}.cache.json')
+		cachefile = FileIO.cachePath.joinpath(f'hocr/{file.stem}.cache.json')
+		FileIO.ensure_directories(cachefile.parent)
 
 		if cachefile.is_file():
 			columns = FileIO.load(cachefile)
@@ -188,8 +188,7 @@ class HOCRTokenizer(Tokenizer):
 					hocr,
 					tokens
 				))
-
-		FileIO.save(columns, cachefile)
+			FileIO.save(columns, cachefile)
 
 		all_tokens = [t for c in columns for t in c.tokens]
 
@@ -197,6 +196,7 @@ class HOCRTokenizer(Tokenizer):
 
 		return self.generate_kbest(all_tokens)
 
+	@staticmethod
 	def apply(original, tokens: List[HOCRToken], corrected):
 		pdf = fitz.open()
 		pix = fitz.Pixmap(str(original))

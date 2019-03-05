@@ -37,6 +37,8 @@ def extract_text_from_pdf(filename: str):
 def build_dictionary(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.build_dictionary')
 	
+	corpusPath = config.corpusPath or FileIO.cachePath.joinpath('dictionary/')
+
 	if config.corpusFile:
 		for line in open_for_reading(config.corpusFile).readlines():
 			line = line.strip()
@@ -47,10 +49,10 @@ def build_dictionary(workspace: Workspace, config):
 			elif line[:4] == 'http':
 				if '\t' in line:
 					(url, filename) = line.split('\t')
-					filename = config.corpusPath.joinpath(Path(filename).name)
+					filename = corpusPath.joinpath(Path(filename).name)
 				else:
 					url = line
-					filename = config.corpusPath.joinpath(Path(line).name)
+					filename = corpusPath.joinpath(Path(line).name)
 				if filename.is_file():
 					log.info('Download cached, will not download again.')
 					continue
@@ -63,7 +65,7 @@ def build_dictionary(workspace: Workspace, config):
 				time.sleep(random.uniform(0.5, 1.5))
 			elif line[-1] == '/':
 				for file in Path(line).iterdir():
-					outfile = config.corpusPath.joinpath(file.name)
+					outfile = corpusPath.joinpath(file.name)
 					if outfile.is_file():
 						log.info(f'File already copied: {file.name}')
 						continue
@@ -77,9 +79,9 @@ def build_dictionary(workspace: Workspace, config):
 				with zipfile.ZipFile(_zip.open(member)) as _zf:
 					unzip_recursive(_zf)
 			else:
-				_zip.extract(member, config.corpusPath)
+				_zip.extract(member, corpusPath)
 
-	for file in config.corpusPath.iterdir():
+	for file in corpusPath.iterdir():
 		if file.suffix == '.zip':
 			log.info(f'Unzipping {file}')
 			with zipfile.ZipFile(file) as zf:
@@ -157,7 +159,7 @@ def build_dictionary(workspace: Workspace, config):
 		'1866_1396_txt.xml',
 	}
 
-	for file in config.corpusPath.glob('**/*'):
+	for file in corpusPath.glob('**/*'):
 		if file.name[0] == '.' or file.name in ignore:
 			continue
 		log.info(f'Getting words from {file}')

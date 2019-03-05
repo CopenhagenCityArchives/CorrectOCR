@@ -172,19 +172,19 @@ class Heuristics(object):
 		out += '\td (best candidate in dictionary)\n'
 		out += '(o and k interchangeable when original is identical to k1; d not applicable in all bins)\n\n\n\n'
 
-		for num, bin in Heuristics.bins.items():
+		for num, _bin in Heuristics.bins.items():
 			out += f'BIN {num} \t\t\t\t\t\t\t\t enter decision here:\t\n'
-			out += bin['description'] + '\n'
-			if 'counts' in bin:
-				total = bin['counts'].pop('total', 0)
-				for name, count in sorted(bin['counts'].items(), key=lambda x: x[0]):
+			out += _bin['description'] + '\n'
+			if 'counts' in _bin:
+				total = _bin['counts'].pop('total', 0)
+				for name, count in sorted(_bin['counts'].items(), key=lambda x: x[0]):
 					out += f'{name[2:]:20}:{count:10d} ({count/total:6.2%})'.rjust(60) + '\n'
 				out += f'total:{total:10d} ({total/self.tokenCount:6.2%})'.rjust(60) + '\n'
-				bin['counts']['total'] = total
+				_bin['counts']['total'] = total
 			else:
 				out += '\tNo tokens matched.'
-			if 'example' in bin:
-				example = bin['example']
+			if 'example' in _bin:
+				example = _bin['example']
 				out += f'Example:\n'
 				out += f'\toriginal = {example.original}\n'
 				out += f'\tgold = {example.gold}\n'

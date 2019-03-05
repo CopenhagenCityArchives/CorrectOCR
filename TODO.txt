@@ -1,9 +1,5 @@
-all:
-	organize all caching in __COCRcache__
-
 dictionary:
 	names, places
-	prefilter tokens to avoid needles k-bests?
 
 tokenizer:
 	punctuationME -- gold should have begin/end punctuation reapplied from original
