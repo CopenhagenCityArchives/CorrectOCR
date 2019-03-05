@@ -78,6 +78,9 @@ class HMM(object):
 		return self.__str__()
 
 	def save(self, path=None):
+		if not self.parameter_check():
+			HMM.log.error('Not going to save faulty HMM parameters.')
+			raise SystemExit(-1)
 		path = path or self.path
 		HMM.log.info(f'Saving HMM parameters to {path}')
 		FileIO.save([self.init, self.tran, self.emis], path)
