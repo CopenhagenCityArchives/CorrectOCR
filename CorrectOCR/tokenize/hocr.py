@@ -38,7 +38,7 @@ class HOCRToken(Token):
 
 	@property
 	def original(self):
-		return self._element.text.strip()
+		return 
 
 	@property
 	def token_info(self):
@@ -51,7 +51,7 @@ class HOCRToken(Token):
 		else:
 			self._element = element
 		self.page = page
-		super().__init__(**kwargs)
+		super().__init__(self._element.text.strip())
 
 	def rect(self):
 		# example: title='bbox 77 204 93 234; x_wconf 95'

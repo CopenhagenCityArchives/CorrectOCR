@@ -10,12 +10,8 @@ class PDFToken(Token):
 	log = logging.getLogger(f'{__name__}.PDFToken')
 
 	@property
-	def original(self):
-		return self.word
-
-	@property
 	def token_info(self):
-		return (self.page_n, self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.word, self.block_n, self.line_n, self.word_n)
+		return (self.page_n, self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.original, self.block_n, self.line_n, self.word_n)
 
 	def __init__(self, info, **kwargs):
 		self.page_n = int(info[0])
@@ -26,13 +22,12 @@ class PDFToken(Token):
 			float(info[4]),
 		)
 		self.rect.normalize()
-		self.word = info[5]
 		(self.block_n, self.line_n, self.word_n) = (
 			int(info[6]),
 			int(info[7]),
 			int(info[8]),
 		)
-		super().__init__(**kwargs)
+		super().__init__(info[5])
 
 	@property
 	def ordering(self):

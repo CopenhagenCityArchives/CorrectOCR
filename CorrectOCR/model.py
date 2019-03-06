@@ -8,6 +8,7 @@ from . import punctuationRE
 from .cache import PickledLRUCache, cached
 from .dictionary import Dictionary
 from .fileio import FileIO
+from .tokenize import KBestItem
 
 
 class HMM(object):
@@ -161,10 +162,10 @@ class HMM(object):
 		return [(''.join(seq), prob) for seq, prob in paths[:k]]
 
 	@cached
-	def kbest_for_word(self, word: str, k: int) -> List[Tuple[str, float]]:
+	def kbest_for_word(self, word: str, k: int) -> DefaultDict[int, KBestItem]:
 		#HMM.log.debug(f'kbest_for_word: {word}')
 		if len(word) == 0:
-			return [('', 0.0)] * k
+			return defaultdict(KBestItem, {n: KBestItem('', 0.0) for n in range(1, k+1)})
 
 		k_best = self.k_best_beam(word, k)
 		# Check for common multi-character errors. If any are present,
@@ -179,7 +180,7 @@ class HMM(object):
 				# Keep the k best
 				k_best = sorted(k_best, key=lambda x: x[1], reverse=True)[:k]
 
-		return k_best
+		return defaultdict(KBestItem, {i: KBestItem(''.join(seq), prob) for (i, (seq, prob)) in enumerate(k_best[:k], 1)})
 
 	@classmethod
 	def multichar_variants(cls, word: str, original: str, replacements: List[str]):

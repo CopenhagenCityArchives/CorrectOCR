@@ -1,7 +1,8 @@
 import abc
+import collections
 import json
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, DefaultDict, Tuple, NamedTuple
 
 import nltk
 import progressbar
@@ -9,11 +10,20 @@ import regex
 from PIL import Image
 from lxml import html
 
-from .. import punctuationRE
-
 
 def tokenize_str(data: str, language='English') -> List[str]:
 	return nltk.tokenize.word_tokenize(data, language)
+
+
+##########################################################################################
+
+
+class KBestItem(NamedTuple):
+	candidate: str
+	probability: float = 0.0
+
+	def __repr__(self) -> str:
+		return f'<KBestItem {self.candidate}, {self.probability:.2e}>'
 
 
 ##########################################################################################
@@ -26,10 +36,7 @@ class Token(abc.ABC):
 	def register(cls):
 		Token.subclasses[cls.__name__] = cls
 
-	@property
-	@abc.abstractmethod
-	def original(self):
-		pass
+	punct_RE = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
 
 	@property
 	@abc.abstractmethod
@@ -37,37 +44,34 @@ class Token(abc.ABC):
 		pass
 
 	@property
-	def k(self):
-		return len(self._kbest)
+	def original(self):
+		return f'{self._punct_prefix}{self.lookup}{self._punct_suffix}'
 
-	def __init__(self, gold: str = None, kbest: List[Tuple[str, float]] = None):
+	@property
+	def gold(self):
+		return f'{self._punct_prefix}{self._gold}{self._punct_suffix}' if self._gold is not None else None
+
+	@gold.setter
+	def gold(self, gold):
+		self._gold = gold
+
+	@property
+	def k(self):
+		return len(self.kbest)
+
+	def __init__(self, original: str):
+		m = Token.punct_RE.search(original)
+		(self._punct_prefix, self.lookup, self._punct_suffix) = m.groups('')
+		self.gold = None
 		self.bin = dict()
-		# Newline characters are kept to recreate the text later,
-		# but are replaced by labeled strings for writing to csv.
-		if self.original == '\n':
-			self.gold = '_NEWLINE_N_',
-			self._kbest = [
-				('_NEWLINE_N_', 1.0),
-				('_NEWLINE_N_', 0.0)
-			]
-		elif self.original == '\r':
-			self.gold = '_NEWLINE_R_',
-			self._kbest = [
-				('_NEWLINE_R_', 1.0),
-				('_NEWLINE_R_', 0.0)
-			]
-		elif self.is_punctuation():
+		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(lambda: KBestItem(''))
+		
+		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
-			self.gold = self.original
-			self._kbest = []
-		else:
-			self.gold = gold
-			self._kbest = kbest
-		if not self._kbest:
-			self._kbest = []
+			self._gold = self.lookup
 
 	def __str__(self):
-		return f'<{self.__class__.__name__} {self.original}, {self.gold}, {self._kbest}, {self.bin}>'
+		return f'<{self.__class__.__name__} {self.original}, {self.gold}, {self.kbest}, {self.bin}>'
 
 	def __repr__(self):
 		return self.__str__()
@@ -99,26 +103,15 @@ class Token(abc.ABC):
 	def is_numeric(self):
 		return self.original.isnumeric()
 
-	def kbest(self, k=0):
-		if k > 0:
-			if k <= len(self._kbest):
-				return self._kbest[k-1]
-			else:
-				return 'n/a', 0.0
-		elif self._kbest and len(self._kbest) > 0:
-			return enumerate(self._kbest, 1)
-		else:
-			o = self.original
-			return enumerate([(o, 1.0), (o, 0.0)], 1)
-
-	def as_dict(self):
+	@property
+	def __dict__(self):
 		output = {
 			'Gold': self.gold or '',
 			'Original': self.original,
 		}
-		for k, (candidate, probability) in enumerate(self._kbest, 1):
-			output[f'{k}-best'] = candidate
-			output[f'{k}-best prob.'] = probability
+		for k, item in self.kbest.items():
+			output[f'{k}-best'] = item.candidate
+			output[f'{k}-best prob.'] = item.probability
 		if len(self.bin) > 0:
 			output['Bin'] = self.bin.get('number', -1)
 			output['Heuristic'] = self.bin.get('heuristic', None)
@@ -134,31 +127,17 @@ class Token(abc.ABC):
 		classname = d['Token type']
 		#Token.subclasses[classname].log.debug(f'{d}')
 		t = Token.subclasses[classname](json.loads(d['Token info']))
-		t.update(d=d)
+		t.gold = d.get('Gold', None)
+		kbest = collections.defaultdict(lambda: KBestItem(''))
+		k = 1
+		while f'{k}-best' in d:
+			candidate = d[f'{k}-best']
+			probability = d[f'{k}-best prob.']
+			kbest[k] = KBestItem(candidate, float(probability))
+			k += 1
+		t.kbest = kbest
+		#t.__class__.log.debug(t)
 		return t
-
-	def update(self, other: 'Token' = None, kbest: List[Tuple[str, float]] = None, d: dict = None):
-		if other:
-			#self.__class__.log.debug(f'{self} -- {other}')
-			if not self.gold: self.gold = other.gold
-			self._kbest = other._kbest
-		elif kbest:
-			#self.__class__.log.debug(f'{self} -- {kbest}')
-			self._kbest = kbest
-		elif d:
-			#self.__class__.log.debug(f'{self} -- {d}')
-			kbest = []
-			k = 1
-			while f'{k}-best' in d:
-				candidate = d[f'{k}-best']
-				probability = d[f'{k}-best prob.']
-				if probability == '': # not sure why this sometimes happens...
-					probability = 0.0
-				kbest.append((candidate, float(probability)))
-				k += 1
-			self.gold = d.get('Gold', None)
-			self._kbest = kbest
-			#self.__class__.log.debug(self)
 
 
 ##########################################################################################
@@ -203,18 +182,17 @@ class Tokenizer(abc.ABC):
 
 		Tokenizer.log.info(f'Generating {self.k}-best suggestions for each token')
 		for i, token in enumerate(progressbar.progressbar(tokens)):
-			original = punctuationRE.sub('', token.original)
-			if original in self.previousTokens:
-				token.update(other=self.previousTokens[original])
+			if token.lookup in self.previousTokens:
+				token.kbest = self.previousTokens[token.lookup].kbest
 			else:
-				token.update(kbest=self.hmm.kbest_for_word(original, self.k))
-			if not token.gold and original in self.wordAlignments:
-				wa = self.wordAlignments.get(original, dict())
+				token.kbest = self.hmm.kbest_for_word(token.lookup, self.k)
+			if not token.gold and token.lookup in self.wordAlignments:
+				wa = self.wordAlignments.get(token.lookup, dict())
 				closest = sorted(wa.items(), key=lambda x: x[0], reverse=True)
-				#Tokenizer.log.debug(f'{i} {token.original} {closest}')
+				#Tokenizer.log.debug(f'{i} {token.token.lookup} {closest}')
 				token.gold = closest[0][1]
-			self.previousTokens[original] = token
-			#Tokenizer.log.debug(token.as_dict())
+			self.previousTokens[token.lookup] = token
+			#Tokenizer.log.debug(vars(token))
 
 		Tokenizer.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
 		return tokens
@@ -260,7 +238,7 @@ class DehyphenationToken(Token):
 	def __init__(self, first: Token, second: Token):
 		self.first = first
 		self.second = second
-		super().__init__()
+		super().__init__(self.original)
 
 	@property
 	def original(self):

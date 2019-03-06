@@ -1,6 +1,5 @@
 import logging
 from collections import OrderedDict, defaultdict
-from itertools import islice
 from typing import Any, Dict, Tuple
 
 from . import punctuationRE
@@ -79,7 +78,7 @@ class Heuristics(object):
 
 	def evaluate(self, token: Token) -> Tuple[str, Any]:
 		# k best candidate words that are in dictionary
-		nkdict = [c for k, (c,p) in token.kbest() if c in self.dictionary]
+		nkdict = [item.candidate for k, item in token.kbest.items() if item.candidate in self.dictionary]
 
 		dcode = None
 		if len(nkdict) == 0:
@@ -90,7 +89,7 @@ class Heuristics(object):
 			dcode = 'allkd'
 
 		for num, _bin in self.bins.items():
-			if _bin['matcher'](punctuationRE.sub('', token.original), token.kbest(1)[0], self.dictionary, dcode):
+			if _bin['matcher'](token.lookup, token.kbest[1].candidate, self.dictionary, dcode):
 				return _bin['heuristic'], dict(_bin)
 
 		Heuristics.log.critical(f'Unable to make decision for token: {token}')
@@ -127,7 +126,7 @@ class Heuristics(object):
 		# an evidently useful quantity for sorting out what to send to annotators
 		#  - can split any existing category across a threshold of this quantity
 		#	(based on probabilities of best and 2nd-best candidates)
-		# qqh = (token.kbest(1)[1]-token.kbest(2)[1]) / token.kbest(1)[1]
+		# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
 
 		(_, _bin) = self.evaluate(token)
 
@@ -145,11 +144,11 @@ class Heuristics(object):
 		if original == gold:
 			counts['1 gold == orig'] += 1
 
-		if token.kbest(1)[0] == gold:
+		if token.kbest[1].candidate == gold:
 			counts['2 gold == k1'] += 1
 
 		# lower k best candidate words that pass the dictionary check
-		kbest_filtered = [candidate for (k, (candidate,p)) in islice(token.kbest(),1,None) if candidate in self.dictionary]
+		kbest_filtered = [item.candidate for (k, item) in token.kbest if item.candidate in self.dictionary and k > 1]
 
 		if gold in kbest_filtered:
 			counts['3 gold == lower kbest'] += 1
@@ -189,9 +188,9 @@ class Heuristics(object):
 				out += f'\toriginal = {example.original}\n'
 				out += f'\tgold = {example.gold}\n'
 				out += '\tkbest = [\n'
-				for k, (candidate, probability) in example.kbest():
-					inDict = ' * is in dictionary' if candidate in self.dictionary else ''
-					out += f'\t\t{k}: {candidate} ({probability:.2e}){inDict}\n'
+				for k, item in example.kbest:
+					inDict = ' * is in dictionary' if item.candidate in self.dictionary else ''
+					out += f'\t\t{k}: {item.candidate} ({item.probability:.2e}){inDict}\n'
 				out += '\t]\n'
 			out += '\n\n\n'
 

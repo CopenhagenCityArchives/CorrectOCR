@@ -24,7 +24,7 @@ class COCRJSONCodec(json.JSONEncoder):
 		elif isinstance(obj, Token):
 			return {
 				'COCRkind': 'Token',
-				'token': obj.as_dict(),
+				'token': vars(obj),
 			}
 		elif isinstance(obj, html.HtmlElement):
 			return {

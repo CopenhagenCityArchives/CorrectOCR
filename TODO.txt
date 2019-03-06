@@ -7,7 +7,6 @@ dictionary:
 	names, places -- skip k-best?
 
 tokenizer:
-	punctuationME -- gold should have begin/end punctuation reapplied from original
 	squish abbreviations? something like below?
 	mwes = [
 		('P', 'E'), # Politiets Efterretninger

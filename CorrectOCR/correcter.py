@@ -36,15 +36,15 @@ class Correcter(object):
 			return 'error', f'Input is malformed! Original is 0-length: {token}'
 		
 		# catch linebreaks
-		if token.original in [u'_NEWLINE_N_', u'_NEWLINE_R_']:
+		if token.lookup in [u'_NEWLINE_N_', u'_NEWLINE_R_']:
 			return 'linefeed', None
 		
 		# catch memorised corrections
-		if not token.is_punctuation() and token.original in self.memos:
-			return 'memoized', self.memos[token.original]
+		if not token.is_punctuation() and token.lookup in self.memos:
+			return 'memoized', self.memos[token.lookup]
 		
 		# k best candidate words
-		filtids = [k for k, (c,p) in token.kbest() if c in self.dictionary]
+		filtids = [k for k, item in token.kbest.items() if item.candidate in self.dictionary]
 		
 		(heuristic, token.bin) = self.heuristics.evaluate(token)
 		#Correcter.log.debug(f'{bin} {dcode}')
@@ -119,9 +119,9 @@ class CorrectionShell(cmd.Cmd):
 				right = ' '.join([c.original for c in ctxl])
 				print(f'\n\n...{left} \033[1;7m{self.token.original}\033[0m {right}...\n')
 				print(f'\nSELECT for {self.token.original} :\n')
-				for k, (candidate, probability) in self.token.kbest():
+				for k, item in self.token.kbest.items():
 					inDict = ' * is in dictionary' if k in self.selection else ''
-					print(f'\t{k}. {candidate} ({probability:.2e}){inDict}\n')
+					print(f'\t{k}. {item.candidate} ({item.probability:.2e}){inDict}\n')
 				
 				self.prompt = f"CorrectOCR {self.metrics['tokenCount']}/{self.metrics['tokenTotal']} ({self.metrics['humanCount']}) > "
 			else:
@@ -163,13 +163,11 @@ class CorrectionShell(cmd.Cmd):
 			k = int(arg[0]) 
 		else:
 			k = 1
-		(candidate, _) = self.token.kbest(k)
-		return self.select(candidate, f'{k}-best')
+		return self.select(self.token.kbest[k].candidate, f'{k}-best')
 
 	def do_kdict(self, arg: str):
 		"""Choose k-best which is in dictionary"""
-		(candidate, _) = self.token.kbest(int(arg))
-		return self.select(candidate, f'k-best from dict')
+		return self.select(self.token.kbest[int(arg)], f'k-best from dict')
 
 	def do_memoized(self, arg: str):
 		return self.select(arg, 'memoized correction', save=False)

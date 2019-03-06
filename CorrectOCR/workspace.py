@@ -122,7 +122,7 @@ class Workspace(object):
 		if dehyphenate:
 			tokens = dehyphenate_tokens(tokens)
 
-		rows = [t.as_dict() for t in tokens]
+		rows = [vars(t) for t in tokens]
 
 		path = self.paths[fileid].originalTokenFile
 		Workspace.log.info(f'Writing tokens to {path}')
@@ -179,7 +179,7 @@ class JSONResource(dict):
 		data = FileIO.load(self._path, default=dict())
 		if data:
 			self.update(data)
-	
+
 	def save(self):
 		FileIO.save(self, self._path)
 

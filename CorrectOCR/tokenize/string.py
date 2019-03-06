@@ -7,16 +7,12 @@ class StringToken(Token):
 	log = logging.getLogger(f'{__name__}.StringToken')
 
 	@property
-	def original(self):
-		return self._string
-
-	@property
 	def token_info(self):
 		return self._string
 
 	def __init__(self, original, **kwargs):
 		self._string = original
-		super().__init__(**kwargs)
+		super().__init__(original)
 
 
 Token.register(StringToken)

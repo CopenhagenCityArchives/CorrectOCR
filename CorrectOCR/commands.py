@@ -294,7 +294,7 @@ def do_correct(workspace: Workspace, config):
 
 		path = workspace.paths[fileid].binnedTokenFile
 		log.info(f'Saving binned tokens to {path}')
-		rows = [t.as_dict() for t in binned_tokens]
+		rows = [vars(t) for t in binned_tokens]
 		FileIO.save(rows, path)
 
 		if config.bin_only:
