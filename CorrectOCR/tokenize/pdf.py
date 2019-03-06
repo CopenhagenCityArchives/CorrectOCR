@@ -50,10 +50,10 @@ class PDFTokenizer(Tokenizer):
 		for page in doc:
 			PDFTokenizer.log.debug(f'Getting tokens from page: {page.number}')
 			tokens += [PDFToken((page.number, ) + tuple(w)) for w in page.getTextWords()]
-		
+
 		PDFTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
-	
-		return self.generate_kbest(tokens)
+
+		return tokens
 
 	@staticmethod
 	def apply(original, tokens: List[PDFToken], corrected):

@@ -194,7 +194,7 @@ class HOCRTokenizer(Tokenizer):
 
 		HOCRTokenizer.log.debug(f'Found {len(all_tokens)} tokens, first 10: {all_tokens[:10]}')
 
-		return self.generate_kbest(all_tokens)
+		return all_tokens
 
 	@staticmethod
 	def apply(original, tokens: List[HOCRToken], corrected):

@@ -28,7 +28,7 @@ class StringTokenizer(Tokenizer):
 		tokens = [StringToken(w) for w in tokenize_str(file.body, self.language.name)]
 		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
 	
-		return self.generate_kbest(tokens)
+		return tokens
 
 	@staticmethod
 	def apply(original, tokens, corrected):

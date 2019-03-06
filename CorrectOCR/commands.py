@@ -11,7 +11,7 @@ import requests
 from lxml import etree
 from tei_reader import TeiReader
 
-from .correcter import Correcter, CorrectionShell
+from .correcter import CorrectionShell
 from .fileio import open_for_reading, FileIO
 from .model import HMMBuilder
 from .tokenize import tokenize_str, Token, Tokenizer
@@ -231,18 +231,27 @@ def build_model(workspace: Workspace, config):
 ##########################################################################################
 
 
-def do_tokenize(workspace: Workspace, config):
+def do_prepare(workspace: Workspace, config):
+	methods = {
+		'tokenize': workspace.tokens,
+		'align': workspace.alignedTokens,
+		'kbest': workspace.kbestTokens,
+		'bin': workspace.binnedTokens,
+		'all': workspace.binnedTokens,
+	}
+	method = methods[config.step]
+	Workspace.log.debug(f'Selecting {method} for {config.step}')
 	if config.fileid:
-		workspace.tokens(config.fileid, config.k, config.dehyphenate, force=config.force)
+		method(fileid=config.fileid, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 	elif config.all:
 		for fileid, pathManager in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
-			workspace.tokens(fileid, config.k, config.dehyphenate, force=config.force)
+			method(fileid=fileid, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 
 
 ##########################################################################################
 
 
-def do_heuristics(workspace: Workspace, config):
+def do_stats(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_heuristics')
 
 	if config.make_report:
@@ -282,25 +291,7 @@ def do_correct(workspace: Workspace, config):
 	log.info(f'Correcting {fileid}')
 
 	if not config.apply:
-		correcter = Correcter(
-			workspace.resources.dictionary,
-			workspace.resources.heuristics,
-			workspace.resources.memoizedCorrections,
-			workspace.resources.dictionary.caseInsensitive,
-			config.k
-		)
-
-		binned_tokens = correcter.bin_tokens(workspace.tokens(fileid))
-
-		path = workspace.paths[fileid].binnedTokenFile
-		log.info(f'Saving binned tokens to {path}')
-		rows = [vars(t) for t in binned_tokens]
-		FileIO.save(rows, path)
-
-		if config.bin_only:
-			return
-
-		# Ok, we must be interactive...
+		binned_tokens = workspace.binnedTokens(config.fileid, config.k)
 
 		# get header, if any
 		#header = workspace.paths[fileid].correctedFile.header

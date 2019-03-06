@@ -1,4 +1,6 @@
+import functools
 import logging
+from collections import defaultdict
 from pathlib import Path
 from pprint import pformat
 from typing import Dict, Iterator, List, Tuple, Union
@@ -9,6 +11,35 @@ from .fileio import FileIO
 from .heuristics import Heuristics
 from .model import HMM
 from .tokenize import Token, Tokenizer, tokenize_str, dehyphenate_tokens
+
+
+def tokensaver(get_path):
+	def decorator(func):
+		@functools.wraps(func)
+		def wrapper(*args, **kwargs):
+			#Workspace.log.debug(f'args: {args}, kwargs: {kwargs}')
+			def arg(name, index):
+				if kwargs and name in kwargs:
+					return kwargs[name]
+				if len(args) > index:
+					return args[index]
+				return None
+			self = args[0]
+			fileid = arg('fileid', 1)
+			force = arg('force', 4)
+			path = get_path(self.paths[fileid])
+			if not force and path.is_file():
+				Workspace.log.info(f'File containing {func.__name__} for {fileid} exists and will be returned as Token objects. Use --force or delete it to rerun.')
+				return [Token.from_dict(row) for row in FileIO.load(path)]
+
+			tokens = func(*args, **kwargs)
+
+			Workspace.log.info(f'Writing tokens to {path}')
+			FileIO.save(tokens, path)
+
+			return tokens
+		return wrapper
+	return decorator
 
 
 class Workspace(object):
@@ -51,9 +82,9 @@ class Workspace(object):
 
 	def goldTokens(self) -> Iterator[Tuple[str, List[Token]]]:
 		for fileid, pathManager in self.paths.items():
-			if pathManager.goldTokenFile.is_file():
+			if pathManager.alignedTokenFile.is_file():
 				Workspace.log.debug(f'Getting gold tokens from {fileid}')
-				yield fileid, [Token.from_dict(row) for row in FileIO.load(pathManager.goldTokenFile)]
+				yield fileid, [Token.from_dict(row) for row in FileIO.load(pathManager.alignedTokenFile)]
 
 	def alignments(self, fileid: str, force=False) -> Tuple[list, dict, list]:
 		faPath = self.paths[fileid].fullAlignmentsFile
@@ -83,37 +114,10 @@ class Workspace(object):
 		
 		return fullAlignments, wordAlignments, misreadCounts
 
-	def tokens(self, fileid: str, k=4, dehyphenate=False, getPreviousTokens=True, force=False):
-		tokenFilePath = self.paths[fileid].originalTokenFile
-
-		if not force and tokenFilePath.is_file():
-			Workspace.log.info(f'{tokenFilePath} exists and will be returned as Token objects. Use --force or delete it to rerun.')
-			return [Token.from_dict(row) for row in FileIO.load(tokenFilePath)]
-		Workspace.log.info(f'Creating token files for {fileid}')
-	
-		# Load previously done tokens if any
-		previousTokens: Dict[str, Token] = dict()
-		if getPreviousTokens and not force:
-			for fid, tokens in self.originalTokens():
-				Workspace.log.debug(f'Getting previous tokens from {fid}')
-				for token in tokens:
-					previousTokens[token.original] = token
-
-		if self.paths[fileid].goldFile.is_file():
-			(_, wordAlignments, _) = self.alignments(fileid)
-		else:
-			wordAlignments = dict()
-
-		#Workspace.log.debug(f'wordAlignments: {wordAlignments}')
-
-		tokenizer = Tokenizer.for_extension(self.paths[fileid].ext)(
-			self.resources.dictionary,
-			self.resources.hmm,
-			self.language,
-			k,
-			wordAlignments,
-			previousTokens,
-		)
+	@tokensaver(lambda p: p.originalTokenFile)
+	def tokens(self, fileid: str, k: int, dehyphenate=False, force=False):
+		Workspace.log.info(f'Creating basic tokens for {fileid}')
+		tokenizer = Tokenizer.for_extension(self.paths[fileid].ext)(self.language)
 		tokens = tokenizer.tokenize(
 			self.paths[fileid].originalFile,
 			force=force
@@ -121,18 +125,41 @@ class Workspace(object):
 
 		if dehyphenate:
 			tokens = dehyphenate_tokens(tokens)
-
-		rows = [vars(t) for t in tokens]
-
-		path = self.paths[fileid].originalTokenFile
-		Workspace.log.info(f'Writing tokens to {path}')
-		FileIO.save(rows, path)
-
-		if len(wordAlignments) > 0:
-			path = self.paths[fileid].goldTokenFile
-			Workspace.log.info(f'Writing gold tokens to {path}')
-			FileIO.save(rows, path)
 		
+		return tokens
+
+	@tokensaver(lambda p: p.alignedTokenFile)
+	def alignedTokens(self, fileid: str, k: int, dehyphenate=False, force=False):
+		tokens = self.tokens(fileid, k, dehyphenate, force)
+
+		Workspace.log.info(f'Creating aligned tokens for {fileid}')
+		if self.paths[fileid].goldFile.is_file():
+			(_, wordAlignments, _) = self.alignments(fileid)
+			for i, token in enumerate(tokens):
+				if not token.gold and token.original in wordAlignments:
+					wa = wordAlignments[token].items()
+					closest = sorted(wa, key=lambda x: abs(x[0]-i))
+					Workspace.log.debug(f'{wa} {i} {token.original} {closest}')
+					token.gold = closest[0][1]
+
+		return tokens
+
+	@tokensaver(lambda p: p.kbestTokenFile)
+	def kbestTokens(self, fileid: str, k: int, dehyphenate=False, force=False):
+		tokens = self.alignedTokens(fileid, k, dehyphenate, force)
+
+		Workspace.log.info(f'Creating k-best tokens for {fileid}')
+		self.resources.hmm.generate_kbest(tokens, k)
+
+		return tokens
+
+	@tokensaver(lambda p: p.binnedTokenFile)
+	def binnedTokens(self, fileid: str, k: int, dehyphenate=False, force=False):
+		tokens = self.kbestTokens(fileid, k, dehyphenate, force)
+
+		Workspace.log.info(f'Creating binned tokens for {fileid}')
+		self.resources.heuristics.bin_tokens(tokens)
+
 		return tokens
 
 
@@ -202,7 +229,8 @@ class PathManager(object):
 			self.goldFile: Union[CorpusFile, Path] = gold.joinpath(f'{fileid}{ext}')
 			self.correctedFile: Union[CorpusFile, Path] = corrected.joinpath(f'{fileid}{ext}')
 		self.originalTokenFile = training.joinpath(f'{fileid}.tokens.csv')
-		self.goldTokenFile = training.joinpath(f'{fileid}.goldTokens.csv')
+		self.alignedTokenFile = training.joinpath(f'{fileid}.alignedTokens.csv')
+		self.kbestTokenFile = training.joinpath(f'{fileid}.kbestTokens.csv')
 		self.binnedTokenFile = training.joinpath(f'{fileid}.binnedTokens.csv')
 		self.fullAlignmentsFile = training.joinpath(f'{fileid}.fullAlignments.json')
 		self.wordAlignmentsFile = training.joinpath(f'{fileid}.wordAlignments.json')

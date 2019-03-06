@@ -4,11 +4,13 @@ import re
 from collections import defaultdict, Counter
 from typing import DefaultDict, Dict, List, Tuple
 
+import progressbar
+
 from . import punctuationRE
 from .cache import PickledLRUCache, cached
 from .dictionary import Dictionary
 from .fileio import FileIO
-from .tokenize import KBestItem
+from .tokenize import KBestItem, Token
 
 
 class HMM(object):
@@ -194,6 +196,18 @@ class HMM(object):
 				pieces, x, fillvalue='') for elem in pair]))
 
 		return variant_words
+
+	def generate_kbest(self, tokens: List[Token], k: int = 4):
+		if len(tokens) == 0:
+			HMM.log.error(f'No tokens were supplied?!')
+			raise SystemExit(-1)
+
+		HMM.log.info(f'Generating {k}-best suggestions for each token')
+		for i, token in enumerate(progressbar.progressbar(tokens)):
+			token.kbest = self.kbest_for_word(token.lookup, k)
+			#HMM.log.debug(vars(token))
+
+		HMM.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
 
 
 ##########################################################################################

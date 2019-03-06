@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 from bs4.dammit import UnicodeDammit
 
 from .codecs import COCRJSONCodec
+from .tokenize import Token
 
 
 def open_for_reading(file: Path, binary=False):
@@ -24,18 +25,6 @@ def open_for_reading(file: Path, binary=False):
 class FileIO(object):
 	log = logging.getLogger(f'{__name__}.FileIO')
 
-	TOKENHEADER = ['Original', '1-best', '1-best prob.', '2-best', '2-best prob.', 
-				   '3-best', '3-best prob.', '4-best', '4-best prob.', 
-				   'Token type', 'Token info']
-	GOLDHEADER = ['Gold'] + TOKENHEADER
-	BINNEDHEADER = GOLDHEADER + ['Bin', 'Heuristic', 'Decision', 'Selection']
-
-	headers: Dict[str, List[str]] = {
-		'.tokens': TOKENHEADER,
-		'.goldTokens': GOLDHEADER,
-		'.binnedTokens': BINNEDHEADER,
-	}
-	
 	cachePath = Path('./__COCRcache__/')
 
 	@classmethod
@@ -89,10 +78,15 @@ class FileIO(object):
 			if path.suffix == '.json':
 				return json.dump(data, f, cls=COCRJSONCodec)
 			elif path.suffix == '.csv':
-				header = cls.headers[path.suffixes[0]]
+				if isinstance(data[0], Token):
+					header = data[0].header
+					rows = [vars(x) for x in data]
+				else:
+					header = data[0].keys()
+					rows = data
 				writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
 				writer.writeheader()
-				return writer.writerows(data)
+				return writer.writerows(rows)
 			else:
 				return f.write(data)
 

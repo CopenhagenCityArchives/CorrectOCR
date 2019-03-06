@@ -2,10 +2,10 @@ import abc
 import collections
 import json
 import logging
-from typing import Dict, List, DefaultDict, Tuple, NamedTuple
+import string
+from typing import List, DefaultDict, Tuple, NamedTuple
 
 import nltk
-import progressbar
 import regex
 from PIL import Image
 from lxml import html
@@ -19,7 +19,7 @@ def tokenize_str(data: str, language='English') -> List[str]:
 
 
 class KBestItem(NamedTuple):
-	candidate: str
+	candidate: str = ''
 	probability: float = 0.0
 
 	def __repr__(self) -> str:
@@ -54,6 +54,8 @@ class Token(abc.ABC):
 	@gold.setter
 	def gold(self, gold):
 		self._gold = gold
+		if self._gold:
+			self._gold = self._gold.lstrip(string.punctuation).rstrip(string.punctuation)
 
 	@property
 	def k(self):
@@ -64,14 +66,14 @@ class Token(abc.ABC):
 		(self._punct_prefix, self.lookup, self._punct_suffix) = m.groups('')
 		self.gold = None
 		self.bin = dict()
-		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(lambda: KBestItem(''))
+		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
 		
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
 			self._gold = self.lookup
 
 	def __str__(self):
-		return f'<{self.__class__.__name__} {self.original}, {self.gold}, {self.kbest}, {self.bin}>'
+		return f'<{self.__class__.__name__} "{self.original}" "{self.gold}" {self.kbest} {self.bin}>'
 
 	def __repr__(self):
 		return self.__str__()
@@ -95,9 +97,10 @@ class Token(abc.ABC):
 	def __hash__(self):
 		return self.original.__hash__()
 
-	punctuationRE = regex.compile(r'^\p{punct}+|``$')
+	punctuationRE = regex.compile(r'^\p{punct}+$')
 
 	def is_punctuation(self):
+		#self.__class__.log.debug(f'{self}')
 		return Token.punctuationRE.match(self.original)
 
 	def is_numeric(self):
@@ -132,12 +135,25 @@ class Token(abc.ABC):
 		k = 1
 		while f'{k}-best' in d:
 			candidate = d[f'{k}-best']
+			if candidate == '':
+				break
 			probability = d[f'{k}-best prob.']
 			kbest[k] = KBestItem(candidate, float(probability))
 			k += 1
 		t.kbest = kbest
 		#t.__class__.log.debug(t)
 		return t
+
+	@property
+	def header(self) -> List[str]:
+		header = ['Original']
+		if self.gold:
+			header = ['Gold'] + header
+		for k in range(1, self.k+1):
+			header += [f'{k}-best', f'{k}-best prob.']
+		if len(self.bin) > 0:
+			header += ['Bin', 'Heuristic', 'Decision', 'Selection']
+		return header + ['Token type', 'Token info']
 
 
 ##########################################################################################
@@ -157,13 +173,8 @@ class Tokenizer(abc.ABC):
 		Tokenizer.log.debug(f'subclasses: {Tokenizer.subclasses}')
 		return Tokenizer.subclasses[ext]
 
-	def __init__(self, dictionary, hmm, language, k=4, wordAlignments=None, previousTokens: Dict[str, Token] = None):
-		self.dictionary = dictionary
-		self.hmm = hmm
+	def __init__(self, language):
 		self.language = language
-		self.k = k
-		self.wordAlignments = wordAlignments
-		self.previousTokens = previousTokens or dict()
 		self.tokens = []
 
 	@abc.abstractmethod
@@ -174,28 +185,6 @@ class Tokenizer(abc.ABC):
 	@abc.abstractmethod
 	def apply(original, tokens: List[Token], corrected):
 		pass
-
-	def generate_kbest(self, tokens: List[Token]) -> List[Token]:
-		if len(tokens) == 0:
-			Tokenizer.log.error(f'No tokens were supplied?!')
-			raise SystemExit(-1)
-
-		Tokenizer.log.info(f'Generating {self.k}-best suggestions for each token')
-		for i, token in enumerate(progressbar.progressbar(tokens)):
-			if token.lookup in self.previousTokens:
-				token.kbest = self.previousTokens[token.lookup].kbest
-			else:
-				token.kbest = self.hmm.kbest_for_word(token.lookup, self.k)
-			if not token.gold and token.lookup in self.wordAlignments:
-				wa = self.wordAlignments.get(token.lookup, dict())
-				closest = sorted(wa.items(), key=lambda x: x[0], reverse=True)
-				#Tokenizer.log.debug(f'{i} {token.token.lookup} {closest}')
-				token.gold = closest[0][1]
-			self.previousTokens[token.lookup] = token
-			#Tokenizer.log.debug(vars(token))
-
-		Tokenizer.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
-		return tokens
 
 
 ##########################################################################################

@@ -1,8 +1,6 @@
 import cmd
 import logging
-from typing import Dict, List
-
-import progressbar
+from typing import List
 
 from . import punctuationRE, split_window
 from .tokenize import Token
@@ -16,63 +14,6 @@ For example:
 > locale
 > export PYTHONIOENCODING=utf8
 '''
-
-
-class Correcter(object):
-	log = logging.getLogger(f'{__name__}.Correcter')
-
-	def __init__(self, dictionary, heuristics, memos: Dict[str, str], caseInsensitive=False, k=4):
-		self.caseInsensitive = caseInsensitive
-		self.memos = memos
-		self.k = k
-		self.dictionary = dictionary
-		self.heuristics = heuristics
-
-	def evaluate(self, token: Token):
-		#Correcter.log.debug(token)
-		
-		# this should not happen in well-formed input
-		if len(token.original) == 0:
-			return 'error', f'Input is malformed! Original is 0-length: {token}'
-		
-		# catch linebreaks
-		if token.lookup in [u'_NEWLINE_N_', u'_NEWLINE_R_']:
-			return 'linefeed', None
-		
-		# catch memorised corrections
-		if not token.is_punctuation() and token.lookup in self.memos:
-			return 'memoized', self.memos[token.lookup]
-		
-		# k best candidate words
-		filtids = [k for k, item in token.kbest.items() if item.candidate in self.dictionary]
-		
-		(heuristic, token.bin) = self.heuristics.evaluate(token)
-		#Correcter.log.debug(f'{bin} {dcode}')
-		
-		# return decision and output token or candidate list as appropriate
-		if heuristic == 'o':
-			return 'original', token.original
-		elif heuristic == 'k':
-			return 'kbest', 1
-		elif heuristic == 'd':
-			return 'kdict', filtids[0]
-		else:
-			# heuristic is 'a' or unrecognized
-			return 'annotator', filtids
-
-	def bin_tokens(self, tokens: List[Token]):
-		Correcter.log.info('Running heuristics on tokens to determine annotator workload.')
-		annotatorRequired = 0
-		for t in progressbar.progressbar(tokens):
-			(t.bin['decision'], t.bin['selection']) = self.evaluate(t)
-			if t.bin['decision'] == 'annotator':
-				annotatorRequired += 1
-		Correcter.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
-
-		return tokens
-
-
-##########################################################################################
 
 
 class CorrectionShell(cmd.Cmd):

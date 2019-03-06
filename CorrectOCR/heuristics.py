@@ -1,6 +1,8 @@
 import logging
-from collections import OrderedDict, defaultdict
-from typing import Any, Dict, Tuple
+from collections import OrderedDict, defaultdict, Counter
+from typing import Any, Dict, List, Tuple
+
+import progressbar
 
 from . import punctuationRE
 from .dictionary import Dictionary
@@ -68,6 +70,7 @@ class Heuristics(object):
 			self.bins[int(_bin)]['heuristic'] = code
 		for (number, _bin) in self.bins.items():
 			_bin['number'] = number
+		Heuristics.log.debug(f'Bins: {self.bins}')
 		self.dictionary = dictionary
 		self.tokenCount = 0
 		self.totalCount = 0
@@ -76,24 +79,48 @@ class Heuristics(object):
 		self.oversegmented = 0
 		self.undersegmented = 0
 
-	def evaluate(self, token: Token) -> Tuple[str, Any]:
-		# k best candidate words that are in dictionary
-		nkdict = [item.candidate for k, item in token.kbest.items() if item.candidate in self.dictionary]
+	def bin_for_token(self, token: Token):
+		# k best candidates which are in dictionary
+		filtids = [n for n, item in token.kbest.items() if item.candidate in self.dictionary]
 
 		dcode = None
-		if len(nkdict) == 0:
+		if len(filtids) == 0:
 			dcode = 'zerokd'
-		elif 0 < len(nkdict) < token.k:
+		elif 0 < len(filtids) < token.k:
 			dcode = 'somekd'
-		elif len(nkdict) == token.k:
+		elif len(filtids) == token.k:
 			dcode = 'allkd'
 
-		for num, _bin in self.bins.items():
+		token_bin = None
+		for num, _bin in Heuristics.bins.items():
 			if _bin['matcher'](token.lookup, token.kbest[1].candidate, self.dictionary, dcode):
-				return _bin['heuristic'], dict(_bin)
+				token_bin = dict(_bin)
+				break
 
-		Heuristics.log.critical(f'Unable to make decision for token: {token}')
-		return 'a', None
+		# return decision and chosen candidate(s)
+		if token_bin['heuristic'] == 'o':
+			(token_bin['decision'], token_bin['selection']) = ('original', token.original)
+		elif token_bin['heuristic'] == 'k':
+			(token_bin['decision'], token_bin['selection']) = ('kbest', 1)
+		elif token_bin['heuristic'] == 'd':
+			(token_bin['decision'], token_bin['selection']) = ('kdict', filtids[0])
+		else:
+			# heuristic is 'a' or unrecognized
+			(token_bin['decision'], token_bin['selection']) = ('annotator', filtids)
+		
+		return token_bin
+
+	def bin_tokens(self, tokens: List[Token]):
+		Heuristics.log.info('Running heuristics on tokens to determine annotator workload.')
+		counts = Counter()
+		annotatorRequired = 0
+		for t in progressbar.progressbar(tokens):
+			t.bin = self.bin_for_token(t)
+			counts[t.bin['number']] += 1
+			if t.bin['decision'] == 'annotator':
+				annotatorRequired += 1
+		Heuristics.log.debug(f'Counts for each bin: {counts}')
+		Heuristics.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
 
 	def add_to_report(self, token: Token):
 		self.totalCount += 1
@@ -128,7 +155,7 @@ class Heuristics(object):
 		#	(based on probabilities of best and 2nd-best candidates)
 		# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
 
-		(_, _bin) = self.evaluate(token)
+		(_, _bin) = self.bin_for_token(token)
 
 		if not _bin:
 			return # was unable to make heuristic decision
