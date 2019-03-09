@@ -66,29 +66,29 @@ class PDFTokenizer(Tokenizer):
 			newpage = pdf_corrected.newPage(-1)
 			for image_info in page.getImageList():
 				xref = image_info[0]
-				# Workaround for jpx images being converted to png by .extractImage():
-				stream = pdf_original._getXrefStream(xref)
+				stream = pdf_original.extractImage(xref)['image']
 				assert stream[0:4] == b'\x00\x00\x00\x0c' and stream[16:24] == b'ftypjp2 ' # can only handle JPX at the moment
+
 				# Workaround for jpx images not being recognized when inserted as stream:
 				cachefile = FileIO.cachePath.joinpath(f'pdf/{original.stem}-{xref}.jpx')
 				FileIO.ensure_directories(cachefile.parent)
 				with open(cachefile, 'wb') as f:
 					f.write(stream)
-				newpage.insertImage(page.rect, filename=cachefile)
-			#break
+
+				newpage.insertImage(page.rect, filename=str(cachefile))
 
 		PDFTokenizer.log.info('Inserting tokens in corrected PDF')
 		for token in sorted(tokens, key=lambda x: x.ordering):
-			#if token.ordering[0] > 0:
-			#	break
 			page = pdf_corrected[token.ordering[0]]
 			word = token.gold or token.original
+
 			# Adjust rectangle to fit word:
 			fontfactor = 0.70
 			size = token.rect.height * fontfactor
 			textwidth = fitz.getTextlength(word, fontsize=size)
-			rect = fitz.Rect(token.rect.x0, token.rect.y0, max(token.rect.x1, token.rect.x0+textwidth+1.0), token.rect.y1 + token.rect.height*2)
-			res = page.insertTextbox(rect, f'{word} ', fontsize=size, color=(1,0,0))
+			rect = fitz.Rect(token.rect.x0, token.rect.y0, max(token.rect.x1, token.rect.x0+textwidth+1.0), token.rect.y1 + token.rect.height)
+
+			res = page.insertTextbox(rect, f'{word} ', fontsize=size, render_mode=3)
 			if res < 0:
 				PDFTokenizer.log.warning(
 					f'Token was not inserted properly: {word}\n'
@@ -99,15 +99,5 @@ class PDFTokenizer(Tokenizer):
 					f' -- rect.height: {rect.height} result: {res}\n'
 				)
 
-		# Workaround until PyMuPDF/fitz supports setting text rendering mode:
-		PDFTokenizer.log.info('Marking text invisible')
-		for page in pdf_corrected:
-			#break
-			PDFTokenizer.log.debug(f'(page {page.number})')
-			page._cleanContents()
-			for xref in page._getContents():
-				stream = pdf_corrected._getXrefStream(xref).replace(b'Tm', b'Tm\n3 Tr')
-				#PDFTokenizer.log.debug(f'(xref {xref}: {stream})')
-				pdf_corrected._updateStream(xref, stream)
-
+		PDFTokenizer.log.info(f'Saving corrected PDF to {corrected}')
 		pdf_corrected.save(str(corrected))#, garbage=4, deflate=True)
