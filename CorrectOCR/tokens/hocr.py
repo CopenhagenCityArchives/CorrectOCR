@@ -38,10 +38,6 @@ class HOCRToken(Token):
 	bbox = re.compile(r'bbox (\d+) (\d+) (\d+) (\d+)')
 
 	@property
-	def original(self):
-		return 
-
-	@property
 	def token_info(self):
 		return (html.tostring(self._element, encoding='unicode'), self.page)
 
@@ -171,15 +167,16 @@ class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
 	def tokenize(self, file, force=False):
-		columns = []
 		cachefile = FileIO.cachePath.joinpath(f'hocr/{file.stem}.cache.json')
 		FileIO.ensure_directories(cachefile.parent)
 
 		if cachefile.is_file():
-			columns = FileIO.load(cachefile)
+			HOCRTokenizer.log.info(f'Using cached hOCR from {cachefile}')
+			segments = FileIO.load(cachefile)
 		else:
+			segments = []
 			for page, index, rect, image, hocr, tokens in tokenize_image(file.stem, 0, Image.open(str(file)), self.language.alpha_3):
-				columns.append(TokenSegment(
+				segments.append(TokenSegment(
 					file.stem,
 					page,
 					index,
@@ -188,9 +185,9 @@ class HOCRTokenizer(Tokenizer):
 					hocr,
 					tokens
 				))
-			FileIO.save(columns, cachefile)
+			FileIO.save(segments, cachefile)
 
-		all_tokens = [t for c in columns for t in c.tokens]
+		all_tokens = [t for s in segments for t in s.tokens]
 
 		HOCRTokenizer.log.debug(f'Found {len(all_tokens)} tokens, first 10: {all_tokens[:10]}')
 
