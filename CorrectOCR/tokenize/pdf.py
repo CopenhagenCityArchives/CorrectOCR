@@ -6,6 +6,8 @@ import fitz
 from ._super import Token, Tokenizer
 from ..fileio import FileIO
 
+
+@Token.register
 class PDFToken(Token):
 	log = logging.getLogger(f'{__name__}.PDFToken')
 
@@ -34,12 +36,10 @@ class PDFToken(Token):
 		return (self.page_n, self.block_n, self.line_n, self.word_n)
 
 
-Token.register(PDFToken)
-
-
 ##########################################################################################
 
 
+@Tokenizer.register(['.pdf'])
 class PDFTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.PDFTokenizer')
 
@@ -111,6 +111,3 @@ class PDFTokenizer(Tokenizer):
 				pdf_corrected._updateStream(xref, stream)
 
 		pdf_corrected.save(str(corrected))#, garbage=4, deflate=True)
-
-
-Tokenizer.register(PDFTokenizer, ['.pdf'])

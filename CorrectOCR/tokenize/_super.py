@@ -1,5 +1,6 @@
 import abc
 import collections
+import functools
 import json
 import logging
 import string
@@ -35,6 +36,7 @@ class Token(abc.ABC):
 	@staticmethod
 	def register(cls):
 		Token.subclasses[cls.__name__] = cls
+		return cls
 
 	punct_RE = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
 
@@ -164,9 +166,12 @@ class Tokenizer(abc.ABC):
 	subclasses = dict()
 
 	@staticmethod
-	def register(cls, extensions):
-		for ext in extensions:
-			Tokenizer.subclasses[ext] = cls
+	def register(extensions):
+		def wrapper(cls):
+			for ext in extensions:
+				Tokenizer.subclasses[ext] = cls
+			return cls
+		return wrapper
 
 	@staticmethod
 	def for_extension(ext):

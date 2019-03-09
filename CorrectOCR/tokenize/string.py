@@ -3,6 +3,7 @@ import logging
 from ._super import Token, Tokenizer, tokenize_str
 
 
+@Token.register
 class StringToken(Token):
 	log = logging.getLogger(f'{__name__}.StringToken')
 
@@ -15,12 +16,10 @@ class StringToken(Token):
 		super().__init__(original)
 
 
-Token.register(StringToken)
-
-
 ##########################################################################################
 
 
+@Tokenizer.register(['.txt'])
 class StringTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.StringTokenizer')
 
@@ -38,6 +37,3 @@ class StringTokenizer(Tokenizer):
 		corrected.header = original.header.replace(u'Corrected: No', u'Corrected: Yes') 
 		corrected.body = despaced
 		corrected.save()
-
-
-Tokenizer.register(StringTokenizer, ['.txt'])

@@ -32,6 +32,7 @@ def c_locale():
 ##########################################################################################
 
 
+@Token.register
 class HOCRToken(Token):
 	log = logging.getLogger(f'{__name__}.HOCRToken')
 	bbox = re.compile(r'bbox (\d+) (\d+) (\d+) (\d+)')
@@ -60,8 +61,6 @@ class HOCRToken(Token):
 			return fitz.Rect(map(float, list(m.group(1, 2, 3, 4))))
 		else:
 			return fitz.Rect(0.0, 0.0, 0.0, 0.0)
-
-Token.register(HOCRToken)
 
 
 ##########################################################################################
@@ -167,6 +166,7 @@ def tokenize_image(fileid: str, page: int, image: Image, language='Eng', force=F
 ##########################################################################################
 
 
+@Tokenizer.register(['.tiff', '.png'])
 class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
@@ -223,6 +223,3 @@ class HOCRTokenizer(Tokenizer):
 				)
 
 		pdf.save(str(corrected.parent.joinpath(corrected.stem + '.pdf')))
-
-
-Tokenizer.register(HOCRTokenizer, ['.tiff', '.png'])
