@@ -1,6 +1,4 @@
 from ._super import Token, Tokenizer, TokenSegment, KBestItem, tokenize_str, dehyphenate_tokens
-from .hocr import HOCRToken, HOCRTokenizer
-from .pdf import PDFToken, PDFTokenizer
-from .string import StringToken, StringTokenizer
+from . import hocr, pdf, string
 
-__all__ = [Token, Tokenizer, TokenSegment, KBestItem, tokenize_str, dehyphenate_tokens, HOCRToken, HOCRTokenizer, PDFToken, PDFTokenizer, StringToken, StringTokenizer]
+__all__ = [Token, Tokenizer, TokenSegment, KBestItem, tokenize_str, dehyphenate_tokens]
