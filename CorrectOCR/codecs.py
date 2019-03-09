@@ -50,7 +50,7 @@ class COCRJSONCodec(json.JSONEncoder):
 					obj['hocr'],
 					obj['tokens'],
 				)
-			elif obj['COCRkind'] =='Token':
+			elif obj['COCRkind'] == 'Token':
 				return Token.from_dict(obj['token'])
 			elif obj['COCRkind'] == 'html.HtmlElement':
 				return html.fromstring(obj['element'])

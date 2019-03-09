@@ -198,7 +198,7 @@ class HOCRTokenizer(Tokenizer):
 		pdf = fitz.open()
 		pix = fitz.Pixmap(str(original))
 		page = pdf.newPage(-1, width=pix.width, height=pix.height)
-		page.insertImage(page.rect, pixmap = pix)
+		page.insertImage(page.rect, pixmap=pix)
 
 		for token in progressbar.progressbar(tokens):
 			page = pdf[token.page]
@@ -208,7 +208,7 @@ class HOCRTokenizer(Tokenizer):
 			size = token.rect.height * fontfactor
 			textwidth = fitz.getTextlength(word, fontsize=size)
 			rect = fitz.Rect(token.rect.x0, token.rect.y0, max(token.rect.x1, token.rect.x0+textwidth+1.0), token.rect.y1 + token.rect.height*2)
-			res = page.insertTextbox(rect, f'{word} ', fontsize=size, color=(1,0,0))
+			res = page.insertTextbox(rect, f'{word} ', fontsize=size, color=(1, 0, 0))
 			if res < 0:
 				HOCRTokenizer.log.warning(
 					f'Token was not inserted properly: {word}\n'

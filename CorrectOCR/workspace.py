@@ -95,7 +95,7 @@ class Workspace(object):
 			Workspace.log.info(f'Alignment files for {fileid} exist, will read and return. Use --force or clean files to rerun a subset.')
 			return (
 				FileIO.load(faPath),
-				{o: {int(k): v for k,v in i.items()} for o, i in FileIO.load(waPath).items()},
+				{o: {int(k): v for k, v in i.items()} for o, i in FileIO.load(waPath).items()},
 				FileIO.load(mcPath)
 			)
 		Workspace.log.info(f'Creating alignment files for {fileid}')

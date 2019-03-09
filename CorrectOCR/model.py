@@ -148,7 +148,7 @@ class HMM(object):
 			# Create the N*N sequences for the first two characters
 			# of the word.
 			paths = [((i, j), (self.init[i] * self.emis[i][word[0]] * self.tran[i][j] * self.emis[j][word[1]]))
-							for i in self.states for j in self.states]
+					 for i in self.states for j in self.states]
 
 			# Keep the k best sequences.
 			paths = sorted(paths, key=lambda x: x[1], reverse=True)[:k]
@@ -157,7 +157,7 @@ class HMM(object):
 			# each time step.
 			for t in range(2, len(word)):
 				temp = [(x[0] + (j,), (x[1] * self.tran[x[0][-1]][j] * self.emis[j][word[t]]))
-                                    for j in self.states for x in paths]
+						for j in self.states for x in paths]
 				paths = sorted(temp, key=lambda x: x[1], reverse=True)[:k]
 				#print(t, len(temp), temp[:5], len(paths), temp[:5])
 

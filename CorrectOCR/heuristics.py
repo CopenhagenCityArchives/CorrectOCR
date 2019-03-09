@@ -30,7 +30,7 @@ class Heuristics(object):
 		},
 		4: {
 			'description': 'k1 != original and is in dictionary while original isn''t.',
-			'matcher': lambda o, k, d, dcode: o!= k and o not in d and k in d,
+			'matcher': lambda o, k, d, dcode: o != k and o not in d and k in d,
 			'heuristic': 'a',
 		},
 		5: {

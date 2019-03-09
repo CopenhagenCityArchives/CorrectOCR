@@ -45,7 +45,7 @@ del loglevels['WARN']
 # windows/mobaxterm/py3.6 fix:
 if os.name == 'nt':
 	import io
-	sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
+	sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf8')
 
 progressbar.streams.wrap_stderr()
 
@@ -70,10 +70,10 @@ workspaceparser.set_defaults(**dict(config.items('workspace')))
 resourceparser = argparse.ArgumentParser()
 resourceparser.add_argument('--hmmParamsFile', metavar='FILE', type=Path, help='Path to HMM parameters (generated from alignment files via build_model command)')
 resourceparser.add_argument('--reportFile', metavar='FILE', type=Path, help='Path to output heuristics report (TXT file)')
-resourceparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=Path , help='Path to heuristics settings (generated via make_settings command)')
+resourceparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=Path, help='Path to heuristics settings (generated via make_settings command)')
 resourceparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=Path, help='Path to output multi-character error file (JSON format)')
-resourceparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=Path , help='Path to memoizations of corrections.')
-resourceparser.add_argument('--correctionTrackingFile', metavar='FILE', type=Path , help='Path to correction tracking.')
+resourceparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=Path, help='Path to memoizations of corrections.')
+resourceparser.add_argument('--correctionTrackingFile', metavar='FILE', type=Path, help='Path to correction tracking.')
 resourceparser.add_argument('--dictionaryFile', metavar='FILE', type=Path, help='Path to dictionary file')
 resourceparser.add_argument('--caseInsensitive', action='store_true', default=False, help='Use case insensitive dictionary comparisons')
 resourceparser.set_defaults(**dict(config.items('resources')))

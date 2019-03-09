@@ -18,7 +18,7 @@ class Aligner(object):
 		(aPos, bPos, aStr, bStr) = (0, 0, '', '')
 		#matcher.set_seq1(best.original)
 		m = SequenceMatcher(None, left, right)
-		for (a,b,c) in m.get_matching_blocks():
+		for (a, b, c) in m.get_matching_blocks():
 			if a > aPos:
 				aStr += left[aPos:a]
 			if b > bPos:

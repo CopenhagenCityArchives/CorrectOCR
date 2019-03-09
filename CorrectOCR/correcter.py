@@ -54,7 +54,7 @@ class CorrectionShell(cmd.Cmd):
 			
 			self.metrics['tokenCount'] += 1
 			if self.decision == 'annotator':
-				self.metrics['humanCount'] +=1 # increment human-effort count
+				self.metrics['humanCount'] += 1 # increment human-effort count
 				
 				left = ' '.join([c.gold or c.original for c in ctxr])
 				right = ' '.join([c.original for c in ctxl])

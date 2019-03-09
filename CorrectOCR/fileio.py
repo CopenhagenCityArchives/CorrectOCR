@@ -69,9 +69,11 @@ class FileIO(object):
 		if backup:
 			cls.ensure_new_file(path)
 		if binary:
-			fopen = lambda: open(str(path), 'wb')
+			def fopen():
+				return open(str(path), 'wb')
 		else:
-			fopen = lambda: open(str(path), 'w', encoding='utf-8')
+			def fopen():
+				return open(str(path), 'w', encoding='utf-8')
 		with fopen() as f:
 			if path.suffix == '.pickle':
 				return pickle.dump(data, f)
