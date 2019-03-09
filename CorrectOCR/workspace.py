@@ -1,6 +1,5 @@
 import functools
 import logging
-from collections import defaultdict
 from pathlib import Path
 from pprint import pformat
 from typing import Dict, Iterator, List, Tuple, Union

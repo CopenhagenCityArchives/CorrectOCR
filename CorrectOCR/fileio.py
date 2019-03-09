@@ -4,7 +4,7 @@ import logging
 import pickle
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from bs4.dammit import UnicodeDammit
 

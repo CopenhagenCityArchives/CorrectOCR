@@ -1,6 +1,5 @@
 import abc
 import collections
-import functools
 import json
 import logging
 import string

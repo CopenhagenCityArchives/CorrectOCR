@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict, defaultdict, Counter
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import progressbar
 
