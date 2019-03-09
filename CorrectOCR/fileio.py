@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 from bs4.dammit import UnicodeDammit
 
 from .codecs import COCRJSONCodec
-from .tokenize import Token
+from .tokens import Token
 
 
 def open_for_reading(file: Path, binary=False):

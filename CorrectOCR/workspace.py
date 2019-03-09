@@ -10,7 +10,7 @@ from .dictionary import Dictionary
 from .fileio import FileIO
 from .heuristics import Heuristics
 from .model import HMM
-from .tokenize import Token, Tokenizer, tokenize_str, dehyphenate_tokens
+from .tokens import Token, Tokenizer, tokenize_str, dehyphenate_tokens
 
 
 def tokensaver(get_path):

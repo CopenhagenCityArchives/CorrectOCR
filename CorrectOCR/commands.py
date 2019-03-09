@@ -14,7 +14,7 @@ from tei_reader import TeiReader
 from .correcter import CorrectionShell
 from .fileio import open_for_reading, FileIO
 from .model import HMMBuilder
-from .tokenize import tokenize_str, Token, Tokenizer
+from .tokens import tokenize_str, Token, Tokenizer
 from .workspace import Workspace
 
 

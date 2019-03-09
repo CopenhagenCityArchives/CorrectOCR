@@ -3,7 +3,7 @@ import logging
 from typing import List
 
 from . import punctuationRE, split_window
-from .tokenize import Token
+from .tokens import Token
 
 '''
 IMPORTANT BEFORE USING:

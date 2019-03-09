@@ -6,7 +6,7 @@ import progressbar
 
 from . import punctuationRE
 from .dictionary import Dictionary
-from .tokenize import Token
+from .tokens import Token
 
 
 class Heuristics(object):

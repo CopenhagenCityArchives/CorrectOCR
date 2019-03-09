@@ -10,7 +10,7 @@ from . import punctuationRE
 from .cache import PickledLRUCache, cached
 from .dictionary import Dictionary
 from .fileio import FileIO
-from .tokenize import KBestItem, Token
+from .tokens import KBestItem, Token
 
 
 class HMM(object):

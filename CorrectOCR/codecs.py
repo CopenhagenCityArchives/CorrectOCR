@@ -3,7 +3,7 @@ import logging
 
 from lxml import html
 
-from .tokenize import Token, TokenSegment
+from .tokens import Token, TokenSegment
 		
 
 class COCRJSONCodec(json.JSONEncoder):
