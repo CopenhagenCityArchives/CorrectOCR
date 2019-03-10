@@ -142,6 +142,12 @@ class Token(abc.ABC):
 			kbest[k] = KBestItem(candidate, float(probability))
 			k += 1
 		t.kbest = kbest
+		if 'Bin' in d:
+			from ..heuristics import Heuristics
+			t.bin = dict(Heuristics.bins[int(d['Bin'])])
+			t.bin['heuristic'] = d['Heuristic']
+			t.bin['decision'] = d['Decision']
+			t.bin['selection'] = d['Selection']
 		#t.__class__.log.debug(t)
 		return t
 

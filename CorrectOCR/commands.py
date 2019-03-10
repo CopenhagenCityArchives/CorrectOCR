@@ -288,9 +288,24 @@ def do_correct(workspace: Workspace, config):
 	else:
 		fileid = config.fileid
 	
-	log.info(f'Correcting {fileid}')
-
-	if not config.apply:
+	if config.autocorrect:
+		log.info(f'Getting automatic corrections from binned tokens')
+		binned_tokens = workspace.binnedTokens(config.fileid, config.k)
+		
+		for t in binned_tokens:
+			if t.bin['decision'] in {'kbest', 'kdict'}:
+				t.gold = t.kbest[t.bin['decision']].candidate
+			elif t.bin['decision'] == 'original':
+				t.gold = t.original
+		corrected = binned_tokens
+	elif config.apply:
+		log.info(f'Getting corrections from {config.apply}')
+		if not config.apply.is_file():
+			log.error(f'Unable to apply non-file path {config.apply}')
+			raise SystemExit(-1)
+		corrected = [Token.from_dict(row) for row in FileIO.load(config.apply)]
+	elif config.interactive:
+		log.info(f'Getting corrections from interactive session')
 		binned_tokens = workspace.binnedTokens(config.fileid, config.k)
 
 		# get header, if any
@@ -298,8 +313,6 @@ def do_correct(workspace: Workspace, config):
 		# print info to annotator
 		#log.info(f'header: {header}')
 
-		log.info(f'{fileid} contains about {len(binned_tokens)} words')
-	
 		metrics = CorrectionShell.start(binned_tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
 		corrected = binned_tokens
 		log.debug(metrics['newWords'])
@@ -314,10 +327,8 @@ def do_correct(workspace: Workspace, config):
 			workspace.resources.correctionTracking.save()
 			workspace.resources.memoizedCorrections.save()
 	else:
-		if not config.apply.is_file():
-			log.error(f'Unable to apply non-file path {config.apply}')
-			raise SystemExit(-1)
-		corrected = [Token.from_dict(row) for row in FileIO.load(config.apply)]
+		log.critical('This shouldn''t happen!')
+		raise SystemExit(-1)
 
 	log.info(f'Applying corrections to {fileid}')
 	Tokenizer.for_extension(workspace.paths[fileid].ext).apply(

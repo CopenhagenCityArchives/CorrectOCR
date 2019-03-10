@@ -135,6 +135,7 @@ group1.add_argument('--filePath', type=Path, help='Input file path (will be copi
 group2 = correctparser.add_mutually_exclusive_group(required=True)
 group2.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
 group2.add_argument('--apply', type=Path, help='Apply externally corrected token CSV to original file')
+group2.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
 correctparser.set_defaults(func=commands.do_correct, **configuration)
 
 args = rootparser.parse_args(args)

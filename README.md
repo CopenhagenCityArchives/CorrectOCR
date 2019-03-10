@@ -108,9 +108,10 @@ The following commands are available:
 *	`correct` uses the settings to sort the tokens into bins and makes automated decisions as configured.
 	*	The `--fileid` option specifies which file to correct.
 
-	There are two ways to run corrections:
+	There are three ways to run corrections:
 	*	`--interactive` runs an interactive correction CLI for the remaining undecided tokens (see [Correction Interface](#correction-interace) below).
 	*	`--apply` takes a path argument to an edited token CSV file and applies the corrections therein.
+	*	`--autocorrect` applies available corrections as configured in correction settings (ie. any heuristic bins not marked for human annotation).
 
 Heuristics
 ----------
