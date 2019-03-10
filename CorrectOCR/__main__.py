@@ -128,7 +128,7 @@ group.add_argument('--make_report', action='store_true', help='Make heuristics s
 group.add_argument('--make_settings', action='store_true', help='Make heuristics settings from report')
 statsparser.set_defaults(func=commands.do_stats, **configuration)
 
-correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Run assisted correction interface')
+correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Apply corrections')
 group1 = correctparser.add_mutually_exclusive_group(required=True)
 group1.add_argument('--fileid', help='Input file ID (filename without path or extension)')
 group1.add_argument('--filePath', type=Path, help='Input file path (will be copied to originalPath directory)')

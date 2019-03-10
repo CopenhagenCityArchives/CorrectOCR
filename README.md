@@ -79,7 +79,7 @@ The following commands are available:
 *	`build_dictionary` creates a dictionary.
 	Input files can be either `.pdf`, `.txt`, or `.xml` (in [TEI format](https://en.wikipedia.org/wiki/Text_Encoding_Initiative)). They may be contained in `.zip`-files. 
 	*	The `--corpusPath` option specifies a directory of files.
-	*	The `--corpusFile` option specifies a list of paths and URLs to files. One such file for a dictionary covering 1800–1948 Danish is provided under `resources/`.
+	*	The `--corpusFile` option specifies a file containing paths and URLs. One such file for a dictionary covering 1800–1948 Danish is provided under `resources/`.
 
 	It is strongly recommended to generate a large dictionary for best performance.
 

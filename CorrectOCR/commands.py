@@ -252,7 +252,7 @@ def do_prepare(workspace: Workspace, config):
 
 
 def do_stats(workspace: Workspace, config):
-	log = logging.getLogger(f'{__name__}.do_heuristics')
+	log = logging.getLogger(f'{__name__}.do_stats')
 
 	if config.make_report:
 		for fileid, goldTokens in workspace.goldTokens():
