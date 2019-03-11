@@ -4,7 +4,6 @@ from typing import List
 import fitz
 
 from ._super import Token, Tokenizer
-from ..fileio import FileIO
 
 
 @Token.register
@@ -67,15 +66,7 @@ class PDFTokenizer(Tokenizer):
 			for image_info in page.getImageList():
 				xref = image_info[0]
 				stream = pdf_original.extractImage(xref)['image']
-				assert stream[0:4] == b'\x00\x00\x00\x0c' and stream[16:24] == b'ftypjp2 ' # can only handle JPX at the moment
-
-				# Workaround for jpx images not being recognized when inserted as stream:
-				cachefile = FileIO.cachePath.joinpath(f'pdf/{original.stem}-{xref}.jpx')
-				FileIO.ensure_directories(cachefile.parent)
-				with open(cachefile, 'wb') as f:
-					f.write(stream)
-
-				newpage.insertImage(page.rect, filename=str(cachefile))
+				newpage.insertImage(page.rect, stream=stream)
 
 		PDFTokenizer.log.info('Inserting tokens in corrected PDF')
 		for token in sorted(tokens, key=lambda x: x.ordering):

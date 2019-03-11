@@ -7,7 +7,7 @@ opencv-contrib-python
 Pillow
 progressbar2
 pycountry
-PyMuPDF>=1.14.9
+PyMuPDF>=1.14.10
 regex
 requests
 tei-reader
