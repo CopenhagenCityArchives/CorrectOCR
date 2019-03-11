@@ -1,12 +1,14 @@
 import collections
 import logging
 import random
+import string
 import time
 import zipfile
 from pathlib import Path
-from typing import List, Set
+from typing import Dict, List, NamedTuple, Set
 
 import fitz
+import progressbar
 import requests
 from lxml import etree
 from tei_reader import TeiReader
@@ -336,3 +338,106 @@ def do_correct(workspace: Workspace, config):
 		corrected,
 		workspace.paths[fileid].correctedFile,
 	)
+
+
+##########################################################################################
+
+
+class TaggedToken(NamedTuple):
+	token: Token
+	tags: List[str]
+
+
+def do_index(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.do_index')
+
+	outfile = Path('index.csv')
+
+	taggedTerms: Dict[str, List[str]] = dict()
+	for termFile in config.termFiles:
+		taggedTerms[termFile.stem] = []
+		for line in FileIO.load(termFile).split('\n'):
+			term = line.lower().lstrip(string.punctuation).rstrip(string.punctuation).strip()
+			taggedTerms[termFile.stem].append(term)
+
+	log.debug(f'terms: {[(t, len(c)) for t, c in taggedTerms.items()]}')
+
+	def match_terms(fileid: str) -> List[List[TaggedToken]]:
+		log.info(f'Finding matching terms for {fileid}')
+
+		if config.autocorrect:
+			log.info(f'Applying automatic corrections from binned tokens')
+
+			tokens = workspace.binnedTokens(fileid, k=config.k)
+
+			for t in tokens:
+				if t.bin['decision'] in {'kbest', 'kdict'}:
+					t.gold = t.kbest[t.bin['decision']].candidate
+				elif t.bin['decision'] == 'original':
+					t.gold = t.original
+		else:
+			tokens = workspace.tokens(fileid)
+
+		log.info(f'Searching for terms')
+		matches = []
+		run = []
+		for token in progressbar.progressbar(tokens):
+			tt = TaggedToken(token, [])
+			matched = False
+			for tag, terms in taggedTerms.items():
+				key = token.gold if token.gold and token.gold != '' else token.lookup
+				key = key.lstrip(string.punctuation).rstrip(string.punctuation)
+				log.debug(f'token: {token} key: {key}')
+				if key != '' and key.lower() in terms:
+					tt.tags.append(tag)
+					matched = True
+			if len(tt.tags) > 0:
+				run.append(tt)
+			if not matched:
+				# TODO require all of a kind? names.given + names.surname?
+				if len(run) > 1:
+					#log.debug(f'Adding run: {run}')
+					matches.append(run)
+				run = []
+
+		if config.highlight and workspace.paths[fileid].ext == '.pdf':
+			from .tokens.pdf import PDFToken
+			log.info(f'Applying highlights')
+			pdf = fitz.open(workspace.paths[fileid].originalFile)
+			for run in matches:
+				for tagged_token in run:
+					token: PDFToken = tagged_token.token
+					page = pdf[token.ordering[0]]
+					annotation = page.addRectAnnot(token.rect)
+					red = (1.0, 0.0, 0.0)
+					annotation.setColors({'fill': red, 'stroke': red})
+					annotation.setOpacity(0.5)
+					annotation.update()
+			filename = f'{fileid}-highlighted.pdf'
+			log.info(f'Saving highlighted PDF to {filename}')
+			pdf.save(filename)
+
+		return matches
+	
+	matches = dict()
+	if config.fileid:
+		matches[config.fileid] = match_terms(fileid=config.fileid)
+	elif config.all:
+		matches = dict()
+		for fileid, pathManager in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
+			matches[fileid] = match_terms(fileid=fileid)
+	#log.debug(f'matches: {matches}')
+
+	rows = []
+	for fileid, runs in matches.items():
+		for run in runs:
+			#log.debug(f'run: {run}')
+			for tagged_tokens in run:
+				rows.append({
+					'fileid': fileid,
+					'tokens': [r.token.lookup for r in run],
+					'tags': [r.tags for r in run],
+				})
+	if len(rows) > 0:
+		log.info(f'Saving index to {outfile}')
+		FileIO.save(rows, outfile)

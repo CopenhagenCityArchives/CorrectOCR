@@ -113,6 +113,14 @@ The following commands are available:
 	*	`--apply` takes a path argument to an edited token CSV file and applies the corrections therein.
 	*	`--autocorrect` applies available corrections as configured in correction settings (ie. any heuristic bins not marked for human annotation).
 
+*	`index` finds specified terms for use in index-generation.
+	*	The `--fileid` option specifies a single file for which to generate an index.
+	*	The `--all` option generates indices for all available files. Can be combined with `--exclude` to skip specific files.
+	*	The `--termFile` option specifies a text file containing a word on each line, which will be matched against the tokens. The option may be repeated, and each filename (without extension) will be used as markers for the string.
+	*	The `--highlight` option will create a copy of the input files with highlighted words (only available for PDFs).
+	*	The `--autocorrect` option applies available corrections prior to search/highlighting, as above.
+
+
 Heuristics
 ----------
 

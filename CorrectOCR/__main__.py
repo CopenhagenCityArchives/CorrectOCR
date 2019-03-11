@@ -138,6 +138,16 @@ group2.add_argument('--apply', type=Path, help='Apply externally corrected token
 group2.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
 correctparser.set_defaults(func=commands.do_correct, **configuration)
 
+indexparser = subparsers.add_parser('index', parents=[commonparser], help='Generate index data')
+group = indexparser.add_mutually_exclusive_group(required=True)
+group.add_argument('--fileid', help='Input file ID (filename without path or extension)')
+group.add_argument('--filePath', type=Path, help='Input file path (will be copied to originalPath directory)')
+indexparser.add_argument('--exclude', action='append', default=[], help='File ID to exclude (can be specified multiple times)')
+indexparser.add_argument('--termFile', type=Path, action='append', default=[], dest='termFiles', required=True, help='File containing a string on each line, which will be matched against the tokens')
+indexparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
+indexparser.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
+indexparser.set_defaults(func=commands.do_index, **configuration)
+
 args = rootparser.parse_args(args)
 
 ##########################################################################################
