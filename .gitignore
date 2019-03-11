@@ -8,3 +8,10 @@ training
 .idea
 test
 __COCRcache__
+docs/_build
+docs/_sources
+docs/_static
+docs/.doctrees
+docs/*.html
+docs/objects.inv
+venv
