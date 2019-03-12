@@ -50,7 +50,7 @@ class CorrectionShell(cmd.Cmd):
 			ctxl, self.token, ctxr = next(self.tokenwindow)
 			if self.token.gold:
 				return self.nexttoken()
-			(self.decision, self.selection) = (self.token.bin['decision'], self.token.bin['selection'])
+			(self.decision, self.selection) = (self.token.bin.decision, self.token.bin.selection)
 			
 			self.metrics['tokenCount'] += 1
 			if self.decision == 'annotator':

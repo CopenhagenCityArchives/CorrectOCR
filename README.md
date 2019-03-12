@@ -158,6 +158,6 @@ A `help` command is available in the interface.
 Requirements
 ============
 
-*	Python >= 3.6
+*	Python >= 3.7
 
 For package dependencies see [requirements.txt](requirements.txt). They can be installed using `pip install -r requirements.txt`

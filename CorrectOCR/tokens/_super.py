@@ -3,12 +3,15 @@ import collections
 import json
 import logging
 import string
-from typing import List, DefaultDict, Tuple, NamedTuple
+from pathlib import Path
+from typing import Any, DefaultDict, List, NamedTuple, Tuple
 
 import nltk
 import regex
-from PIL import Image
 from lxml import html
+
+
+from ..heuristics import Bin
 
 
 def tokenize_str(data: str, language='English') -> List[str]:
@@ -66,7 +69,7 @@ class Token(abc.ABC):
 		m = Token.punct_RE.search(original)
 		(self._punct_prefix, self.lookup, self._punct_suffix) = m.groups('')
 		self.gold = None
-		self.bin = dict()
+		self.bin: Bin = None
 		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
 		
 		if self.is_punctuation():
@@ -116,11 +119,11 @@ class Token(abc.ABC):
 		for k, item in self.kbest.items():
 			output[f'{k}-best'] = item.candidate
 			output[f'{k}-best prob.'] = item.probability
-		if len(self.bin) > 0:
-			output['Bin'] = self.bin.get('number', -1)
-			output['Heuristic'] = self.bin.get('heuristic', None)
-			output['Decision'] = self.bin.get('decision', None)
-			output['Selection'] = self.bin.get('selection', None)
+		if self.bin:
+			output['Bin'] = self.bin.number or -1
+			output['Heuristic'] = self.bin.heuristic
+			output['Decision'] = self.bin.decision
+			output['Selection'] = self.bin.selection
 		output['Token type'] = self.__class__.__name__
 		output['Token info'] = json.dumps(self.token_info)
 
@@ -129,7 +132,7 @@ class Token(abc.ABC):
 	@classmethod
 	def from_dict(cls, d: dict) -> 'Token':
 		classname = d['Token type']
-		#Token.subclasses[classname].log.debug(f'{d}')
+		#Token.subclasses[classname].log.debug(f'from_dict: {d}')
 		t = Token.subclasses[classname](json.loads(d['Token info']))
 		t.gold = d.get('Gold', None)
 		kbest = collections.defaultdict(lambda: KBestItem(''))
@@ -144,10 +147,10 @@ class Token(abc.ABC):
 		t.kbest = kbest
 		if 'Bin' in d:
 			from ..heuristics import Heuristics
-			t.bin = dict(Heuristics.bins[int(d['Bin'])])
-			t.bin['heuristic'] = d['Heuristic']
-			t.bin['decision'] = d['Decision']
-			t.bin['selection'] = d['Selection']
+			t.bin = Heuristics.bins[int(d['Bin'])].copy()
+			t.bin.heuristic = d['Heuristic']
+			t.bin.decision = d['Decision']
+			t.bin.selection = d['Selection']
 		#t.__class__.log.debug(t)
 		return t
 
@@ -158,7 +161,7 @@ class Token(abc.ABC):
 			header = ['Gold'] + header
 		for k in range(1, self.k+1):
 			header += [f'{k}-best', f'{k}-best prob.']
-		if len(self.bin) > 0:
+		if self.bin:
 			header += ['Bin', 'Heuristic', 'Decision', 'Selection']
 		return header + ['Token type', 'Token info']
 
@@ -200,17 +203,14 @@ class Tokenizer(abc.ABC):
 ##########################################################################################
 
 
-class TokenSegment(object):
-	log = logging.getLogger(f'{__name__}.TokenSegment')
-
-	def __init__(self, fileid: str, page: int, column: int, rect: Tuple[int, int, int, int], image: Image, hocr: html.Element, tokens: List[Token]):
-		self.fileid = fileid
-		self.page = page
-		self.column = column
-		self.rect = rect
-		self.image = image
-		self.hocr = hocr
-		self.tokens = tokens
+class TokenSegment(NamedTuple):
+	fileid: str
+	page: int
+	column: int
+	rect: Tuple[float, float, float, float]
+	image: Any # PIL.Image doesnt work...?
+	hocr: html.Element
+	tokens: List[Token]
 
 
 ##########################################################################################
