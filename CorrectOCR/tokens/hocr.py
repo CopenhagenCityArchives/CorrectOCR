@@ -13,7 +13,6 @@ from PIL import Image
 from lxml import html
 
 from ._super import Token, Tokenizer, TokenSegment
-from ..fileio import FileIO
 
 
 @contextmanager
@@ -167,6 +166,8 @@ class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
 	def tokenize(self, file, force=False):
+		from ..fileio import FileIO
+
 		cachefile = FileIO.cachePath.joinpath(f'hocr/{file.stem}.cache.json')
 		FileIO.ensure_directories(cachefile.parent)
 
