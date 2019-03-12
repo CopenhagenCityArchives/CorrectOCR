@@ -2,6 +2,7 @@ import logging
 from typing import List
 
 import fitz
+import progressbar
 
 from ._super import Token, Tokenizer
 
@@ -46,8 +47,7 @@ class PDFTokenizer(Tokenizer):
 		doc = fitz.open(str(file))
 
 		tokens = []
-		for page in doc:
-			PDFTokenizer.log.debug(f'Getting tokens from page: {page.number}')
+		for page in progressbar.progressbar(doc):
 			tokens += [PDFToken((page.number, ) + tuple(w)) for w in page.getTextWords()]
 
 		PDFTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
