@@ -191,7 +191,7 @@ class Tokenizer(abc.ABC):
 		self.tokens = []
 
 	@abc.abstractmethod
-	def tokenize(self, file, force):
+	def tokenize(self, file: Path) -> List[Token]:
 		pass
 
 	@staticmethod

@@ -165,7 +165,7 @@ def tokenize_image(fileid: str, page: int, image: Image, language='Eng', force=F
 class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
-	def tokenize(self, file, force=False):
+	def tokenize(self, file):
 		from ..fileio import FileIO
 
 		cachefile = FileIO.cachePath.joinpath(f'hocr/{file.stem}.cache.json')

@@ -118,8 +118,7 @@ class Workspace(object):
 		Workspace.log.info(f'Creating basic tokens for {fileid}')
 		tokenizer = Tokenizer.for_extension(self.paths[fileid].ext)(self.language)
 		tokens = tokenizer.tokenize(
-			self.paths[fileid].originalFile,
-			force=force
+			self.paths[fileid].originalFile
 		)
 
 		if dehyphenate:

@@ -43,7 +43,7 @@ class PDFToken(Token):
 class PDFTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.PDFTokenizer')
 
-	def tokenize(self, file, force=False):
+	def tokenize(self, file):
 		doc = fitz.open(str(file))
 
 		tokens = []
