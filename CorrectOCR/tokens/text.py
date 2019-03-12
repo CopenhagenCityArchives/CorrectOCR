@@ -23,7 +23,7 @@ class StringToken(Token):
 class StringTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.StringTokenizer')
 
-	def tokenize(self, file, force=False):
+	def tokenize(self, file):
 		tokens = [StringToken(w) for w in tokenize_str(file.body, self.language.name)]
 		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
 	
