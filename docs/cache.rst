@@ -1,5 +1,4 @@
-Submodule CorrectOCR.cache
-==========================
+Cache
+=====
 
 .. automodule:: CorrectOCR.cache
-   :members:

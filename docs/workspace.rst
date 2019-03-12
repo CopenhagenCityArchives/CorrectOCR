@@ -1,5 +1,4 @@
-Submodule CorrectOCR.workspace
-==============================
+Workspace
+=========
 
 .. automodule:: CorrectOCR.workspace
-   :members:

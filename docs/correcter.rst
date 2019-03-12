@@ -1,5 +1,4 @@
-Submodule CorrectOCR.correcter
-==============================
+Correcter
+=========
 
 .. automodule:: CorrectOCR.correcter
-   :members:

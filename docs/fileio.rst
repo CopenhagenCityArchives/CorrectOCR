@@ -1,5 +1,4 @@
-Submodule CorrectOCR.fileio
-===========================
+FileIO
+======
 
 .. automodule:: CorrectOCR.fileio
-   :members:

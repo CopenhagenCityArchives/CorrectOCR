@@ -1,5 +1,4 @@
-Submodule CorrectOCR.codecs
-===========================
+Codecs
+======
 
 .. automodule:: CorrectOCR.codecs
-   :members:

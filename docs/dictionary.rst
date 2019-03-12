@@ -1,5 +1,4 @@
-Submodule CorrectOCR.dictionary
-===============================
+Dictionary
+==========
 
 .. automodule:: CorrectOCR.dictionary
-   :members:

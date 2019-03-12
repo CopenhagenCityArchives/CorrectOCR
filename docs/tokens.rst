@@ -1,5 +1,4 @@
-Submodule CorrectOCR.tokens
-=================================
+Tokens
+======
 
 .. automodule:: CorrectOCR.tokens
-   :members:

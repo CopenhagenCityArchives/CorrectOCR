@@ -16,7 +16,6 @@ Welcome to CorrectOCR's documentation!
 
    aligner
    cache
-   codecs
    commands
    correcter
    dictionary

@@ -1,23 +1,46 @@
+from __future__ import annotations
+
 import logging
 from collections import Counter, OrderedDict, defaultdict
 from dataclasses import dataclass, replace, field
-from typing import Any, Callable, DefaultDict, Dict, List
+from typing import Any, Callable, DefaultDict, Dict, List, TYPE_CHECKING
 
 import progressbar
 
 from . import punctuationRE
-
+if TYPE_CHECKING:
+	from .dictionary import Dictionary
+	from .tokens import Token
 
 @dataclass
 class Bin:
+	"""
+	Heuristics bin ...
+
+	TODO TABLE
+	"""
 	description: str
-	matcher: Callable[[str, str, 'Dictionary', str], bool]
+	"""Description of bin"""
+	matcher: Callable #[[str, str, Dictionary, str], bool]
+	"""Function or lambda which returns `True` if a given :class:`CorrectOCR.tokens._super.Token` fits into the bin, or `False` otherwise.
+	
+	:param o: Original string
+	:param k: *k*-best candidate string
+	:param d: Dictionary
+	:param dcode: One of 'zerokd', 'somekd', 'allkd' for whether zero, some, or all other *k*-best candidates are in dictionary
+	"""
 	heuristic: str = 'a'
+	"""Which heuristic the bin is set up for; one of 'a' = annotator, 'o' = choose original, 'k' = top *k*-best, 'd' = *k*-best in dictionary."""
 	number: int = None
+	"""The number of the bin."""
 	decision: str = None
+	"""The decision that was made."""
 	selection: Any = None
+	"""The selection for the decision."""
 	counts: DefaultDict[str, int] = field(default_factory=lambda: defaultdict(int))
-	example: 'Token' = None
+	"""Statistics used for reporting."""
+	example: Token = None
+	"""An example of a matching :class:`CorrectOCR.tokens.Token`, used for reporting."""
 
 	def copy(self):
 		return replace(self)

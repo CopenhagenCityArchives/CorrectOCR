@@ -42,9 +42,17 @@ def tokensaver(get_path):
 
 
 class Workspace(object):
+	"""
+	The Workspace holds references to paths and resources used by the commands
+	"""
 	log = logging.getLogger(f'{__name__}.Workspace')
 
 	def __init__(self, workspaceconfig, resourceconfig):
+		"""
+
+		:param workspaceconfig:
+		:param resourceconfig:
+		"""
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(workspaceconfig))}')
 		self.nheaderlines: int = workspaceconfig.nheaderlines
 		self.language = workspaceconfig.language

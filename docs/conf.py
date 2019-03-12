@@ -42,6 +42,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
     'sphinx.ext.githubpages',
+    'sphinx.ext.intersphinx',
+    'sphinx_autodoc_typehints',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -177,3 +179,12 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+
+autodoc_default_options = {
+    'members': True,
+    'undoc-members': True,
+    'member-order': 'groupwise',
+    'exclude-members': 'log',
+}

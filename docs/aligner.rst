@@ -1,5 +1,4 @@
-Submodule CorrectOCR.aligner
-============================
+Aligner
+=======
 
 .. automodule:: CorrectOCR.aligner
-   :members:

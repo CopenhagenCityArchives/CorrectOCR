@@ -1,5 +1,4 @@
-Submodule CorrectOCR.commands
-=============================
+Commands
+========
 
 .. automodule:: CorrectOCR.commands
-   :members:

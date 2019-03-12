@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import collections
 import json
@@ -33,10 +35,18 @@ class KBestItem(NamedTuple):
 
 
 class Token(abc.ABC):
+	"""
+	Abstract base class. Tokens handle single words. ...
+	"""
 	subclasses = dict()
 
 	@staticmethod
 	def register(cls):
+		"""
+		Decorator which registers a :class:`Token` subclass with the base class.
+
+		:param cls: Token subclass
+		"""
 		Token.subclasses[cls.__name__] = cls
 		return cls
 
@@ -44,15 +54,25 @@ class Token(abc.ABC):
 
 	@property
 	@abc.abstractmethod
-	def token_info(self):
+	def token_info(self) -> Any:
+		"""
+
+		:return:
+		"""
 		pass
 
 	@property
-	def original(self):
+	def original(self) -> str:
+		"""
+		The original spelling of the Token.
+		"""
 		return f'{self._punct_prefix}{self.lookup}{self._punct_suffix}'
 
 	@property
-	def gold(self):
+	def gold(self) -> str:
+		"""
+		The corrected spelling of the Token.
+		"""
 		return f'{self._punct_prefix}{self._gold}{self._punct_suffix}' if self._gold is not None else None
 
 	@gold.setter
@@ -62,7 +82,10 @@ class Token(abc.ABC):
 			self._gold = self._gold.lstrip(string.punctuation).rstrip(string.punctuation)
 
 	@property
-	def k(self):
+	def k(self) -> int:
+		"""
+		The number of k-best suggestions for the Token.
+		"""
 		return len(self.kbest)
 
 	def __init__(self, original: str):
@@ -70,8 +93,10 @@ class Token(abc.ABC):
 		(self._punct_prefix, self.lookup, self._punct_suffix) = m.groups('')
 		self.gold = None
 		self.bin: Bin = None
+		"""Heuristics bin and decisions"""
 		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
-		
+		"""*k*-best suggestions for Token"""
+
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
 			self._gold = self.lookup
@@ -103,11 +128,17 @@ class Token(abc.ABC):
 
 	punctuationRE = regex.compile(r'^\p{punct}+$')
 
-	def is_punctuation(self):
+	def is_punctuation(self) -> bool:
+		"""
+		Is the Token purely punctuation?
+		"""
 		#self.__class__.log.debug(f'{self}')
 		return Token.punctuationRE.match(self.original)
 
-	def is_numeric(self):
+	def is_numeric(self) -> bool:
+		"""
+		Is the Token purely numeric?
+		"""
 		return self.original.isnumeric()
 
 	@property
@@ -130,7 +161,12 @@ class Token(abc.ABC):
 		return output
 
 	@classmethod
-	def from_dict(cls, d: dict) -> 'Token':
+	def from_dict(cls, d: dict) -> Token:
+		"""
+		Initialize and return a new Token with values from a dictionary.
+
+		:param d: A dictionary of properties for the Token
+		"""
 		classname = d['Token type']
 		#Token.subclasses[classname].log.debug(f'from_dict: {d}')
 		t = Token.subclasses[classname](json.loads(d['Token info']))
@@ -156,6 +192,9 @@ class Token(abc.ABC):
 
 	@property
 	def header(self) -> List[str]:
+		"""
+		A list of field names suitable for :py:class:`csv.DictWriter`.
+		"""
 		header = ['Original']
 		if self.gold:
 			header = ['Gold'] + header
@@ -170,11 +209,21 @@ class Token(abc.ABC):
 
 
 class Tokenizer(abc.ABC):
+	"""
+	Abstract base class. The `Tokenizer` subclasses handle extracting :class:`Token` instances from a document.
+
+	Initialized with the langauge to use for tokenization (for example, the `.txt` tokenizer internally uses nltk whose tokenizers function best with a language parameter).
+	"""
 	log = logging.getLogger(f'{__name__}.Tokenizer')
 	subclasses = dict()
 
 	@staticmethod
-	def register(extensions):
+	def register(extensions: List[str]):
+		"""
+		Class decorator to register Tokenizer subclass.
+
+		:param extensions: List of extensions that the subclass will handle
+		"""
 		def wrapper(cls):
 			for ext in extensions:
 				Tokenizer.subclasses[ext] = cls
@@ -182,21 +231,38 @@ class Tokenizer(abc.ABC):
 		return wrapper
 
 	@staticmethod
-	def for_extension(ext):
+	def for_extension(ext: str):
+		"""
+		Obtain the suitable subclass for the given extension.
+
+		:param ext: Filename extension (including leading period, eg. '.pdf')
+		:return: Tokenizer subclass
+		"""
 		Tokenizer.log.debug(f'subclasses: {Tokenizer.subclasses}')
 		return Tokenizer.subclasses[ext]
 
 	def __init__(self, language):
+		"""
+
+		:type language: :class:`pycountry.Language`
+		:param language:
+		"""
 		self.language = language
 		self.tokens = []
 
 	@abc.abstractmethod
 	def tokenize(self, file: Path) -> List[Token]:
+		"""
+		Generate tokens for the given document.
+
+		:param file: A path to an input file
+		:return:
+		"""
 		pass
 
 	@staticmethod
 	@abc.abstractmethod
-	def apply(original, tokens: List[Token], corrected):
+	def apply(original: Path, tokens: List[Token], corrected: Path):
 		pass
 
 

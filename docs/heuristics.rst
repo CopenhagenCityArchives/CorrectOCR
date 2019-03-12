@@ -1,5 +1,4 @@
-Submodule CorrectOCR.heuristics
-===============================
+Heuristics
+==========
 
 .. automodule:: CorrectOCR.heuristics
-   :members:
