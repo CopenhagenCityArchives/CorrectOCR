@@ -27,12 +27,20 @@ class PickledLRUCache(LRUCache):
 		super().__init__(*args, **kwargs)
 		self.path = path
 		self._finalize = weakref.finalize(self, PickledLRUCache.save, self)
+		self._should_save = False
+
+	def __setitem__(self, key, value):
+		if not self._should_save:
+			PickledLRUCache.log.debug(f'__setitem__ called with {key}, {value} -- will set _should_save')
+		self._should_save = True
+		super().__setitem__(key, value)
 
 	def save(self):
-		# TODO check if there is anything to save?
-		PickledLRUCache.log.info(f'Saving {self.currsize} items to {self.path}')
-		FileIO.ensure_directories(self.path.parent)
-		FileIO.save(self, self.path, backup=False)
+		if self._should_save:
+			PickledLRUCache.log.info(f'Saving {self.currsize} items to {self.path}')
+			self._should_save = False
+			FileIO.ensure_directories(self.path.parent)
+			FileIO.save(self, self.path, backup=False)
 
 	def delete(self):
 		FileIO.delete(self.path)
