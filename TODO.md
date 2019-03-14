@@ -11,10 +11,6 @@ dictionary
 *	autogen filename with language
 *	names, places -- skip k-best?
 
-tokens
-------
-*	include fileid in Token, csv
-
 hocr
 ----
 *	--build_pdf --images 1,2,3 --pdfname etc

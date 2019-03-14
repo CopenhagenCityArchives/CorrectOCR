@@ -53,14 +53,14 @@ class HOCRToken(Token):
 	def token_info(self):
 		return (html.tostring(self._element, encoding='unicode'), self.page)
 
-	def __init__(self, info, **kwargs):
+	def __init__(self, info, fileid, **kwargs):
 		(element, page) = info
 		if isinstance(element, str):
 			self._element = html.fromstring(element)
 		else:
 			self._element = element
 		self.page = page
-		super().__init__(self._element.text.strip())
+		super().__init__(self._element.text.strip(), fileid)
 
 	def rect(self):
 		# example: title='bbox 77 204 93 234; x_wconf 95'
@@ -167,7 +167,7 @@ def tokenize_image(fileid: str, page: int, image: Image, language='Eng', force=F
 					rect,
 					image,
 					hocr,
-					[HOCRToken((e, page)) for e in elements if e.text.strip() != '']
+					[HOCRToken((e, page), fileid) for e in elements if e.text.strip() != '']
 				)
 
 

@@ -51,15 +51,16 @@ class Token(abc.ABC):
 
 	_punctuation_splitter = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
 
-	def __init__(self, original: str):
+	def __init__(self, original: str, fileid: str):
 		"""
-		:param original: Original spelling of the token
+		:param original: Original spelling of the token.
+		:param fileid: The file with which the Token is associated.
 		"""
 		m = Token._punctuation_splitter.search(original)
 		(self._punct_prefix, self.lookup, self._punct_suffix) = m.groups('')
+		self.fileid = fileid  #: The file with which the Token is associated.
 		self.gold = None
-		self.bin: Bin = None
-		"""Heuristics bin and decisions"""
+		self.bin: Bin = None  #: Heuristics bin.
 		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
 		"""
 		Dictionary of *k*-best suggestions for the Token. They are keyed
@@ -154,6 +155,7 @@ class Token(abc.ABC):
 		output = {
 			'Gold': self.gold or '',
 			'Original': self.original,
+			'File ID': self.fileid,
 		}
 		for k, item in self.kbest.items():
 			output[f'{k}-best'] = item.candidate
@@ -177,7 +179,7 @@ class Token(abc.ABC):
 		"""
 		classname = d['Token type']
 		#Token._subclasses[classname].log.debug(f'from_dict: {d}')
-		t = Token._subclasses[classname](json.loads(d['Token info']))
+		t = Token._subclasses[classname](json.loads(d['Token info']), d.get('File ID', None))
 		t.gold = d.get('Gold', None)
 		kbest = collections.defaultdict(lambda: KBestItem(''))
 		k = 1
@@ -288,7 +290,7 @@ class DehyphenationToken(Token):
 	def __init__(self, first: Token, second: Token):
 		self.first = first
 		self.second = second
-		super().__init__(self.original)
+		super().__init__(self.original, first.fileid)
 
 	@property
 	def original(self):

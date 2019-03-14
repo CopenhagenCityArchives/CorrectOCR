@@ -40,7 +40,7 @@ class FileIO(object):
 				header += [f'{n}-best', f'{n}-best prob.']
 		if kind in {'.binnedTokens'}:
 			header += ['Bin', 'Heuristic', 'Decision', 'Selection']
-		header += ['Token type', 'Token info']
+		header += ['Token type', 'Token info', 'File ID']
 		cls.log.debug(f'header for {kind} k={k}: {header}')
 		return header
 
