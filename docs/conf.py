@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'CorrectOCR'
-copyright = '2019, Mikkel Eide Eriksen for Copenhagen City Archives'
-author = 'Mikkel Eide Eriksen for Copenhagen City Archives'
+copyright = '2019, Mikkel Eide Eriksen, for Copenhagen City Archives'
+author = 'Mikkel Eide Eriksen, for Copenhagen City Archives'
 
 # The short X.Y version
 version = ''
@@ -40,9 +40,12 @@ release = ''
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.todo',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.coverage',
     'sphinx.ext.githubpages',
-    'sphinx.ext.intersphinx',
     'sphinx_autodoc_typehints',
 ]
 
@@ -63,7 +66,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -134,7 +137,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'CorrectOCR.tex', 'CorrectOCR Documentation',
-     'Mikkel Eide Eriksen for Copenhagen City Archives', 'manual'),
+     'Mikkel Eide Eriksen, for Copenhagen City Archives', 'manual'),
 ]
 
 
@@ -180,11 +183,19 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
-
 autodoc_default_options = {
-    'members': True,
-    'undoc-members': True,
     'member-order': 'groupwise',
     'exclude-members': 'log',
 }
+
+autodoc_mock_imports = ['tesserocr']
+
+# -- Options for intersphinx extension ---------------------------------------
+
+# Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {'https://docs.python.org/': None}
+
+# -- Options for todo extension ----------------------------------------------
+
+# If true, `todo` and `todoList` produce output, else they produce nothing.
+todo_include_todos = True

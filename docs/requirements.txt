@@ -1,0 +1,17 @@
+beautifulsoup4
+cachetools
+lxml
+nltk
+numpy
+opencv-contrib-python
+Pillow
+progressbar2
+pycountry
+PyMuPDF>=1.14.10
+regex
+requests
+tei-reader
+#tesserocr -- cannot be installed on RTD (C dependency), so it is mocked in conf.py
+
+# documentation packages:
+sphinx-autodoc-typehints
