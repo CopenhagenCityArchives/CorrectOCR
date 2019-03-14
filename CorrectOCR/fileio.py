@@ -4,7 +4,7 @@ import logging
 import pickle
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
 from bs4.dammit import UnicodeDammit
 
@@ -26,6 +26,20 @@ class FileIO(object):
 	log = logging.getLogger(f'{__name__}.FileIO')
 
 	cachePath = Path('./__COCRcache__/')
+
+	@classmethod
+	def _csv_header(cls, kind: str, k: int) -> List[str]:
+		header = ['Original']
+		if kind in {'.alignedTokens', '.kbestTokens', '.binnedTokens'}:
+			header = ['Gold'] + header
+		if kind in {'.kbestTokens', '.binnedTokens'}:
+			for n in range(1, k+1):
+				header += [f'{n}-best', f'{n}-best prob.']
+		if kind in {'.binnedTokens'}:
+			header += ['Bin', 'Heuristic', 'Decision', 'Selection']
+		header += ['Token type', 'Token info']
+		cls.log.debug(f'header for {kind} k={k}: {header}')
+		return header
 
 	@classmethod
 	def get_encoding(cls, file: Path) -> str:
@@ -81,7 +95,7 @@ class FileIO(object):
 				return json.dump(data, f, cls=COCRJSONCodec)
 			elif path.suffix == '.csv':
 				if isinstance(data[0], Token):
-					header = data[0].header
+					header = cls._csv_header(path.suffixes[0], data[0].k)
 					rows = [vars(x) for x in data]
 				else:
 					header = data[0].keys()

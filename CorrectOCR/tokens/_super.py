@@ -190,20 +190,6 @@ class Token(abc.ABC):
 		#t.__class__.log.debug(t)
 		return t
 
-	@property
-	def header(self) -> List[str]:
-		"""
-		A list of field names suitable for :py:class:`csv.DictWriter`.
-		"""
-		header = ['Original']
-		if self.gold:
-			header = ['Gold'] + header
-		for k in range(1, self.k+1):
-			header += [f'{k}-best', f'{k}-best prob.']
-		if self.bin:
-			header += ['Bin', 'Heuristic', 'Decision', 'Selection']
-		return header + ['Token type', 'Token info']
-
 
 ##########################################################################################
 
