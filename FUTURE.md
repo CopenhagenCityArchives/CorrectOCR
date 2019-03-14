@@ -29,3 +29,18 @@ hocr
 		*	https://gist.github.com/luipillmann/d76eb4f4eea0320bb35dcd1b2a4575ee
 	*	https://github.com/glazzara/olena
 	*	https://github.com/phatn/lapdftext
+
+
+dictionary
+----------
+
+consider word frequency and weight lookups accordingly? 
+
+
+misc
+----
+
+https://info.clarin.dk/
+http://sprogtek2018.dk/
+https://alf.hum.ku.dk/korp/?mode=da1800
+https://clarin.dk/clarindk/find.jsp

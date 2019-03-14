@@ -12,7 +12,7 @@ from ._codecs import COCRJSONCodec
 from .tokens import Token
 
 
-def open_for_reading(file: Path, binary=False):
+def _open_for_reading(file: Path, binary=False):
 	if binary:
 		return open(str(file), 'rb')
 	else:
@@ -23,9 +23,12 @@ def open_for_reading(file: Path, binary=False):
 
 
 class FileIO(object):
+	"""
+	Various file IO helper methods.
+	"""
 	log = logging.getLogger(f'{__name__}.FileIO')
 
-	cachePath = Path('./__COCRcache__/')
+	_cachePath = Path('./__COCRcache__/')
 
 	@classmethod
 	def _csv_header(cls, kind: str, k: int) -> List[str]:
@@ -43,6 +46,12 @@ class FileIO(object):
 
 	@classmethod
 	def get_encoding(cls, file: Path) -> str:
+		"""
+		Get encoding of a text file.
+
+		:param file: A path to a text file.
+		:return: The encoding of the file, eg. 'utf-8', 'Windows-1252', etc.
+		"""
 		with open(str(file), 'rb') as f:
 			dammit = UnicodeDammit(f.read(1024*500), ['utf-8', 'Windows-1252'])
 			cls.log.debug(f'detected {dammit.original_encoding} for {file}')
@@ -50,6 +59,11 @@ class FileIO(object):
 
 	@classmethod
 	def ensure_new_file(cls, path: Path):
+		"""
+		Moves a possible existing file out of the way by adding a numeric counter before the extension.
+
+		:param path: The path to check.
+		"""
 		counter = 0
 		originalpath = path
 		while Path(path).is_file():
@@ -63,21 +77,52 @@ class FileIO(object):
 			originalpath.rename(path)
 
 	@classmethod
-	def ensure_directories(cls, path):
+	def ensure_directories(cls, path: Path):
+		"""
+		Ensures that the entire path exists.
+
+		:param path: The path to check.
+		"""
 		path.mkdir(parents=True, exist_ok=True)
 
 	@classmethod
 	def copy(cls, src: Path, dest: Path):
+		"""
+		Copies a file.
+
+		:param src: Source-path.
+		:param dest: Destination-path.
+		"""
 		cls.log.info(f'Copying {src} to {dest}')
 		shutil.copy(str(src), str(dest))
 
 	@classmethod
 	def delete(cls, path: Path):
+		"""
+		Deletes a file.
+
+		:param path: The path to delete.
+		"""
 		if path.exists():
 			path.unlink()
 
 	@classmethod
-	def save(cls, data: Any, path: Path, binary=False, backup=True):
+	def save(cls, data: Any, path: Path, backup=True):
+		"""
+		Saves data into a file. The extension determines the method of saving:
+
+		-  `.pickle` -- uses :mod:`pickle`.
+		-  `.json` -- uses :mod:`json`.
+		-  `.csv` -- uses :class:`csv.DictWriter` (assumes data is list of :func:`vars()`-capable
+		   objects). The keys of the first object determines the header.
+
+		Any other extension will simply :func:`write()` the data to the file.
+
+		:param data: The data to save.
+		:param path: The path to save to.
+		:param backup: Whether to move existing files out of the way via :meth:`ensure_new_file`
+		"""
+		binary = False
 		if path.suffix == '.pickle':
 			binary = True
 		if backup:
@@ -90,9 +135,9 @@ class FileIO(object):
 				return open(str(path), 'w', encoding='utf-8')
 		with fopen() as f:
 			if path.suffix == '.pickle':
-				return pickle.dump(data, f)
-			if path.suffix == '.json':
-				return json.dump(data, f, cls=COCRJSONCodec)
+				pickle.dump(data, f)
+			elif path.suffix == '.json':
+				json.dump(data, f, cls=COCRJSONCodec)
 			elif path.suffix == '.csv':
 				if isinstance(data[0], Token):
 					header = cls._csv_header(path.suffixes[0], data[0].k)
@@ -102,20 +147,34 @@ class FileIO(object):
 					rows = data
 				writer = csv.DictWriter(f, header, delimiter='\t', extrasaction='ignore')
 				writer.writeheader()
-				return writer.writerows(rows)
+				writer.writerows(rows)
 			else:
-				return f.write(data)
+				f.write(data)
 
 	@classmethod
-	def load(cls, path: Path, binary=False, default=None):
+	def load(cls, path: Path, default=None):
+		"""
+		Loads data from a file. The extension determines the method of saving:
+
+		-  `.pickle` -- uses :mod:`pickle`.
+		-  `.json` -- uses :mod:`json`.
+		-  `.csv` -- uses :class:`csv.DictReader`.
+
+		Any other extension will simply :func:`read()` the data from the file.
+
+		:param path: The path to load from.
+		:param default: If file doesn't exist, return default instead.
+		:return: The data from the file, or the default.
+		"""
+		binary = False
 		if path.suffix == '.pickle':
 			binary = True
 		if not path.is_file():
 			return default
-		with open_for_reading(path, binary=binary) as f:
+		with _open_for_reading(path, binary=binary) as f:
 			if path.suffix == '.pickle':
 				return pickle.load(f)
-			if path.suffix == '.json':
+			elif path.suffix == '.json':
 				return json.load(f, object_hook=COCRJSONCodec.object_hook)
 			elif path.suffix == '.csv':
 				return list(csv.DictReader(f, delimiter='\t'))

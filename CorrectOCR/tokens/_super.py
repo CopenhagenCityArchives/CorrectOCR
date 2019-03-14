@@ -6,11 +6,10 @@ import json
 import logging
 import string
 from pathlib import Path
-from typing import Any, DefaultDict, List, NamedTuple, Tuple
+from typing import Any, DefaultDict, List, NamedTuple
 
 import nltk
 import regex
-from lxml import html
 
 
 from ..heuristics import Bin
@@ -50,7 +49,29 @@ class Token(abc.ABC):
 		Token._subclasses[cls.__name__] = cls
 		return cls
 
-	punct_RE = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
+	_punctuation_splitter = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
+
+	def __init__(self, original: str):
+		"""
+		:param original: Original spelling of the token
+		"""
+		m = Token._punctuation_splitter.search(original)
+		(self._punct_prefix, self.lookup, self._punct_suffix) = m.groups('')
+		self.gold = None
+		self.bin: Bin = None
+		"""Heuristics bin and decisions"""
+		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
+		"""
+		Dictionary of *k*-best suggestions for the Token. They are keyed
+		with a numerical index starting at 1, and the values are instances
+		of :class:`KBestItem`.
+		"""
+		self.decision: str = None #: The decision that was made when :attr:`gold` was set automatically.
+		self.selection: Any = None #: The selected automatic correction for the :attr:`decision`.
+
+		if self.is_punctuation():
+			#self.__class__.log.debug(f'{self}: is_punctuation')
+			self._gold = self.lookup
 
 	@property
 	@abc.abstractmethod
@@ -87,31 +108,6 @@ class Token(abc.ABC):
 		The number of k-best suggestions for the Token.
 		"""
 		return len(self.kbest)
-
-	def __init__(self, original: str):
-		m = Token.punct_RE.search(original)
-		(self._punct_prefix, self.lookup, self._punct_suffix) = m.groups('')
-		self.gold = None
-		self.bin: Bin = None
-		"""Heuristics bin and decisions"""
-		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
-		"""
-		Dictionary of *k*-best suggestions for the Token. They are keyed
-		with a numerical index starting at 1, and the values are instances
-		of :class:`KBestItem`.
-		"""
-		self.decision: str = None
-		"""
-		The decision that was made when `gold` was set automatically.
-		"""
-		self.selection: Any = None
-		"""
-		The selected automatic correction for the decision.
-		"""
-
-		if self.is_punctuation():
-			#self.__class__.log.debug(f'{self}: is_punctuation')
-			self._gold = self.lookup
 
 	def __str__(self):
 		return f'<{self.__class__.__name__} "{self.original}" "{self.gold}" {self.kbest} {self.bin}>'
@@ -209,8 +205,6 @@ class Token(abc.ABC):
 class Tokenizer(abc.ABC):
 	"""
 	Abstract base class. The `Tokenizer` subclasses handle extracting :class:`Token` instances from a document.
-
-	Initialized with the langauge to use for tokenization (for example, the `.txt` tokenizer internally uses nltk whose tokenizers function best with a language parameter).
 	"""
 	log = logging.getLogger(f'{__name__}.Tokenizer')
 	_subclasses = dict()
@@ -231,10 +225,16 @@ class Tokenizer(abc.ABC):
 	@staticmethod
 	def for_extension(ext: str):
 		"""
-		Obtain the suitable subclass for the given extension.
+		Obtain the suitable subclass for the given extension. Currently, Tokenizers are
+		provided for the following extensions:
 
-		:param ext: Filename extension (including leading period, eg. '.pdf')
-		:return: Tokenizer subclass
+		-  ``.txt`` -- plain old text.
+		-  ``.pdf`` -- assumes the PDF contains images and OCRed text.
+		-  ``.tiff`` -- will run OCR on the image and generate a PDF.
+		-  ``.png`` -- will run OCR on the image and generate a PDF.
+
+		:param ext: Filename extension (including leading period).
+		:return: A Tokenizer subclass.
 		"""
 		Tokenizer.log.debug(f'_subclasses: {Tokenizer._subclasses}')
 		return Tokenizer._subclasses[ext]
@@ -243,7 +243,7 @@ class Tokenizer(abc.ABC):
 		"""
 
 		:type language: :class:`pycountry.Language`
-		:param language:
+		:param language: The language to use for tokenization (for example, the `.txt` tokenizer internally uses nltk whose tokenizers function best with a language parameter).
 		"""
 		self.language = language
 		self.tokens = []
@@ -262,19 +262,6 @@ class Tokenizer(abc.ABC):
 	@abc.abstractmethod
 	def apply(original: Path, tokens: List[Token], corrected: Path):
 		pass
-
-
-##########################################################################################
-
-
-class TokenSegment(NamedTuple):
-	fileid: str
-	page: int
-	column: int
-	rect: Tuple[float, float, float, float]
-	image: Any # PIL.Image doesnt work...?
-	hocr: html.Element
-	tokens: List[Token]
 
 
 ##########################################################################################

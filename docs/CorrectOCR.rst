@@ -6,13 +6,6 @@ CorrectOCR package
     :undoc-members:
     :show-inheritance:
 
-Subpackages
------------
-
-.. toctree::
-
-    CorrectOCR.tokens
-
 Submodules
 ----------
 
@@ -25,5 +18,6 @@ Submodules
    CorrectOCR.fileio
    CorrectOCR.heuristics
    CorrectOCR.model
+   CorrectOCR.tokens
    CorrectOCR.workspace
 

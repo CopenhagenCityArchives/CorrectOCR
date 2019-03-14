@@ -14,7 +14,7 @@ from lxml import etree
 from tei_reader import TeiReader
 
 from .correcter import CorrectionShell
-from .fileio import open_for_reading, FileIO
+from .fileio import _open_for_reading, FileIO
 from .model import HMMBuilder
 from .tokens import tokenize_str, Token, Tokenizer
 from .workspace import Workspace
@@ -39,10 +39,10 @@ def extract_text_from_pdf(filename: str):
 def build_dictionary(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.build_dictionary')
 	
-	corpusPath = config.corpusPath or FileIO.cachePath.joinpath('dictionary/')
+	corpusPath = config.corpusPath or FileIO._cachePath.joinpath('dictionary/')
 
 	if config.corpusFile:
-		for line in open_for_reading(config.corpusFile).readlines():
+		for line in _open_for_reading(config.corpusFile).readlines():
 			line = line.strip()
 			if len(line) == 0:
 				pass
@@ -184,7 +184,7 @@ def build_dictionary(workspace: Workspace, config):
 			for word in tokenize_str(text, workspace.language.name):
 				workspace.resources.dictionary.add(word)
 		elif file.suffix == '.txt':
-			with open_for_reading(file) as f:
+			with _open_for_reading(file) as f:
 				for word in tokenize_str(f.read(), workspace.language.name):
 					workspace.resources.dictionary.add(word)
 		else:
@@ -287,7 +287,7 @@ def do_correct(workspace: Workspace, config):
 		if fileid in workspace.paths:
 			log.error(f'File ID already exists: {fileid}! You must rename the file first.')
 			raise SystemExit(-1)
-		workspace.add_new_path(fileid, config.filePath.suffix, new_original=config.filePath)
+		workspace.add_fileid(fileid, config.filePath.suffix, new_original=config.filePath)
 	else:
 		fileid = config.fileid
 	
@@ -344,11 +344,6 @@ def do_correct(workspace: Workspace, config):
 ##########################################################################################
 
 
-class TaggedToken(NamedTuple):
-	token: Token
-	tags: List[str]
-
-
 def do_index(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_index')
 
@@ -362,6 +357,10 @@ def do_index(workspace: Workspace, config):
 			taggedTerms[termFile.stem].append(term)
 
 	log.debug(f'terms: {[(t, len(c)) for t, c in taggedTerms.items()]}')
+
+	class TaggedToken(NamedTuple):
+		token: Token
+		tags: List[str]
 
 	def match_terms(fileid: str) -> List[List[TaggedToken]]:
 		log.info(f'Finding matching terms for {fileid}')
@@ -402,7 +401,7 @@ def do_index(workspace: Workspace, config):
 				run = []
 
 		if config.highlight and workspace.paths[fileid].ext == '.pdf':
-			from .tokens.pdf import PDFToken
+			from .tokens._pdf import PDFToken
 			log.info(f'Applying highlights')
 			pdf = fitz.open(workspace.paths[fileid].originalFile)
 			for run in matches:

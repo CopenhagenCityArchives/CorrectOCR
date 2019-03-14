@@ -3,7 +3,7 @@ import logging
 import re
 from contextlib import contextmanager
 from functools import partial
-from typing import List
+from typing import Any, List, NamedTuple, Tuple
 
 import cv2
 import fitz
@@ -12,7 +12,20 @@ import progressbar
 from PIL import Image
 from lxml import html
 
-from ._super import Token, Tokenizer, TokenSegment
+from ._super import Token, Tokenizer
+
+
+class TokenSegment(NamedTuple):
+	fileid: str
+	page: int
+	column: int
+	rect: Tuple[float, float, float, float]
+	image: Any # PIL.Image doesnt work...?
+	hocr: html.Element
+	tokens: List[Token]
+
+
+##########################################################################################
 
 
 @contextmanager
@@ -168,7 +181,7 @@ class HOCRTokenizer(Tokenizer):
 	def tokenize(self, file):
 		from ..fileio import FileIO
 
-		cachefile = FileIO.cachePath.joinpath(f'hocr/{file.stem}.cache.json')
+		cachefile = FileIO._cachePath.joinpath(f'hocr/{file.stem}.cache.json')
 		FileIO.ensure_directories(cachefile.parent)
 
 		if cachefile.is_file():

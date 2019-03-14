@@ -12,94 +12,19 @@ if TYPE_CHECKING:
 	from .dictionary import Dictionary
 	from .tokens import Token
 
-@dataclass
-class Bin:
-	"""
-	Heuristics bin ...
-
-	TODO TABLE
-	"""
-	description: str
-	"""Description of bin"""
-	matcher: Callable #[[str, str, Dictionary, str], bool]
-	"""Function or lambda which returns `True` if a given :class:`CorrectOCR.tokens._super.Token` fits into the bin, or `False` otherwise.
-	
-	:param o: Original string
-	:param k: *k*-best candidate string
-	:param d: Dictionary
-	:param dcode: One of 'zerokd', 'somekd', 'allkd' for whether zero, some, or all other *k*-best candidates are in dictionary
-	"""
-	heuristic: str = 'a'
-	"""Which heuristic the bin is set up for; one of 'a' = annotator, 'o' = choose original, 'k' = top *k*-best, 'd' = *k*-best in dictionary."""
-	number: int = None
-	"""The number of the bin."""
-	counts: DefaultDict[str, int] = field(default_factory=lambda: defaultdict(int))
-	"""Statistics used for reporting."""
-	example: Token = None
-	"""An example of a matching :class:`CorrectOCR.tokens.Token`, used for reporting."""
-
-	def copy(self):
-		return replace(self)
-
-
-##########################################################################################
-
-
-_bins: Dict[int, Bin] = OrderedDict({
-	1: Bin(
-		description='k1 == original and both are in dictionary.',
-		matcher=lambda o, k, d, dcode: o == k and o in d,
-	),
-	2: Bin(
-		description='k1 == original but they are not in dictionary, and no other kbest is in dictionary either.',
-		matcher=lambda o, k, d, dcode: o == k and o not in d and dcode == 'zerokd',
-	),
-	3: Bin(
-		description='k1 == original but they are not in dictionary, but some lower-ranked kbest is.',
-		matcher=lambda o, k, d, dcode: o == k and o not in d and dcode == 'somekd',
-	),
-	4: Bin(
-		description='k1 != original and is in dictionary while original isn''t.',
-		matcher=lambda o, k, d, dcode: o != k and o not in d and k in d,
-	),
-	5: Bin(
-		description='k1 != original and nothing is in dictionary.',
-		matcher=lambda o, k, d, dcode: o != k and o not in d and dcode == 'zerokd',
-	),
-	6: Bin(
-		description='k1 != original and neither are in dictionary, but a lower-ranked candidate is.',
-		matcher=lambda o, k, d, dcode: o != k and k not in d and o not in d and dcode == 'somekd',
-	),
-	7: Bin(
-		description='k1 != original and both are in dictionary.',
-		matcher=lambda o, k, d, dcode: o != k and o in d and k in d,
-	),
-	8: Bin(
-		description='k1 != original, original is in dictionary and no candidates are in dictionary.',
-		matcher=lambda o, k, d, dcode: o != k and o in d and dcode == 'zerokd',
-	),
-	9: Bin(
-		description='k1 != original, k1 is not in dictionary but both original and a lower candidate are.',
-		matcher=lambda o, k, d, dcode: o != k and o in d and k not in d and dcode == 'somekd',
-	),
-	10: Bin(
-		description='Catch-all bin, matches any remaining tokens. It is recommended to pass this to annotator.',
-		matcher=lambda o, k, d, dcode: True,
-	)
-})
-
-
-##########################################################################################
-
 
 class Heuristics(object):
 	log = logging.getLogger(f'{__name__}.Heuristics')
 
 	@classmethod
 	def bin(cls, n: int) -> Bin:
-		return _bins[n].copy()
+		return _bins[n]._copy()
 
 	def __init__(self, settings: Dict[int, str], dictionary):
+		"""
+		:param settings: A dictionary of ``bin`` => ``heuristic`` settings.
+		:param dictionary: A dictionary for determining correctness of :class:`Tokens<CorrectOCR.tokens.Token>` and suggestions.
+		"""
 		for (_bin, code) in settings.items():
 			_bins[int(_bin)].heuristic = code
 		for (number, _bin) in _bins.items():
@@ -128,7 +53,7 @@ class Heuristics(object):
 		token_bin = None
 		for num, _bin in _bins.items():
 			if _bin.matcher(token.lookup, token.kbest[1].candidate, self.dictionary, dcode):
-				token_bin = _bin.copy()
+				token_bin = _bin._copy()
 				break
 
 		# return decision and chosen candidate(s)
@@ -254,3 +179,87 @@ class Heuristics(object):
 			out += '\n\n\n'
 
 		return out
+
+
+##########################################################################################
+
+
+@dataclass
+class Bin:
+	"""
+	Heuristics bin ...
+
+	TODO TABLE
+	"""
+	description: str
+	"""Description of bin"""
+	matcher: Callable[[str, str, Dictionary, str], bool]
+	"""Function or lambda which returns `True` if a given :class:`CorrectOCR.tokens.Token` fits into the bin, or `False` otherwise.
+
+	:param o: Original string
+	:param k: *k*-best candidate string
+	:param d: Dictionary
+	:param dcode: One of 'zerokd', 'somekd', 'allkd' for whether zero, some, or all other *k*-best candidates are in dictionary
+	"""
+	heuristic: str = 'a'
+	"""
+	Which heuristic the bin is set up for, one of:
+	
+	-  'a' = Defer to annotator.
+	-  'o' = Select original.
+	-  'k' = Select top *k*-best.
+	-  'd' = Select *k*-best in dictionary.
+	"""
+	number: int = None #: The number of the bin.
+	counts: DefaultDict[str, int] = field(default_factory=lambda: defaultdict(int)) #: Statistics used for reporting.
+	example: Token = None #: An example of a matching :class:`CorrectOCR.tokens.Token`, used for reporting.
+
+	def _copy(self):
+		return replace(self)
+
+
+##########################################################################################
+
+
+_bins: Dict[int, Bin] = OrderedDict({
+	1: Bin(
+		description='k1 == original and both are in dictionary.',
+		matcher=lambda o, k, d, dcode: o == k and o in d,
+	),
+	2: Bin(
+		description='k1 == original but they are not in dictionary, and no other kbest is in dictionary either.',
+		matcher=lambda o, k, d, dcode: o == k and o not in d and dcode == 'zerokd',
+	),
+	3: Bin(
+		description='k1 == original but they are not in dictionary, but some lower-ranked kbest is.',
+		matcher=lambda o, k, d, dcode: o == k and o not in d and dcode == 'somekd',
+	),
+	4: Bin(
+		description='k1 != original and is in dictionary while original isn''t.',
+		matcher=lambda o, k, d, dcode: o != k and o not in d and k in d,
+	),
+	5: Bin(
+		description='k1 != original and nothing is in dictionary.',
+		matcher=lambda o, k, d, dcode: o != k and o not in d and dcode == 'zerokd',
+	),
+	6: Bin(
+		description='k1 != original and neither are in dictionary, but a lower-ranked candidate is.',
+		matcher=lambda o, k, d, dcode: o != k and k not in d and o not in d and dcode == 'somekd',
+	),
+	7: Bin(
+		description='k1 != original and both are in dictionary.',
+		matcher=lambda o, k, d, dcode: o != k and o in d and k in d,
+	),
+	8: Bin(
+		description='k1 != original, original is in dictionary and no candidates are in dictionary.',
+		matcher=lambda o, k, d, dcode: o != k and o in d and dcode == 'zerokd',
+	),
+	9: Bin(
+		description='k1 != original, k1 is not in dictionary but both original and a lower candidate are.',
+		matcher=lambda o, k, d, dcode: o != k and o in d and k not in d and dcode == 'somekd',
+	),
+	10: Bin(
+		description='Catch-all bin, matches any remaining tokens. It is recommended to pass this to annotator.',
+		matcher=lambda o, k, d, dcode: True,
+	)
+})

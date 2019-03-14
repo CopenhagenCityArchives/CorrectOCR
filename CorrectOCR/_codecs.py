@@ -3,8 +3,8 @@ import logging
 
 from lxml import html
 
-from .tokens import Token, TokenSegment
-		
+from .tokens import Token
+from .tokens._hocr import TokenSegment
 
 class COCRJSONCodec(json.JSONEncoder):
 	log = logging.getLogger(f'{__name__}.COCRJSONEncoder')

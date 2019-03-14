@@ -214,31 +214,43 @@ class HMM(object):
 
 
 class HMMBuilder(object):
+	"""
+	Builds a HMM based on the input...
+	"""
 	log = logging.getLogger(f'{__name__}.HMMBuilder')
 
 	def __init__(self, dictionary: Dictionary, smoothingParameter: float, language, characterSet, misreadCounts, remove_chars: List[str], gold_words: List[str]):
-		self.dictionary = dictionary
-		self.smoothingParameter = smoothingParameter
-		self.remove_chars = remove_chars
-		self.charset = set(characterSet)
+		"""
+		:param dictionary: The dictionary to use for generating probabilities.
+		:param smoothingParameter:
+		:param language: A language instance from `pycountry <https://pypi.org/project/pycountry/>`.
+		:param characterSet:
+		:param misreadCounts:
+		:param remove_chars:
+		:param gold_words:
+		"""
+		self._dictionary = dictionary
+		self._smoothingParameter = smoothingParameter
+		self._remove_chars = remove_chars
+		self._charset = set(characterSet)
 
-		confusion = self.generate_confusion(misreadCounts)
-		char_counts = self.text_char_counts(gold_words)
+		confusion = self._generate_confusion(misreadCounts)
+		char_counts = self._text_char_counts(gold_words)
 
-		self.charset = self.charset | set(char_counts) | set(confusion)
+		self._charset = self._charset | set(char_counts) | set(confusion)
 
-		HMMBuilder.log.debug(f'Final characterSet: {sorted(self.charset)}')
+		HMMBuilder.log.debug(f'Final characterSet: {sorted(self._charset)}')
 
 		# Create the emission probabilities from the misread counts and the character counts
-		self.emis = self.emission_probabilities(confusion, char_counts)
+		self.emis = self._emission_probabilities(confusion, char_counts)
 
 		# Create the initial and transition probabilities from the gold files
-		self.init, self.tran = self.init_tran_probabilities(gold_words, language)
+		self.init, self.tran = self._init_tran_probabilities(gold_words, language)
 
 	# Start with misread counts, remove any keys which are not single
 	# characters, remove specified characters, and combine into a single
 	# dictionary.
-	def generate_confusion(self, misreadCounts: Dict) -> Dict[str, Dict[str, int]]:
+	def _generate_confusion(self, misreadCounts: Dict) -> Dict[str, Dict[str, int]]:
 		# Outer keys are the correct characters. Inner keys are the counts of
 		# what each character was read as.
 		confusion = defaultdict(Counter)
@@ -249,7 +261,7 @@ class HMMBuilder(object):
 		confusion = {key: value for key, value in confusion.items()
 				  if len(key) == 1}
 
-		for unwanted in self.remove_chars:
+		for unwanted in self._remove_chars:
 			if unwanted in confusion:
 				del confusion[unwanted]
 
@@ -260,7 +272,7 @@ class HMMBuilder(object):
 			for key in wrongsize:
 				del confusion[outer][key]
 
-			for unwanted in self.remove_chars:
+			for unwanted in self._remove_chars:
 				if unwanted in confusion[outer]:
 					del confusion[outer][unwanted]
 
@@ -269,7 +281,7 @@ class HMMBuilder(object):
 
 	# Get the character counts of the training files. Used for filling in
 	# gaps in the confusion probabilities.
-	def text_char_counts(self, words: List[str]) -> Dict[str, int]:
+	def _text_char_counts(self, words: List[str]) -> Dict[str, int]:
 		char_count = Counter()
 
 		#HMMBuilder.log.debug(f'words: {words}')
@@ -277,14 +289,14 @@ class HMMBuilder(object):
 		for word in words:
 			char_count.update(list(word))
 
-		for word in self.dictionary:
+		for word in self._dictionary:
 			char_count.update(list(word))
 
 		for char in set(char_count.keys()):
-			if char not in self.charset:
+			if char not in self._charset:
 				del char_count[char]
 
-		for unwanted in self.remove_chars:
+		for unwanted in self._remove_chars:
 			if unwanted in char_count:
 				del char_count[unwanted]
 
@@ -294,7 +306,7 @@ class HMMBuilder(object):
 	# counts. Optionally a file of expected characters can be used to add
 	# expected characters as model states whose emission probabilities are set to
 	# only output themselves.
-	def emission_probabilities(self, confusion, char_counts):
+	def _emission_probabilities(self, confusion, char_counts):
 		# Add missing dictionary elements.
 		# Missing outer terms are ones which were always read correctly.
 		for char in char_counts:
@@ -311,13 +323,13 @@ class HMMBuilder(object):
 
 		# Smooth and convert to probabilities.
 		for i in confusion:
-			denom = sum(confusion[i].values()) + (self.smoothingParameter * len(confusion[i]))
+			denom = sum(confusion[i].values()) + (self._smoothingParameter * len(confusion[i]))
 			for j in confusion[i]:
-				confusion[i][j] = (confusion[i][j] + self.smoothingParameter) / denom
+				confusion[i][j] = (confusion[i][j] + self._smoothingParameter) / denom
 
 		# Add characters that are expected to occur in the texts.
 		# Get the characters which aren't already present.
-		extra_chars = self.charset - set(self.remove_chars)
+		extra_chars = self._charset - set(self._remove_chars)
 
 		# Add them as new states.
 		for char in extra_chars:
@@ -333,11 +345,11 @@ class HMMBuilder(object):
 			confusion[char][char] = 1.0
 
 		for outer in set(confusion.keys()):
-			if outer not in self.charset:
+			if outer not in self._charset:
 				del confusion[outer]
 			else:
 				for inner in set(confusion[outer].keys()):
-					if inner not in self.charset:
+					if inner not in self._charset:
 						del confusion[outer][inner]
 
 		#logging.getLogger(f'{__name__}.emission_probabilities').debug(confusion)
@@ -345,7 +357,7 @@ class HMMBuilder(object):
 
 	# Create the initial and transition probabilities from the gold
 	# text in the training data.
-	def init_tran_probabilities(self, gold_words, language=None):
+	def _init_tran_probabilities(self, gold_words, language=None):
 		tran = defaultdict(lambda: defaultdict(int))
 		init = defaultdict(int)
 
@@ -359,12 +371,12 @@ class HMMBuilder(object):
 		for word in gold_words:
 			add_word(word)
 
-		for word in self.dictionary:
+		for word in self._dictionary:
 			add_word(word)
 
-		for unwanted in self.remove_chars:
-			if unwanted in self.charset:
-				self.charset.remove(unwanted)
+		for unwanted in self._remove_chars:
+			if unwanted in self._charset:
+				self._charset.remove(unwanted)
 			if unwanted in init:
 				del init[unwanted]
 			if unwanted in tran:
@@ -377,11 +389,11 @@ class HMMBuilder(object):
 		init_out = defaultdict(float)
 
 		# Add missing characters to the parameter dictionaries and apply smoothing.
-		init_denom = sum(init.values()) + (self.smoothingParameter * len(self.charset))
-		for i in self.charset:
-			init_out[i] = (init[i] + self.smoothingParameter) / init_denom
-			tran_denom = sum(tran[i].values()) + (self.smoothingParameter * len(self.charset))
-			for j in self.charset:
-				tran_out[i][j] = (tran[i][j] + self.smoothingParameter) / tran_denom
+		init_denom = sum(init.values()) + (self._smoothingParameter * len(self._charset))
+		for i in self._charset:
+			init_out[i] = (init[i] + self._smoothingParameter) / init_denom
+			tran_denom = sum(tran[i].values()) + (self._smoothingParameter * len(self._charset))
+			for j in self._charset:
+				tran_out[i][j] = (tran[i][j] + self._smoothingParameter) / tran_denom
 
 		return init_out, tran_out

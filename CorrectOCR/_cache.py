@@ -13,7 +13,7 @@ class PickledLRUCache(LRUCache):
 
 	@classmethod
 	def by_name(cls, name):
-		path = FileIO.cachePath.joinpath(f'{name}.pickle')
+		path = FileIO._cachePath.joinpath(f'{name}.pickle')
 		if path.is_file():
 			cache = FileIO.load(path)
 			PickledLRUCache.log.info(f'Loaded {path}: {cache.currsize} items.')

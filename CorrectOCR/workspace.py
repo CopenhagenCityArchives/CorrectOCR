@@ -15,7 +15,7 @@ from .model import HMM
 from .tokens import Token, Tokenizer, tokenize_str, dehyphenate_tokens
 
 
-def tokensaver(get_path):
+def _tokensaver(get_path):
 	def decorator(func):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
@@ -47,16 +47,24 @@ def tokensaver(get_path):
 
 class Workspace(object):
 	"""
-	The Workspace holds references to paths and resources used by the commands
+	The Workspace holds references to paths and resources used by the various :mod:`commands<CorrectOCR.commands>`.
+
+	Additionally, it is responsible for generating intermediate files for :class:`Tokens<CorrectOCR.tokens.Token>`.
+
+	:param workspaceconfig: An object with the following properties:
+
+	   -  `nheaderlines`: The number of header lines in corpus texts.
+	   -  `language`: A language instance from `pycountry <https://pypi.org/project/pycountry/>`.
+	   -  `originalPath`: A :class:`pathlib.Path` to a directory containing the original files.
+	   -  `goldPath`: A :class:`pathlib.Path` to a directory containing the gold (if any) files.
+	   -  `trainingPath`: A :class:`pathlib.Path` to a directory for saving intermediate files.
+	   -  `correctedPath`: A :class:`pathlib.Path` to a directory for saving corrected files.
+
+	:param resourceconfig: An object TODO
 	"""
 	log = logging.getLogger(f'{__name__}.Workspace')
 
 	def __init__(self, workspaceconfig, resourceconfig):
-		"""
-
-		:param workspaceconfig:
-		:param resourceconfig:
-		"""
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(workspaceconfig))}')
 		self.nheaderlines: int = workspaceconfig.nheaderlines
 		self.language = workspaceconfig.language
@@ -66,13 +74,20 @@ class Workspace(object):
 		self._goldPath = workspaceconfig.goldPath
 		self._trainingPath = workspaceconfig.trainingPath
 		self._correctedPath = workspaceconfig.correctedPath
-		self._nheaderlines = workspaceconfig.nheaderlines
 		for file in workspaceconfig.originalPath.iterdir():
 			if file.name in {'.DS_Store'}:
 				continue
-			self.add_new_path(file.stem, file.suffix)
+			self.add_fileid(file.stem, file.suffix)
 
-	def add_new_path(self, fileid, ext, new_original: Path = None):
+	def add_fileid(self, fileid: str, ext: str, new_original: Path = None):
+		"""
+		Initializes a new :class:`PathManager` with the ``fileid`` and adds it to the
+		workspace.
+
+		:param fileid: The fileid (filename without extension).
+		:param ext: The extension, including leading period.
+		:param new_original: Path to a new file that should be copied to the generated `originalPath`.
+		"""
 		if new_original:
 			FileIO.copy(new_original, self._originalPath)
 		self.paths[fileid] = PathManager(
@@ -82,22 +97,37 @@ class Workspace(object):
 			self._goldPath,
 			self._trainingPath,
 			self._correctedPath,
-			self._nheaderlines,
+			self.nheaderlines,
 		)
 
 	def originalTokens(self) -> Iterator[Tuple[str, List[Token]]]:
+		"""
+		Yields an iterator of (fileid, list of tokens).
+		"""
 		for fileid, pathManager in self.paths.items():
 			if pathManager.originalTokenFile.is_file():
 				Workspace.log.debug(f'Getting original tokens from {fileid}')
 				yield fileid, [Token.from_dict(row) for row in FileIO.load(pathManager.originalTokenFile)]
 
 	def goldTokens(self) -> Iterator[Tuple[str, List[Token]]]:
+		"""
+		Yields an iterator of (fileid, list of gold-aligned tokens).
+		"""
 		for fileid, pathManager in self.paths.items():
 			if pathManager.alignedTokenFile.is_file():
 				Workspace.log.debug(f'Getting gold tokens from {fileid}')
 				yield fileid, [Token.from_dict(row) for row in FileIO.load(pathManager.alignedTokenFile)]
 
 	def alignments(self, fileid: str, force=False) -> Tuple[list, dict, list]:
+		"""
+		Uses the :class:`Aligner<CorrectOCR.aligner.Aligner>` to generate alignments for a given
+		original, gold pair of files.
+
+		Caches its results in the ``trainingPath``.
+
+		:param fileid: ID of the file pair for which to generate alignments.
+		:param force: Back up existing alignment files and create new ones.
+		"""
 		faPath = self.paths[fileid].fullAlignmentsFile
 		waPath = self.paths[fileid].wordAlignmentsFile
 		mcPath = self.paths[fileid].misreadCountsFile
@@ -125,8 +155,18 @@ class Workspace(object):
 		
 		return fullAlignments, wordAlignments, misreadCounts
 
-	@tokensaver(lambda p: p.originalTokenFile)
+	@_tokensaver(lambda p: p.originalTokenFile)
 	def tokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+		"""
+		Generate :class:`Tokens<CorrectOCR.tokens.Token>` for the given file.
+
+		Caches its results in the ``trainingPath``.
+
+		:param fileid: ID of the file for which to generate tokens.
+		:param k: Unused in this method.
+		:param dehyphenate: Whether to attempt dehyphenization of tokens.
+		:param force: Back up existing token file and create a new one.
+		"""
 		Workspace.log.info(f'Creating basic tokens for {fileid}')
 		tokenizer = Tokenizer.for_extension(self.paths[fileid].ext)(self.language)
 		tokens = tokenizer.tokenize(
@@ -138,8 +178,18 @@ class Workspace(object):
 		
 		return tokens
 
-	@tokensaver(lambda p: p.alignedTokenFile)
+	@_tokensaver(lambda p: p.alignedTokenFile)
 	def alignedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+		"""
+		If possible, uses the ``alignments`` to add gold alignments to the generated tokens.
+
+		Caches its results in the ``trainingPath``.
+
+		:param fileid: ID of the file for which to generate tokens.
+		:param k: Unused in this method.
+		:param dehyphenate: Whether to attempt dehyphenization of tokens.
+		:param force: Back up existing token file and create a new one.
+		"""
 		tokens = self.tokens(fileid, k, dehyphenate, force)
 
 		Workspace.log.info(f'Creating aligned tokens for {fileid}')
@@ -155,8 +205,18 @@ class Workspace(object):
 			return tokens
 		return []
 
-	@tokensaver(lambda p: p.kbestTokenFile)
+	@_tokensaver(lambda p: p.kbestTokenFile)
 	def kbestTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+		"""
+		Uses the :class:`HMM<CorrectOCR.model.HMM>` to add *k*-best suggestions to the generated tokens.
+
+		Caches its results in the ``trainingPath``.
+
+		:param fileid: ID of the file for which to generate tokens.
+		:param k: Unused in this method.
+		:param dehyphenate: Whether to attempt dehyphenization of tokens.
+		:param force: Back up existing token file and create a new one.
+		"""
 		if self.paths[fileid].goldFile.is_file():
 			tokens = self.alignedTokens(fileid, k, dehyphenate, force)
 		else:
@@ -167,8 +227,19 @@ class Workspace(object):
 
 		return tokens
 
-	@tokensaver(lambda p: p.binnedTokenFile)
+	@_tokensaver(lambda p: p.binnedTokenFile)
 	def binnedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+		"""
+		Uses the :class:`Heuristics<CorrectOCR.heuristics.Heuristics>` to decide whether human or
+		automatic corrections are appropriate for the generated tokens.
+
+		Caches its results in the ``trainingPath``.
+
+		:param fileid: ID of the file for which to generate tokens.
+		:param k: Unused in this method.
+		:param dehyphenate: Whether to attempt dehyphenization of tokens.
+		:param force: Back up existing token file and create a new one.
+		"""
 		tokens = self.kbestTokens(fileid, k, dehyphenate, force)
 
 		Workspace.log.info(f'Creating binned tokens for {fileid}')
@@ -178,6 +249,12 @@ class Workspace(object):
 
 
 	def cleanup(self, dryrun=True, full=False):
+		"""
+		Cleans up the backup files in the ``trainingPath``.
+
+		:param dryrun: Just lists the files without actually deleting them
+		:param full: Also deletes the current files (ie. those without .nnn. in their suffix).
+		"""
 		is_backup = re.compile(r'^\.\d\d\d$')
 
 		for file in self._trainingPath.iterdir():
