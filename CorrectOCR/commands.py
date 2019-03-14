@@ -296,9 +296,9 @@ def do_correct(workspace: Workspace, config):
 		binned_tokens = workspace.binnedTokens(config.fileid, config.k)
 		
 		for t in binned_tokens:
-			if t.bin.decision in {'kbest', 'kdict'}:
-				t.gold = t.kbest[int(t.bin.decision)].candidate
-			elif t.bin.decision == 'original':
+			if t.decision in {'kbest', 'kdict'}:
+				t.gold = t.kbest[int(t.selection)].candidate
+			elif t.decision == 'original':
 				t.gold = t.original
 		corrected = binned_tokens
 	elif config.apply:
@@ -372,9 +372,9 @@ def do_index(workspace: Workspace, config):
 			tokens = workspace.binnedTokens(fileid, k=config.k)
 
 			for t in tokens:
-				if t.bin.decision in {'kbest', 'kdict'}:
-					t.gold = t.kbest[int(t.bin.decision)].candidate
-				elif t.bin.decision == 'original':
+				if t.decision in {'kbest', 'kdict'}:
+					t.gold = t.kbest[int(t.selection)].candidate
+				elif t.decision == 'original':
 					t.gold = t.original
 		else:
 			tokens = workspace.tokens(fileid)

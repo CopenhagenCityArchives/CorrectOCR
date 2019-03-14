@@ -100,6 +100,14 @@ class Token(abc.ABC):
 		with a numerical index starting at 1, and the values are instances
 		of :class:`KBestItem`.
 		"""
+		self.decision: str = None
+		"""
+		The decision that was made when `gold` was set automatically.
+		"""
+		self.selection: Any = None
+		"""
+		The selected automatic correction for the decision.
+		"""
 
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
@@ -157,8 +165,8 @@ class Token(abc.ABC):
 		if self.bin:
 			output['Bin'] = self.bin.number or -1
 			output['Heuristic'] = self.bin.heuristic
-			output['Decision'] = self.bin.decision
-			output['Selection'] = self.bin.selection
+			output['Decision'] = self.decision
+			output['Selection'] = self.selection
 		output['Token type'] = self.__class__.__name__
 		output['Token info'] = json.dumps(self.token_info)
 
@@ -189,8 +197,8 @@ class Token(abc.ABC):
 			from ..heuristics import Heuristics
 			t.bin = Heuristics.bin(int(d['Bin']))
 			t.bin.heuristic = d['Heuristic']
-			t.bin.decision = d['Decision']
-			t.bin.selection = d['Selection']
+			t.decision = d['Decision']
+			t.selection = d['Selection']
 		#t.__class__.log.debug(t)
 		return t
 

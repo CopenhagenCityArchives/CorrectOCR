@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import Counter, OrderedDict, defaultdict
 from dataclasses import dataclass, replace, field
-from typing import Any, Callable, DefaultDict, Dict, List, TYPE_CHECKING
+from typing import Callable, DefaultDict, Dict, List, TYPE_CHECKING
 
 import progressbar
 
@@ -33,10 +33,6 @@ class Bin:
 	"""Which heuristic the bin is set up for; one of 'a' = annotator, 'o' = choose original, 'k' = top *k*-best, 'd' = *k*-best in dictionary."""
 	number: int = None
 	"""The number of the bin."""
-	decision: str = None
-	"""The decision that was made."""
-	selection: Any = None
-	"""The selection for the decision."""
 	counts: DefaultDict[str, int] = field(default_factory=lambda: defaultdict(int))
 	"""Statistics used for reporting."""
 	example: Token = None
@@ -137,25 +133,25 @@ class Heuristics(object):
 
 		# return decision and chosen candidate(s)
 		if token_bin.heuristic == 'o':
-			(token_bin.decision, token_bin.selection) = ('original', token.original)
+			(decision, selection) = ('original', token.original)
 		elif token_bin.heuristic == 'k':
-			(token_bin.decision, token_bin.selection) = ('kbest', 1)
+			(decision, selection) = ('kbest', 1)
 		elif token_bin.heuristic == 'd':
-			(token_bin.decision, token_bin.selection) = ('kdict', filtids[0])
+			(decision, selection) = ('kdict', filtids[0])
 		else:
 			# heuristic is 'a' or unrecognized
-			(token_bin.decision, token_bin.selection) = ('annotator', filtids)
+			(decision, selection) = ('annotator', filtids)
 		
-		return token_bin
+		return decision, selection, token_bin
 
 	def bin_tokens(self, tokens: List['Token']):
 		Heuristics.log.info('Running heuristics on tokens to determine annotator workload.')
 		counts = Counter()
 		annotatorRequired = 0
 		for t in progressbar.progressbar(tokens):
-			t.bin = self.bin_for_token(t)
+			t.decision, t.selection, t.bin = self.bin_for_token(t)
 			counts[t.bin.number] += 1
-			if t.bin.decision == 'annotator':
+			if t.decision == 'annotator':
 				annotatorRequired += 1
 		Heuristics.log.debug(f'Counts for each bin: {counts}')
 		Heuristics.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
@@ -193,7 +189,7 @@ class Heuristics(object):
 		#	(based on probabilities of best and 2nd-best candidates)
 		# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
 
-		(_, _bin) = self.bin_for_token(token)
+		(_, _, _bin) = self.bin_for_token(token)
 
 		if not _bin:
 			return # was unable to make heuristic decision
