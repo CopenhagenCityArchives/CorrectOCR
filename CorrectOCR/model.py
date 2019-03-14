@@ -219,13 +219,13 @@ class HMMBuilder(object):
 	"""
 	log = logging.getLogger(f'{__name__}.HMMBuilder')
 
-	def __init__(self, dictionary: Dictionary, smoothingParameter: float, language, characterSet, misreadCounts, remove_chars: List[str], gold_words: List[str]):
+	def __init__(self, dictionary: Dictionary, smoothingParameter: float, language, characterSet, readCounts, remove_chars: List[str], gold_words: List[str]):
 		"""
 		:param dictionary: The dictionary to use for generating probabilities.
 		:param smoothingParameter:
 		:param language: A language instance from `pycountry <https://pypi.org/project/pycountry/>`.
 		:param characterSet:
-		:param misreadCounts:
+		:param readCounts:
 		:param remove_chars:
 		:param gold_words:
 		"""
@@ -234,28 +234,28 @@ class HMMBuilder(object):
 		self._remove_chars = remove_chars
 		self._charset = set(characterSet)
 
-		confusion = self._generate_confusion(misreadCounts)
+		confusion = self._generate_confusion(readCounts)
 		char_counts = self._text_char_counts(gold_words)
 
 		self._charset = self._charset | set(char_counts) | set(confusion)
 
 		HMMBuilder.log.debug(f'Final characterSet: {sorted(self._charset)}')
 
-		# Create the emission probabilities from the misread counts and the character counts
+		# Create the emission probabilities from the read counts and the character counts
 		self.emis = self._emission_probabilities(confusion, char_counts)
 
 		# Create the initial and transition probabilities from the gold files
 		self.init, self.tran = self._init_tran_probabilities(gold_words, language)
 
-	# Start with misread counts, remove any keys which are not single
+	# Start with read counts, remove any keys which are not single
 	# characters, remove specified characters, and combine into a single
 	# dictionary.
-	def _generate_confusion(self, misreadCounts: Dict) -> Dict[str, Dict[str, int]]:
+	def _generate_confusion(self, readCounts: Dict) -> Dict[str, Dict[str, int]]:
 		# Outer keys are the correct characters. Inner keys are the counts of
 		# what each character was read as.
 		confusion = defaultdict(Counter)
 
-		confusion.update(misreadCounts)
+		confusion.update(readCounts)
 
 		# Strip out any outer keys that aren't a single character
 		confusion = {key: value for key, value in confusion.items()
@@ -302,7 +302,7 @@ class HMMBuilder(object):
 
 		return char_count
 
-	# Create the emission probabilities using misread counts and character
+	# Create the emission probabilities using read counts and character
 	# counts. Optionally a file of expected characters can be used to add
 	# expected characters as model states whose emission probabilities are set to
 	# only output themselves.

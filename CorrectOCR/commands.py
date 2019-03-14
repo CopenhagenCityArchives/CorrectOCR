@@ -214,16 +214,16 @@ def build_model(workspace: Workspace, config):
 	# Extra config
 	remove_chars: List[str] = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
 
-	# Select the gold files which correspond to the misread count files.
-	misreadCounts = collections.defaultdict(collections.Counter)
+	# Select the gold files which correspond to the read count files.
+	readCounts = collections.defaultdict(collections.Counter)
 	gold_words = []
 	for fileid, tokens in workspace.goldTokens():
 		(_, _, counts) = workspace.alignments(fileid)
-		misreadCounts.update(counts)
+		readCounts.update(counts)
 		gold_words.extend([t.gold for t in tokens])
 		log.debug(f'{fileid}: {gold_words[-1]}')
 
-	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, workspace.language, config.characterSet, misreadCounts, remove_chars, gold_words)
+	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, workspace.language, config.characterSet, readCounts, remove_chars, gold_words)
 
 	workspace.resources.hmm.init = builder.init
 	workspace.resources.hmm.tran = builder.tran

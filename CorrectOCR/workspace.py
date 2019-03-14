@@ -130,7 +130,7 @@ class Workspace(object):
 		"""
 		faPath = self.paths[fileid].fullAlignmentsFile
 		waPath = self.paths[fileid].wordAlignmentsFile
-		mcPath = self.paths[fileid].misreadCountsFile
+		mcPath = self.paths[fileid].readCountsFile
 		
 		if not force and (faPath.is_file() and waPath.is_file() and mcPath.is_file()):
 			# presume correctness, user may clean the files to rerun
@@ -142,18 +142,22 @@ class Workspace(object):
 			)
 		Workspace.log.info(f'Creating alignment files for {fileid}')
 		
-		(fullAlignments, wordAlignments, misreadCounts) = Aligner().alignments(
+		if self.paths[fileid].originalFile.body == self.paths[fileid].goldFile.body:
+			Workspace.log.critical(f'Original and gold are identical for {fileid}!')
+			raise SystemExit(-1)
+		
+		(fullAlignments, wordAlignments, readCounts) = Aligner().alignments(
 			tokenize_str(self.paths[fileid].originalFile.body, self.language.name),
 			tokenize_str(self.paths[fileid].goldFile.body, self.language.name)
 		)
 		
 		FileIO.save(fullAlignments, faPath)
 		FileIO.save(wordAlignments, waPath)
-		FileIO.save(misreadCounts, mcPath)
+		FileIO.save(readCounts, mcPath)
 
 		#Workspace.log.debug(f'wordAlignments: {wordAlignments}')
 		
-		return fullAlignments, wordAlignments, misreadCounts
+		return fullAlignments, wordAlignments, readCounts
 
 	@_tokensaver(lambda p: p.originalTokenFile)
 	def tokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
@@ -338,7 +342,7 @@ class PathManager(object):
 		self.binnedTokenFile = training.joinpath(f'{fileid}.binnedTokens.csv')
 		self.fullAlignmentsFile = training.joinpath(f'{fileid}.fullAlignments.json')
 		self.wordAlignmentsFile = training.joinpath(f'{fileid}.wordAlignments.json')
-		self.misreadCountsFile = training.joinpath(f'{fileid}.misreadCounts.json')
+		self.readCountsFile = training.joinpath(f'{fileid}.readCounts.json')
 
 
 ##########################################################################################
