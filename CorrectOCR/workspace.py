@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import logging
 from pathlib import Path
@@ -33,8 +35,9 @@ def tokensaver(get_path):
 
 			tokens = func(*args, **kwargs)
 
-			Workspace.log.info(f'Writing tokens to {path}')
-			FileIO.save(tokens, path)
+			if len(tokens) > 0:
+				Workspace.log.info(f'Writing tokens to {path}')
+				FileIO.save(tokens, path)
 
 			return tokens
 		return wrapper
@@ -122,7 +125,7 @@ class Workspace(object):
 		return fullAlignments, wordAlignments, misreadCounts
 
 	@tokensaver(lambda p: p.originalTokenFile)
-	def tokens(self, fileid: str, k: int, dehyphenate=False, force=False):
+	def tokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
 		Workspace.log.info(f'Creating basic tokens for {fileid}')
 		tokenizer = Tokenizer.for_extension(self.paths[fileid].ext)(self.language)
 		tokens = tokenizer.tokenize(
@@ -135,7 +138,7 @@ class Workspace(object):
 		return tokens
 
 	@tokensaver(lambda p: p.alignedTokenFile)
-	def alignedTokens(self, fileid: str, k: int, dehyphenate=False, force=False):
+	def alignedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
 		tokens = self.tokens(fileid, k, dehyphenate, force)
 
 		Workspace.log.info(f'Creating aligned tokens for {fileid}')
@@ -145,14 +148,18 @@ class Workspace(object):
 				if not token.gold and token.original in wordAlignments:
 					wa = wordAlignments[token].items()
 					closest = sorted(wa, key=lambda x: abs(x[0]-i))
-					Workspace.log.debug(f'{wa} {i} {token.original} {closest}')
+					#Workspace.log.debug(f'{wa} {i} {token.original} {closest}')
 					token.gold = closest[0][1]
 
-		return tokens
+			return tokens
+		return []
 
 	@tokensaver(lambda p: p.kbestTokenFile)
-	def kbestTokens(self, fileid: str, k: int, dehyphenate=False, force=False):
-		tokens = self.alignedTokens(fileid, k, dehyphenate, force)
+	def kbestTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+		if self.paths[fileid].goldFile.is_file():
+			tokens = self.alignedTokens(fileid, k, dehyphenate, force)
+		else:
+			tokens = self.tokens(fileid, k, dehyphenate, force)
 
 		Workspace.log.info(f'Creating k-best tokens for {fileid}')
 		self.resources.hmm.generate_kbest(tokens, k)
@@ -160,7 +167,7 @@ class Workspace(object):
 		return tokens
 
 	@tokensaver(lambda p: p.binnedTokenFile)
-	def binnedTokens(self, fileid: str, k: int, dehyphenate=False, force=False):
+	def binnedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
 		tokens = self.kbestTokens(fileid, k, dehyphenate, force)
 
 		Workspace.log.info(f'Creating binned tokens for {fileid}')
