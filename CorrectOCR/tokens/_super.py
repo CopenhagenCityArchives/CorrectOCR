@@ -95,7 +95,11 @@ class Token(abc.ABC):
 		self.bin: Bin = None
 		"""Heuristics bin and decisions"""
 		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
-		"""*k*-best suggestions for Token"""
+		"""
+		Dictionary of *k*-best suggestions for the Token. They are keyed
+		with a numerical index starting at 1, and the values are instances
+		of :class:`KBestItem`.
+		"""
 
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
@@ -206,7 +210,7 @@ class Tokenizer(abc.ABC):
 	@staticmethod
 	def register(extensions: List[str]):
 		"""
-		Class decorator to register Tokenizer subclass.
+		Decorator which registers a :class:`Tokenizer` subclass with the base class.
 
 		:param extensions: List of extensions that the subclass will handle
 		"""
