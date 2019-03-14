@@ -38,7 +38,7 @@ class Token(abc.ABC):
 	"""
 	Abstract base class. Tokens handle single words. ...
 	"""
-	subclasses = dict()
+	_subclasses = dict()
 
 	@staticmethod
 	def register(cls):
@@ -47,7 +47,7 @@ class Token(abc.ABC):
 
 		:param cls: Token subclass
 		"""
-		Token.subclasses[cls.__name__] = cls
+		Token._subclasses[cls.__name__] = cls
 		return cls
 
 	punct_RE = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
@@ -130,14 +130,14 @@ class Token(abc.ABC):
 	def __hash__(self):
 		return self.original.__hash__()
 
-	punctuationRE = regex.compile(r'^\p{punct}+$')
+	_is_punctuationRE = regex.compile(r'^\p{punct}+$')
 
 	def is_punctuation(self) -> bool:
 		"""
 		Is the Token purely punctuation?
 		"""
 		#self.__class__.log.debug(f'{self}')
-		return Token.punctuationRE.match(self.original)
+		return Token._is_punctuationRE.match(self.original)
 
 	def is_numeric(self) -> bool:
 		"""
@@ -172,8 +172,8 @@ class Token(abc.ABC):
 		:param d: A dictionary of properties for the Token
 		"""
 		classname = d['Token type']
-		#Token.subclasses[classname].log.debug(f'from_dict: {d}')
-		t = Token.subclasses[classname](json.loads(d['Token info']))
+		#Token._subclasses[classname].log.debug(f'from_dict: {d}')
+		t = Token._subclasses[classname](json.loads(d['Token info']))
 		t.gold = d.get('Gold', None)
 		kbest = collections.defaultdict(lambda: KBestItem(''))
 		k = 1
@@ -205,7 +205,7 @@ class Tokenizer(abc.ABC):
 	Initialized with the langauge to use for tokenization (for example, the `.txt` tokenizer internally uses nltk whose tokenizers function best with a language parameter).
 	"""
 	log = logging.getLogger(f'{__name__}.Tokenizer')
-	subclasses = dict()
+	_subclasses = dict()
 
 	@staticmethod
 	def register(extensions: List[str]):
@@ -216,7 +216,7 @@ class Tokenizer(abc.ABC):
 		"""
 		def wrapper(cls):
 			for ext in extensions:
-				Tokenizer.subclasses[ext] = cls
+				Tokenizer._subclasses[ext] = cls
 			return cls
 		return wrapper
 
@@ -228,8 +228,8 @@ class Tokenizer(abc.ABC):
 		:param ext: Filename extension (including leading period, eg. '.pdf')
 		:return: Tokenizer subclass
 		"""
-		Tokenizer.log.debug(f'subclasses: {Tokenizer.subclasses}')
-		return Tokenizer.subclasses[ext]
+		Tokenizer.log.debug(f'_subclasses: {Tokenizer._subclasses}')
+		return Tokenizer._subclasses[ext]
 
 	def __init__(self, language):
 		"""
