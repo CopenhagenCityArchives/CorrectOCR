@@ -1,4 +1,0 @@
-Aligner
-=======
-
-.. automodule:: CorrectOCR.aligner

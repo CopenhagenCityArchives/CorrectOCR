@@ -1,4 +1,0 @@
-Heuristics
-==========
-
-.. automodule:: CorrectOCR.heuristics

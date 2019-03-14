@@ -7,7 +7,7 @@ from typing import DefaultDict, Dict, List, Tuple
 import progressbar
 
 from . import punctuationRE
-from .cache import PickledLRUCache, cached
+from ._cache import PickledLRUCache, cached
 from .dictionary import Dictionary
 from .fileio import FileIO
 from .tokens import KBestItem, Token

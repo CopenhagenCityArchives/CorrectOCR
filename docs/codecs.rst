@@ -1,4 +1,0 @@
-Codecs
-======
-
-.. automodule:: CorrectOCR.codecs

@@ -8,7 +8,7 @@ from typing import Any, List
 
 from bs4.dammit import UnicodeDammit
 
-from .codecs import COCRJSONCodec
+from ._codecs import COCRJSONCodec
 from .tokens import Token
 
 

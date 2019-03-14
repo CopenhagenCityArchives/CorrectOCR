@@ -1,4 +1,0 @@
-Tokens
-======
-
-.. automodule:: CorrectOCR.tokens

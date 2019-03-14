@@ -19,8 +19,6 @@ Submodules
 .. toctree::
 
    CorrectOCR.aligner
-   CorrectOCR.cache
-   CorrectOCR.codecs
    CorrectOCR.commands
    CorrectOCR.correcter
    CorrectOCR.dictionary

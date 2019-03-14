@@ -1,4 +1,0 @@
-Workspace
-=========
-
-.. automodule:: CorrectOCR.workspace

@@ -1,4 +1,0 @@
-Cache
-=====
-
-.. automodule:: CorrectOCR.cache

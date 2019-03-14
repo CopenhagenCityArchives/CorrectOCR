@@ -1,4 +1,0 @@
-Commands
-========
-
-.. automodule:: CorrectOCR.commands

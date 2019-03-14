@@ -1,4 +1,0 @@
-Correcter
-=========
-
-.. automodule:: CorrectOCR.correcter

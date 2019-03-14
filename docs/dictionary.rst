@@ -1,4 +1,0 @@
-Dictionary
-==========
-
-.. automodule:: CorrectOCR.dictionary

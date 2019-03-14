@@ -1,4 +1,0 @@
-FileIO
-======
-
-.. automodule:: CorrectOCR.fileio
