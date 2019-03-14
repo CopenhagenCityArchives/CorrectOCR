@@ -1,8 +1,9 @@
 import cmd
 import logging
-from typing import List
+from collections import deque
+from typing import List, Iterator, TypeVar, Tuple
 
-from . import punctuationRE, split_window
+from . import punctuationRE
 from .tokens import Token
 
 '''
@@ -16,6 +17,14 @@ For example:
 '''
 
 
+T = TypeVar('T')
+def _split_window(l: List[T], before=3, after=3) -> Iterator[Tuple[List[T], T, List[T]]]:
+	a = deque(maxlen=before)
+	for i in range(len(l)):
+		yield list(a), l[i], l[i+1:i+1+after]
+		a.append(l[i])
+
+
 class CorrectionShell(cmd.Cmd):
 	log = logging.getLogger(f'{__name__}.CorrectionShell')
 	prompt = 'CorrectOCR> '
@@ -25,7 +34,7 @@ class CorrectionShell(cmd.Cmd):
 		self.token = None
 		self.decision = None
 		self.selection = None
-		self.tokenwindow = split_window(tokens, before=7, after=7)
+		self.tokenwindow = _split_window(tokens, before=7, after=7)
 		self.dictionary = dictionary
 		self.metrics = {
 			'tokenCount': 0,
@@ -47,13 +56,13 @@ class CorrectionShell(cmd.Cmd):
 
 	def nexttoken(self):
 		try:
-			ctxl, self.token, ctxr = next(self.tokenwindow)
-			if self.token.gold:
-				return self.nexttoken()
-			(self.decision, self.selection) = (self.token.decision, self.token.selection)
-			
-			self.metrics['tokenCount'] += 1
-			if self.decision == 'annotator':
+			while True:  # do-while loop...
+				ctxl, self.token, ctxr = next(self.tokenwindow)
+				self.metrics['tokenCount'] += 1
+				if not self.token.gold:
+					break
+
+			if self.token.decision == 'annotator':
 				self.metrics['humanCount'] += 1 # increment human-effort count
 				
 				left = ' '.join([c.gold or c.original for c in ctxr])
@@ -61,12 +70,12 @@ class CorrectionShell(cmd.Cmd):
 				print(f'\n\n...{left} \033[1;7m{self.token.original}\033[0m {right}...\n')
 				print(f'\nSELECT for {self.token.original} :\n')
 				for k, item in self.token.kbest.items():
-					inDict = ' * is in dictionary' if k in self.selection else ''
+					inDict = ' * is in dictionary' if item.candidate in self.dictionary else ''
 					print(f'\t{k}. {item.candidate} ({item.probability:.2e}){inDict}\n')
 				
 				self.prompt = f"CorrectOCR {self.metrics['tokenCount']}/{self.metrics['tokenTotal']} ({self.metrics['humanCount']}) > "
 			else:
-				self.cmdqueue.insert(0, f'{self.decision} {self.selection}')
+				self.cmdqueue.insert(0, f'{self.token.decision} {self.token.selection}')
 		except StopIteration:
 			print('Reached end of tokens, going to quit...')
 			return self.onecmd('quit')
@@ -129,13 +138,15 @@ class CorrectionShell(cmd.Cmd):
 
 	def default(self, line: str):
 		if line == 'o':
-			return self.onecmd('original')
+			self.cmdqueue.insert(0, 'original')
 		elif line == 'k':
-			return self.onecmd('kbest 1')
+			self.cmdqueue.insert(0, 'kbest 1')
 		elif line.isnumeric():
-			return self.onecmd(f'kbest {line}')
+			self.cmdqueue.insert(0, f'kbest {line}')
+		elif line == 'd':
+			self.cmdqueue.insert(0, 'defer')
 		elif line == 'q':
-			return self.onecmd('quit')
+			self.cmdqueue.insert(0, 'quit')
 		elif line == 'p':
 			print(self.decision, self.selection, self.token) # for debugging
 		else:
