@@ -186,6 +186,13 @@ The following commands are available:
    -  The ``--autocorrect`` option applies available corrections prior
       to search/highlighting, as above.
 
+-  ``cleanup`` deletes the backup files in the training directory.
+
+   -  The ``--dryrun`` option simply lists the files without actually
+      deleting them.
+   -  The ``--full`` option also deletes the current files (ie. those
+      without .nnn. in their suffix).
+
 Heuristics
 ----------
 

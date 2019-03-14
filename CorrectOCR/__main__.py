@@ -148,6 +148,12 @@ indexparser.add_argument('--highlight', action='store_true', help='Create a copy
 indexparser.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
 indexparser.set_defaults(func=commands.do_index, **configuration)
 
+cleanupparser = subparsers.add_parser('cleanup', parents=[commonparser], help='Clean up intermediate files')
+cleanupparser.add_argument('--dryrun', action='store_true', help='Don''t delete files, just list them')
+cleanupparser.add_argument('--full', action='store_true', help='Also delete the most recent files (without .nnn. in suffix)')
+cleanupparser.set_defaults(func=commands.do_cleanup, **configuration)
+
+
 args = rootparser.parse_args(args)
 
 ##########################################################################################

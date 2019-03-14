@@ -442,3 +442,12 @@ def do_index(workspace: Workspace, config):
 	if len(rows) > 0:
 		log.info(f'Saving index to {outfile}')
 		FileIO.save(rows, outfile)
+
+
+##########################################################################################
+
+
+def do_cleanup(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.do_cleanup')
+
+	workspace.cleanup(config.dryrun, config.full)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import re
 from pathlib import Path
 from pprint import pformat
 from typing import Dict, Iterator, List, Tuple, Union
@@ -174,6 +175,19 @@ class Workspace(object):
 		self.resources.heuristics.bin_tokens(tokens)
 
 		return tokens
+
+
+	def cleanup(self, dryrun=True, full=False):
+		is_backup = re.compile(r'^\.\d\d\d$')
+
+		for file in self._trainingPath.iterdir():
+			if file.name[0] == '.':
+				continue
+			#self.log.debug(f'file: {file}')
+			if full or is_backup.match(file.suffixes[-2]):
+				self.log.info(f'Deleting {file}')
+				if not dryrun:
+					FileIO.delete(file)
 
 
 ##########################################################################################
