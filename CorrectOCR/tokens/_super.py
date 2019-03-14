@@ -181,9 +181,9 @@ class Token(abc.ABC):
 			kbest[k] = KBestItem(candidate, float(probability))
 			k += 1
 		t.kbest = kbest
-		if 'Bin' in d:
+		if 'Bin' in d and d['Bin'] != '':
 			from ..heuristics import Heuristics
-			t.bin = Heuristics.bins[int(d['Bin'])].copy()
+			t.bin = Heuristics.bin(int(d['Bin']))
 			t.bin.heuristic = d['Heuristic']
 			t.bin.decision = d['Decision']
 			t.bin.selection = d['Selection']

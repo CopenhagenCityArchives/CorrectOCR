@@ -49,58 +49,66 @@ class Bin:
 ##########################################################################################
 
 
+_bins: Dict[int, Bin] = OrderedDict({
+	1: Bin(
+		description='k1 == original and both are in dictionary.',
+		matcher=lambda o, k, d, dcode: o == k and o in d,
+	),
+	2: Bin(
+		description='k1 == original but they are not in dictionary, and no other kbest is in dictionary either.',
+		matcher=lambda o, k, d, dcode: o == k and o not in d and dcode == 'zerokd',
+	),
+	3: Bin(
+		description='k1 == original but they are not in dictionary, but some lower-ranked kbest is.',
+		matcher=lambda o, k, d, dcode: o == k and o not in d and dcode == 'somekd',
+	),
+	4: Bin(
+		description='k1 != original and is in dictionary while original isn''t.',
+		matcher=lambda o, k, d, dcode: o != k and o not in d and k in d,
+	),
+	5: Bin(
+		description='k1 != original and nothing is in dictionary.',
+		matcher=lambda o, k, d, dcode: o != k and o not in d and dcode == 'zerokd',
+	),
+	6: Bin(
+		description='k1 != original and neither are in dictionary, but a lower-ranked candidate is.',
+		matcher=lambda o, k, d, dcode: o != k and k not in d and o not in d and dcode == 'somekd',
+	),
+	7: Bin(
+		description='k1 != original and both are in dictionary.',
+		matcher=lambda o, k, d, dcode: o != k and o in d and k in d,
+	),
+	8: Bin(
+		description='k1 != original, original is in dictionary and no candidates are in dictionary.',
+		matcher=lambda o, k, d, dcode: o != k and o in d and dcode == 'zerokd',
+	),
+	9: Bin(
+		description='k1 != original, k1 is not in dictionary but both original and a lower candidate are.',
+		matcher=lambda o, k, d, dcode: o != k and o in d and k not in d and dcode == 'somekd',
+	),
+	10: Bin(
+		description='Catch-all bin, matches any remaining tokens. It is recommended to pass this to annotator.',
+		matcher=lambda o, k, d, dcode: True,
+	)
+})
+
+
+##########################################################################################
+
+
 class Heuristics(object):
 	log = logging.getLogger(f'{__name__}.Heuristics')
 
-	bins: Dict[int, Bin] = OrderedDict({
-		1: Bin(
-			description='k1 == original and both are in dictionary.',
-			matcher=lambda o, k, d, dcode: o == k and o in d,
-		),
-		2: Bin(
-			description='k1 == original but they are not in dictionary, and no other kbest is in dictionary either.',
-			matcher=lambda o, k, d, dcode: o == k and o not in d and dcode == 'zerokd',
-		),
-		3: Bin(
-			description='k1 == original but they are not in dictionary, but some lower-ranked kbest is.',
-			matcher=lambda o, k, d, dcode: o == k and o not in d and dcode == 'somekd',
-		),
-		4: Bin(
-			description='k1 != original and is in dictionary while original isn''t.',
-			matcher=lambda o, k, d, dcode: o != k and o not in d and k in d,
-		),
-		5: Bin(
-			description='k1 != original and nothing is in dictionary.',
-			matcher=lambda o, k, d, dcode: o != k and o not in d and dcode == 'zerokd',
-		),
-		6: Bin(
-			description='k1 != original and neither are in dictionary, but a lower-ranked candidate is.',
-			matcher=lambda o, k, d, dcode: o != k and k not in d and o not in d and dcode == 'somekd',
-		),
-		7: Bin(
-			description='k1 != original and both are in dictionary.',
-			matcher=lambda o, k, d, dcode: o != k and o in d and k in d,
-		),
-		8: Bin(
-			description='k1 != original, original is in dictionary and no candidates are in dictionary.',
-			matcher=lambda o, k, d, dcode: o != k and o in d and dcode == 'zerokd',
-		),
-		9: Bin(
-			description='k1 != original, k1 is not in dictionary but both original and a lower candidate are.',
-			matcher=lambda o, k, d, dcode: o != k and o in d and k not in d and dcode == 'somekd',
-		),
-		10: Bin(
-			description='Catch-all bin, matches any remaining tokens. It is recommended to pass this to annotator.',
-			matcher=lambda o, k, d, dcode: True,
-		)
-	})
+	@classmethod
+	def bin(cls, n: int) -> Bin:
+		return _bins[n].copy()
 
 	def __init__(self, settings: Dict[int, str], dictionary):
 		for (_bin, code) in settings.items():
-			self.bins[int(_bin)].heuristic = code
-		for (number, _bin) in self.bins.items():
+			_bins[int(_bin)].heuristic = code
+		for (number, _bin) in _bins.items():
 			_bin.number = number
-		Heuristics.log.debug(f'Bins: {self.bins}')
+		Heuristics.log.debug(f'Bins: {_bins}')
 		self.dictionary = dictionary
 		self.tokenCount = 0
 		self.totalCount = 0
@@ -122,7 +130,7 @@ class Heuristics(object):
 			dcode = 'allkd'
 
 		token_bin = None
-		for num, _bin in Heuristics.bins.items():
+		for num, _bin in _bins.items():
 			if _bin.matcher(token.lookup, token.kbest[1].candidate, self.dictionary, dcode):
 				token_bin = _bin.copy()
 				break
@@ -190,10 +198,10 @@ class Heuristics(object):
 		if not _bin:
 			return # was unable to make heuristic decision
 
-		if 'example' not in Heuristics.bins[_bin.number] and len(original) > 3:
-			Heuristics.bins[_bin.number].example = token
+		if 'example' not in _bins[_bin.number] and len(original) > 3:
+			_bins[_bin.number].example = token
 
-		counts = Heuristics.bins[_bin.number].counts
+		counts = _bins[_bin.number].counts
 		counts['total'] += 1
 
 		if original == gold:
@@ -209,7 +217,7 @@ class Heuristics(object):
 			counts['3 gold == lower kbest'] += 1
 
 	def report(self) -> str:
-		Heuristics.log.debug(f'{[(i, b.counts) for i,b in self.bins.items()]}')
+		Heuristics.log.debug(f'{[(i, b.counts) for i,b in _bins.items()]}')
 
 		out = ''
 
@@ -226,7 +234,7 @@ class Heuristics(object):
 		out += '\td (best candidate in dictionary)\n'
 		out += '(o and k interchangeable when original is identical to k1; d not applicable in all bins)\n\n\n\n'
 
-		for num, _bin in Heuristics.bins.items():
+		for num, _bin in _bins.items():
 			out += f'BIN {num} \t\t\t\t\t\t\t\t enter decision here:\t\n'
 			out += _bin.description + '\n'
 			if 'counts' in _bin:

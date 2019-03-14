@@ -221,6 +221,7 @@ def build_model(workspace: Workspace, config):
 		(_, _, counts) = workspace.alignments(fileid)
 		misreadCounts.update(counts)
 		gold_words.extend([t.gold for t in tokens])
+		log.debug(f'{fileid}: {gold_words[-1]}')
 
 	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, workspace.language, config.characterSet, misreadCounts, remove_chars, gold_words)
 
@@ -296,7 +297,7 @@ def do_correct(workspace: Workspace, config):
 		
 		for t in binned_tokens:
 			if t.bin.decision in {'kbest', 'kdict'}:
-				t.gold = t.kbest[t.bin.decision].candidate
+				t.gold = t.kbest[int(t.bin.decision)].candidate
 			elif t.bin.decision == 'original':
 				t.gold = t.original
 		corrected = binned_tokens
@@ -372,7 +373,7 @@ def do_index(workspace: Workspace, config):
 
 			for t in tokens:
 				if t.bin.decision in {'kbest', 'kdict'}:
-					t.gold = t.kbest[t.bin.decision].candidate
+					t.gold = t.kbest[int(t.bin.decision)].candidate
 				elif t.bin.decision == 'original':
 					t.gold = t.original
 		else:
