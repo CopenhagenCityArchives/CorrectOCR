@@ -264,13 +264,15 @@ class HMMBuilder(object):
 				if unwanted in confusion[outer]:
 					del confusion[outer][unwanted]
 
-		#logging.getLogger(f'{__name__}.load_misread_counts').debug(confusion)
+		#HMMBuilder.log.debug(confusion)
 		return confusion
 
 	# Get the character counts of the training files. Used for filling in
 	# gaps in the confusion probabilities.
 	def text_char_counts(self, words: List[str]) -> Dict[str, int]:
 		char_count = Counter()
+
+		#HMMBuilder.log.debug(f'words: {words}')
 
 		for word in words:
 			char_count.update(list(word))
