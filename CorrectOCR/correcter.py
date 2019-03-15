@@ -26,8 +26,12 @@ def _split_window(l: List[T], before=3, after=3) -> Iterator[Tuple[List[T], T, L
 
 
 class CorrectionShell(cmd.Cmd):
+	"""
+	Interactive shell for making corrections to a list of tokens. Assumes that the
+	tokens are `binned`.
+	"""
 	log = logging.getLogger(f'{__name__}.CorrectionShell')
-	prompt = 'CorrectOCR> '
+	_prompt = 'CorrectOCR> '
 
 	def __init__(self, tokens: List[Token], dictionary, correctionTracking: dict):
 		super().__init__()
@@ -46,15 +50,21 @@ class CorrectionShell(cmd.Cmd):
 		self.use_rawinput = True
 
 	@classmethod
-	def start(cls, tokens: List[Token], dictionary, correctionTracking: dict, intro=None):
+	def start(cls, tokens: List[Token], dictionary, correctionTracking: dict, intro: str = None):
+		"""
+		:param tokens: A list of Tokens.
+		:param dictionary: A dictionary against which to check validity.
+		:param correctionTracking: TODO
+		:param intro: Optional introduction text.
+		"""
 		sh = CorrectionShell(tokens, dictionary, correctionTracking)
 		sh.cmdloop(intro)
 		return sh.metrics
 
 	def preloop(self):
-		return self.nexttoken()
+		return self._nexttoken()
 
-	def nexttoken(self):
+	def _nexttoken(self):
 		try:
 			while True:  # do-while loop...
 				ctxl, self.token, ctxr = next(self.tokenwindow)
@@ -73,14 +83,14 @@ class CorrectionShell(cmd.Cmd):
 					inDict = ' * is in dictionary' if item.candidate in self.dictionary else ''
 					print(f'\t{k}. {item.candidate} ({item.probability:.2e}){inDict}\n')
 				
-				self.prompt = f"CorrectOCR {self.metrics['tokenCount']}/{self.metrics['tokenTotal']} ({self.metrics['humanCount']}) > "
+				self._prompt = f"CorrectOCR {self.metrics['tokenCount']}/{self.metrics['tokenTotal']} ({self.metrics['humanCount']}) > "
 			else:
 				self.cmdqueue.insert(0, f'{self.token.decision} {self.token.selection}')
 		except StopIteration:
 			print('Reached end of tokens, going to quit...')
 			return self.onecmd('quit')
 	
-	def select(self, word: str, decision: str, save=True):
+	def _select(self, word: str, decision: str, save=True):
 		print(f'Selecting {decision} for "{self.token.original}": "{word}"')
 		self.token.gold = word
 		if save:
@@ -91,7 +101,7 @@ class CorrectionShell(cmd.Cmd):
 			if f'{self.token.original}\t{cleanword}' not in self.metrics['correctionTracking']:
 				self.metrics['correctionTracking'][f'{self.token.original}\t{cleanword}'] = 0
 			self.metrics['correctionTracking'][f'{self.token.original}\t{cleanword}'] += 1
-		return self.nexttoken()
+		return self._nexttoken()
 
 	def emptyline(self):
 		if self.lastcmd == 'original':
@@ -101,11 +111,11 @@ class CorrectionShell(cmd.Cmd):
 
 	def do_original(self, arg: str):
 		"""Choose original (abbreviation: o)"""
-		return self.select(self.token.original, 'original')
+		return self._select(self.token.original, 'original')
 
 	def do_shell(self, arg: str):
 		"""Custom input to replace token"""
-		return self.select(arg, 'user input')
+		return self._select(arg, 'user input')
 
 	def do_kbest(self, arg: str):
 		"""Choose k-best by number (abbreviation: just the number)"""
@@ -113,25 +123,25 @@ class CorrectionShell(cmd.Cmd):
 			k = int(arg[0]) 
 		else:
 			k = 1
-		return self.select(self.token.kbest[k].candidate, f'{k}-best')
+		return self._select(self.token.kbest[k].candidate, f'{k}-best')
 
 	def do_kdict(self, arg: str):
 		"""Choose k-best which is in dictionary"""
-		return self.select(self.token.kbest[int(arg)], f'k-best from dict')
+		return self._select(self.token.kbest[int(arg)], f'k-best from dict')
 
 	def do_memoized(self, arg: str):
-		return self.select(arg, 'memoized correction', save=False)
+		return self._select(arg, 'memoized correction', save=False)
 
 	def do_error(self, arg: str):
 		CorrectionShell.log.error(f'ERROR: {arg} {self.token}')
 
 	def do_linefeed(self, arg: str):
-		return self.select('\n', 'linefeed', save=False)
+		return self._select('\n', 'linefeed', save=False)
 
 	def do_defer(self, arg: str):
 		"""Defer decision for another time."""
 		print('Deferring decision...')
-		return self.nexttoken()
+		return self._nexttoken()
 
 	def do_quit(self, arg: str):
 		return True

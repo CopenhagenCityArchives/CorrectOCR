@@ -185,9 +185,12 @@ epub_exclude_files = ['search.html']
 
 autodoc_default_options = {
     'member-order': 'bysource',
-    'exclude-members': 'log',
+    'exclude-members': 'log, preloop, emptyline, default',
 }
 autodoc_member_order = 'bysource'
+autodoc_default_flags = [
+    ':exclude-members: log, preloop, emptyline, default',
+]
 
 autodoc_mock_imports = ['tesserocr']
 

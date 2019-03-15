@@ -2,7 +2,8 @@ import itertools
 import logging
 import re
 from collections import defaultdict, Counter
-from typing import DefaultDict, Dict, List, Tuple
+from pathlib import Path
+from typing import DefaultDict, Dict, List, Tuple, Sequence
 
 import progressbar
 
@@ -18,6 +19,7 @@ class HMM(object):
 
 	@property
 	def init(self) -> DefaultDict[str, float]:
+		"""Initial probabilities."""
 		return self._init
 
 	@init.setter
@@ -27,6 +29,7 @@ class HMM(object):
 
 	@property
 	def tran(self) -> DefaultDict[str, DefaultDict[str, float]]:
+		"""Transition probabilities."""
 		return self._tran
 
 	@tran.setter
@@ -38,6 +41,7 @@ class HMM(object):
 
 	@property
 	def emis(self) -> DefaultDict[str, DefaultDict[str, float]]:
+		"""Emission probabilities."""
 		return self._emis
 
 	@emis.setter
@@ -47,7 +51,12 @@ class HMM(object):
 			for inner, e in d.items():
 				self._emis[outer][inner] = e
 
-	def __init__(self, path, multichars=None, dictionary: Dictionary = None):
+	def __init__(self, path: Path, multichars=None, dictionary: Dictionary = None):
+		"""
+		:param path: Path for loading and saving.
+		:param multichars: A dictionary of possible multicharacter substitutions (eg. 'cr': 'æ' or vice versa).
+		:param dictionary: The dictionary against which to check validity.
+		"""
 		if multichars is None:
 			multichars = {}
 		self.multichars = multichars
@@ -66,7 +75,7 @@ class HMM(object):
 		#HMM.log.debug(f'emis: {self.emis}')
 		HMM.log.debug(f'states: {self.states}')
 
-		if not self.parameter_check():
+		if not self.is_valid():
 			HMM.log.critical(f'Parameter check failed for {self}')
 		else:
 			HMM.log.debug(f'HMM initialized: {self}')
@@ -79,8 +88,13 @@ class HMM(object):
 	def __repr__(self):
 		return self.__str__()
 
-	def save(self, path=None):
-		if not self.parameter_check():
+	def save(self, path: Path = None):
+		"""
+		Save the HMM parameters.
+
+		:param path:  Optional new path to save to.
+		"""
+		if not self.is_valid():
 			HMM.log.error('Not going to save faulty HMM parameters.')
 			raise SystemExit(-1)
 		path = path or self.path
@@ -88,7 +102,10 @@ class HMM(object):
 		FileIO.save([self.init, self.tran, self.emis], path)
 		self.cache.delete() # redoing the model invalidates the cache
 
-	def parameter_check(self):
+	def is_valid(self) -> bool:
+		"""
+		Verify that parameters are valid (ie. the keys in init/tran/emis match).
+		"""
 		all_match = True
 		if set(self.init) != set(self.tran):
 			all_match = False
@@ -110,12 +127,17 @@ class HMM(object):
 			HMM.log.info('Parameters match.')
 		return all_match
 
-	# noinspection PyTypeChecker
-	def viterbi(self, char_seq): # UNUSED!!
+	def viterbi(self, char_seq: Sequence[str]) -> str:
+		"""
+		TODO
+
+		:param char_seq:
+		:return:
+		"""
 		# delta[t][j] is probability of max probability path to state j
 		# at time t given the observation sequence up to time t.
-		delta = [None] * len(char_seq)
-		back_pointers = [None] * len(char_seq)
+		delta: List[Dict[str, float]] = [None] * len(char_seq)
+		back_pointers: List[Dict[str, float]] = [None] * len(char_seq)
 
 		delta[0] = {i: self.init[i] * self.emis[i][char_seq[0]]
                     for i in self.states}
@@ -138,7 +160,7 @@ class HMM(object):
 
 		return ''.join(selected_states)
 
-	def k_best_beam(self, word: str, k: int) -> List[Tuple[str, float]]:
+	def _k_best_beam(self, word: str, k: int) -> List[Tuple[str, float]]:
 		# Single symbol input is just initial * emission.
 		if len(word) == 1:
 			paths = [(i, self.init[i] * self.emis[i][word[0]])
@@ -165,27 +187,34 @@ class HMM(object):
 
 	@cached
 	def kbest_for_word(self, word: str, k: int) -> DefaultDict[int, KBestItem]:
+		"""
+		Generates *k*-best correction candidates for a single word.
+
+		:param word: The word for which to generate candidates
+		:param k: How many candidates to generate.
+		:return: A dictionary with ranked candidates keyed by 1..*k*.
+		"""
 		#HMM.log.debug(f'kbest_for_word: {word}')
 		if len(word) == 0:
 			return defaultdict(KBestItem, {n: KBestItem('', 0.0) for n in range(1, k+1)})
 
-		k_best = self.k_best_beam(word, k)
+		k_best = self._k_best_beam(word, k)
 		# Check for common multi-character errors. If any are present,
 		# make substitutions and compare probabilties of results.
 		for sub in self.multichars:
 			# Only perform the substitution if none of the k-best candidates are present in the dictionary
 			if sub in word and all(punctuationRE.sub('', x[0]) not in self.dictionary for x in k_best):
-				variant_words = HMM.multichar_variants(word, sub, self.multichars[sub])
+				variant_words = HMM._multichar_variants(word, sub, self.multichars[sub])
 				for v in variant_words:
 					if v != word:
-						k_best.extend(self.k_best_beam(v, k))
+						k_best.extend(self._k_best_beam(v, k))
 				# Keep the k best
 				k_best = sorted(k_best, key=lambda x: x[1], reverse=True)[:k]
 
 		return defaultdict(KBestItem, {i: KBestItem(''.join(seq), prob) for (i, (seq, prob)) in enumerate(k_best[:k], 1)})
 
 	@classmethod
-	def multichar_variants(cls, word: str, original: str, replacements: List[str]):
+	def _multichar_variants(cls, word: str, original: str, replacements: List[str]):
 		variants = [original] + replacements
 		variant_words = set()
 		pieces = re.split(original, word)
@@ -198,6 +227,13 @@ class HMM(object):
 		return variant_words
 
 	def generate_kbest(self, tokens: List[Token], k: int = 4):
+		"""
+		Generates *k*-best correction candidates for a list of Tokens and adds them
+		to each token.
+
+		:param tokens: List of tokens.
+		:param k: How many candidates to generate.
+		"""
 		if len(tokens) == 0:
 			HMM.log.error(f'No tokens were supplied?!')
 			raise SystemExit(-1)
@@ -214,20 +250,19 @@ class HMM(object):
 
 
 class HMMBuilder(object):
-	"""
-	Builds a HMM based on the input...
-	"""
 	log = logging.getLogger(f'{__name__}.HMMBuilder')
 
 	def __init__(self, dictionary: Dictionary, smoothingParameter: float, language, characterSet, readCounts, remove_chars: List[str], gold_words: List[str]):
 		"""
+		Calculates parameters for a HMM based on the input. They can be accessed via the three properties.
+
 		:param dictionary: The dictionary to use for generating probabilities.
-		:param smoothingParameter:
+		:param smoothingParameter: Lower bound for probabilities.
 		:param language: A language instance from `pycountry <https://pypi.org/project/pycountry/>`.
-		:param characterSet:
-		:param readCounts:
-		:param remove_chars:
-		:param gold_words:
+		:param characterSet: Set of required characters for the final HMM.
+		:param readCounts: See :class:`Aligner<CorrectOCR.aligner.Aligner>`.
+		:param remove_chars: List of characters to remove from the final HMM.
+		:param gold_words: List of known correct words.
 		"""
 		self._dictionary = dictionary
 		self._smoothingParameter = smoothingParameter
@@ -242,10 +277,13 @@ class HMMBuilder(object):
 		HMMBuilder.log.debug(f'Final characterSet: {sorted(self._charset)}')
 
 		# Create the emission probabilities from the read counts and the character counts
-		self.emis = self._emission_probabilities(confusion, char_counts)
+		emis = self._emission_probabilities(confusion, char_counts)
+		self.emis: DefaultDict[str, float] = emis  #: Emission probabilities.
 
 		# Create the initial and transition probabilities from the gold files
-		self.init, self.tran = self._init_tran_probabilities(gold_words, language)
+		init, tran = self._init_tran_probabilities(gold_words, language)
+		self.init: DefaultDict[str, float] = init  #: Initial probabilities.
+		self.tran: DefaultDict[str, DefaultDict[str, float]] = tran  #: Transition probabilities.
 
 	# Start with read counts, remove any keys which are not single
 	# characters, remove specified characters, and combine into a single

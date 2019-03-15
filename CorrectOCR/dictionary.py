@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Set
 
 from .fileio import FileIO
@@ -10,9 +11,9 @@ class Dictionary(Set[str]):
 	"""
 	log = logging.getLogger(f'{__name__}.Dictionary')
 
-	def __init__(self, path=None, caseInsensitive=False):
+	def __init__(self, path: Path = None, caseInsensitive: bool = False):
 		"""
-		:param path: A :class:`pathlib.Path` for loading a previously saved dictionary.
+		:param path: A path for loading a previously saved dictionary.
 		:param caseInsensitive: Whether the dictionary is case sensitive.
 		"""
 		super().__init__()
@@ -37,7 +38,7 @@ class Dictionary(Set[str]):
 			word = word.lower()
 		return super().__contains__(word)
 	
-	def add(self, word: str, nowarn=False):
+	def add(self, word: str, nowarn: bool = False):
 		"""
 		Add a new word to the dictionary. Silently drops non-alpha strings.
 
@@ -52,11 +53,11 @@ class Dictionary(Set[str]):
 			word = word.lower()
 		return super().add(word)
 	
-	def save(self, path=None):
+	def save(self, path: Path = None):
 		"""
 		Save the dictionary.
 
-		:param path: Optional new :class:`pathlib.Path` to save to.
+		:param path: Optional new path to save to.
 		"""
 		path = path or self._path
 		Dictionary.log.info(f'Saving dictionary (words: {len(self)}) to {path}')
