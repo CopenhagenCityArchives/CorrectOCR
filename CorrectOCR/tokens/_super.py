@@ -255,7 +255,7 @@ class Tokenizer(abc.ABC):
 		"""
 		Generate tokens for the given document.
 
-		:param file: A path to an input file
+		:param file: A path to an input file.
 		:return:
 		"""
 		pass

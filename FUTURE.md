@@ -40,7 +40,7 @@ consider word frequency and weight lookups accordingly?
 misc
 ----
 
-https://info.clarin.dk/
-http://sprogtek2018.dk/
-https://alf.hum.ku.dk/korp/?mode=da1800
-https://clarin.dk/clarindk/find.jsp
+*	https://info.clarin.dk/
+*	http://sprogtek2018.dk/
+*	https://alf.hum.ku.dk/korp/?mode=da1800
+*	https://clarin.dk/clarindk/find.jsp

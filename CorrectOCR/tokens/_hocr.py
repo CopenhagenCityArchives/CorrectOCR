@@ -3,6 +3,7 @@ import logging
 import re
 from contextlib import contextmanager
 from functools import partial
+from pathlib import Path
 from typing import Any, List, NamedTuple, Tuple
 
 import cv2
@@ -178,7 +179,7 @@ def tokenize_image(fileid: str, page: int, image: Image, language='Eng', force=F
 class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
-	def tokenize(self, file):
+	def tokenize(self, file: Path):
 		from ..fileio import FileIO
 
 		cachefile = FileIO._cachePath.joinpath(f'hocr/{file.stem}.cache.json')

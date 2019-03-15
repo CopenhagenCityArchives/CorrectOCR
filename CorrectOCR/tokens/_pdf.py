@@ -1,8 +1,10 @@
 import logging
+from pathlib import Path
 from typing import List
 
 import fitz
 import progressbar
+from PIL import Image, ImageDraw
 
 from ._super import Token, Tokenizer
 
@@ -35,6 +37,33 @@ class PDFToken(Token):
 	def ordering(self):
 		return (self.page_n, self.block_n, self.line_n, self.word_n)
 
+	def extract_image(self, workspace, xmargin=300, ymargin=15, highlight_word=True):
+		imagefile = workspace.cachePath.joinpath('pdf/').joinpath(
+			f'{self.fileid}-{self.page_n}-{self.block_n}-{self.line_n}-{self.word_n}-{self.lookup}.png'
+		)
+		if imagefile.is_file():
+			return imagefile, Image.open(str(imagefile))
+		#PDFToken.log.debug(f'word_image: {file.name} token {self} filename {imagefile}')
+		xref, pagerect, pix = workspace._cached_page_image(self.fileid, self.page_n)
+		xscale = pix.width / pagerect.width
+		yscale = pix.height / pagerect.height
+		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)
+		#PDFTokenizer.log.debug(f'extract_image: {tokenrect} {xscale} {yscale}')
+		croprect = (
+			max(0, tokenrect.x0 - xmargin),
+			max(0, tokenrect.y0 - ymargin),
+			min(pix.width, tokenrect.x1 + xmargin),
+			min(pix.height, tokenrect.y1 + ymargin),
+		)
+		#PDFToken.log.debug(f'extract_image: {croprect}')
+		image = Image.frombytes('RGB', (pix.width, pix.height), pix.samples)
+		if highlight_word:
+			draw = ImageDraw.Draw(image)
+			draw.rectangle(tokenrect, outline=(255, 0, 0), width=3)
+		image = image.crop(croprect)
+		image.save(imagefile)
+		return imagefile, image
+
 
 ##########################################################################################
 
@@ -43,12 +72,15 @@ class PDFToken(Token):
 class PDFTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.PDFTokenizer')
 
-	def tokenize(self, file):
+	def tokenize(self, file: Path):
 		doc = fitz.open(str(file))
 
 		tokens = []
-		for page in progressbar.progressbar(doc):
-			tokens += [PDFToken((page.number, ) + tuple(w), file.stem) for w in page.getTextWords()]
+		for page in doc:
+			PDFTokenizer.log.info(f'Getting tokens from {file.name} page {page.number}')
+			for w in progressbar.progressbar(page.getTextWords()):
+				token = PDFToken((page.number, ) + tuple(w), file.stem)
+				tokens.append(token)
 
 		PDFTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
 

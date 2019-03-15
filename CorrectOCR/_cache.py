@@ -31,7 +31,8 @@ class PickledLRUCache(LRUCache):
 
 	def __setitem__(self, key, value):
 		if not self._should_save:
-			PickledLRUCache.log.debug(f'__setitem__ called with {key}, {value} -- will set _should_save')
+			#PickledLRUCache.log.debug(f'__setitem__ called with {key}, {value} -- will set _should_save')
+			pass
 		self._should_save = True
 		super().__setitem__(key, value)
 

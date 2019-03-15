@@ -450,3 +450,17 @@ def do_cleanup(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_cleanup')
 
 	workspace.cleanup(config.dryrun, config.full)
+
+
+##########################################################################################
+
+
+def do_extract(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.do_extract')
+
+	tokens = [t for t in workspace.binnedTokens(config.fileid) if t.decision == 'annotator']
+
+	for token in progressbar.progressbar(tokens):
+		(filename, image) = token.extract_image(workspace)
+
+

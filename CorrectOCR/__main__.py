@@ -153,6 +153,10 @@ cleanupparser.add_argument('--dryrun', action='store_true', help='Don''t delete 
 cleanupparser.add_argument('--full', action='store_true', help='Also delete the most recent files (without .nnn. in suffix)')
 cleanupparser.set_defaults(func=commands.do_cleanup, **configuration)
 
+extractparser = subparsers.add_parser('extract', parents=[commonparser], help='Various extraction methods')
+extractparser.add_argument('--fileid', help='Input file ID (filename without path or extension)')
+extractparser.set_defaults(func=commands.do_extract, **configuration)
+
 
 args = rootparser.parse_args(args)
 

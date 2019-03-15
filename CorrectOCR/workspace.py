@@ -7,6 +7,7 @@ from pathlib import Path
 from pprint import pformat
 from typing import Dict, Iterator, List, Tuple, Union
 
+from ._cache import LRUCache, cached
 from .aligner import Aligner
 from .dictionary import Dictionary
 from .fileio import FileIO
@@ -78,6 +79,8 @@ class Workspace(object):
 			if file.name in {'.DS_Store'}:
 				continue
 			self.add_fileid(file.stem, file.suffix)
+		self.cache = LRUCache(maxsize=1000)
+		self.cachePath = FileIO._cachePath
 
 	def add_fileid(self, fileid: str, ext: str, new_original: Path = None):
 		"""
@@ -174,7 +177,7 @@ class Workspace(object):
 		Workspace.log.info(f'Creating basic tokens for {fileid}')
 		tokenizer = Tokenizer.for_extension(self.paths[fileid].ext)(self.language)
 		tokens = tokenizer.tokenize(
-			self.paths[fileid].originalFile
+			self.paths[fileid].originalFile,
 		)
 
 		if dehyphenate:
@@ -251,7 +254,6 @@ class Workspace(object):
 
 		return tokens
 
-
 	def cleanup(self, dryrun=True, full=False):
 		"""
 		Cleans up the backup files in the ``trainingPath``.
@@ -269,6 +271,17 @@ class Workspace(object):
 				self.log.info(f'Deleting {file}')
 				if not dryrun:
 					FileIO.delete(file)
+
+	@cached
+	def _cached_page_image(self, fileid: str, page: int):
+		Workspace.log.debug(f'_cached_page_image: {fileid} page {page}')
+		import fitz
+		doc = fitz.open(str(self.paths[fileid].originalFile))
+		_page = doc[page]
+		img_info = _page.getImageList()[0]
+		xref = img_info[0]
+		pix = fitz.Pixmap(doc, xref)
+		return xref, _page.rect, pix
 
 
 ##########################################################################################
