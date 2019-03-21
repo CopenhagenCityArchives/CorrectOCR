@@ -255,6 +255,26 @@ class Workspace(object):
 
 		return tokens
 
+	def autocorrectedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+		"""
+		Applies the suggested corrections and leaves those marked 'annotator'
+		for human annotation.
+
+		:param fileid: ID of the file for which to generate tokens.
+		:param k: Unused in this method.
+		:param dehyphenate: Whether to attempt dehyphenization of tokens.
+		:param force: Back up existing token file and create a new one.
+		"""
+		tokens = self.binnedTokens(fileid, k, dehyphenate, force)
+		
+		for t in tokens:
+			if t.decision in {'kbest', 'kdict'}:
+				t.gold = t.kbest[int(t.selection)].candidate
+			elif t.decision == 'original':
+				t.gold = t.original
+
+		return tokens
+
 	def cleanup(self, dryrun=True, full=False):
 		"""
 		Cleans up the backup files in the ``trainingPath``.

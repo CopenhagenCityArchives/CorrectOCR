@@ -293,15 +293,8 @@ def do_correct(workspace: Workspace, config):
 		fileid = config.fileid
 	
 	if config.autocorrect:
-		log.info(f'Getting automatic corrections from binned tokens')
-		binned_tokens = workspace.binnedTokens(config.fileid, config.k)
-		
-		for t in binned_tokens:
-			if t.decision in {'kbest', 'kdict'}:
-				t.gold = t.kbest[int(t.selection)].candidate
-			elif t.decision == 'original':
-				t.gold = t.original
-		corrected = binned_tokens
+		log.info(f'Getting autocorrected tokens')
+		corrected = workspace.autocorrectedTokens(config.fileid, k=config.k)
 	elif config.apply:
 		log.info(f'Getting corrections from {config.apply}')
 		if not config.apply.is_file():
@@ -310,7 +303,7 @@ def do_correct(workspace: Workspace, config):
 		corrected = [Token.from_dict(row) for row in FileIO.load(config.apply)]
 	elif config.interactive:
 		log.info(f'Getting corrections from interactive session')
-		binned_tokens = workspace.binnedTokens(config.fileid, config.k)
+		binned_tokens = workspace.binnedTokens(config.fileid, k=config.k)
 
 		# get header, if any
 		#header = workspace.paths[fileid].correctedFile.header
@@ -367,16 +360,12 @@ def do_index(workspace: Workspace, config):
 		log.info(f'Finding matching terms for {fileid}')
 
 		if config.autocorrect:
-			log.info(f'Applying automatic corrections from binned tokens')
+			log.info(f'Getting autocorrected tokens')
 
-			tokens = workspace.binnedTokens(fileid, k=config.k)
-
-			for t in tokens:
-				if t.decision in {'kbest', 'kdict'}:
-					t.gold = t.kbest[int(t.selection)].candidate
-				elif t.decision == 'original':
-					t.gold = t.original
+			tokens = workspace.autocorrectedTokens(fileid, k=config.k)
 		else:
+			log.info(f'Getting unprepared tokens')
+
 			tokens = workspace.tokens(fileid)
 
 		log.info(f'Searching for terms')
