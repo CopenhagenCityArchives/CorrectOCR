@@ -160,6 +160,8 @@ extractparser = subparsers.add_parser('extract', parents=[commonparser], help='V
 extractparser.add_argument('--fileid', help='Input file ID (filename without path or extension)')
 extractparser.set_defaults(func=commands.do_extract, **configuration)
 
+serverparser = subparsers.add_parser('server', parents=[commonparser], help='Run JSON-dispensing server')
+serverparser.set_defaults(func=commands.run_server, **configuration)
 
 args = rootparser.parse_args(args)
 

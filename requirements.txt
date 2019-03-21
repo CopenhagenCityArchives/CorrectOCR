@@ -1,5 +1,6 @@
 beautifulsoup4
 cachetools
+Flask
 lxml
 nltk
 numpy

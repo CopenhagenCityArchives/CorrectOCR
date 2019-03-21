@@ -16,6 +16,7 @@ from tei_reader import TeiReader
 from .correcter import CorrectionShell
 from .fileio import _open_for_reading, FileIO
 from .model import HMMBuilder
+from .server import create_app
 from .tokens import tokenize_str, Token, Tokenizer
 from .workspace import Workspace
 
@@ -464,3 +465,11 @@ def do_extract(workspace: Workspace, config):
 		(filename, image) = token.extract_image(workspace)
 
 
+##########################################################################################
+
+
+def run_server(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.run_server')
+
+	app = create_app(workspace, config)
+	app.run()
