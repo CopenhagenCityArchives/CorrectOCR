@@ -11,6 +11,7 @@ from pprint import pformat
 import progressbar
 from pycountry import languages
 
+from . import progname
 from . import commands
 from . import workspace
 
@@ -19,6 +20,7 @@ defaults = """
 characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 
 [workspace]
+rootPath = ./
 correctedPath = corrected/
 goldPath = gold/
 originalPath = original/
@@ -27,16 +29,15 @@ nheaderlines = 0
 language = Danish
 
 [resources]
-correctionTrackingFile = resources/correction_tracking.json
-dictionaryFile = resources/dictionary.txt
-hmmParamsFile = resources/hmm_parameters.json
-memoizedCorrectionsFile = resources/memoized_corrections.json
-multiCharacterErrorFile = resources/multicharacter_errors.json
-reportFile = resources/report.txt
-heuristicSettingsFile = resources/settings.json
+resourceRootPath = ./resources/
+correctionTrackingFile = correction_tracking.json
+dictionaryFile = dictionary.txt
+hmmParamsFile = hmm_parameters.json
+memoizedCorrectionsFile = memoized_corrections.json
+multiCharacterErrorFile = multicharacter_errors.json
+reportFile = report.txt
+heuristicSettingsFile = settings.json
 """
-
-progname = 'CorrectOCR'
 
 loglevels = dict(logging._nameToLevel)
 del loglevels['NOTSET']
@@ -57,6 +58,7 @@ config.read(['CorrectOCR.ini'], encoding='utf-8')
 ##########################################################################################
 
 workspaceparser = argparse.ArgumentParser()
+workspaceparser.add_argument('--rootPath', metavar='PATH', type=Path, help='Path to root of workspace')
 workspaceparser.add_argument('--originalPath', metavar='PATH', type=Path, help='Path to directory of original, uncorrected files')
 workspaceparser.add_argument('--goldPath', metavar='PATH', type=Path, help='Path to directory of known correct "gold" files')
 workspaceparser.add_argument('--trainingPath', metavar='PATH', type=Path, help='Path for generated training files')
@@ -68,6 +70,7 @@ workspaceparser.set_defaults(**dict(config.items('workspace')))
 #print(workspaceconfig, args)
 
 resourceparser = argparse.ArgumentParser()
+resourceparser.add_argument('--resourceRootPath', metavar='PATH', type=Path, help='Path to root of resources')
 resourceparser.add_argument('--hmmParamsFile', metavar='FILE', type=Path, help='Path to HMM parameters (generated from alignment files via build_model command)')
 resourceparser.add_argument('--reportFile', metavar='FILE', type=Path, help='Path to output heuristics report (TXT file)')
 resourceparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=Path, help='Path to heuristics settings (generated via make_settings command)')

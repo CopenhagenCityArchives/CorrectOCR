@@ -66,15 +66,16 @@ class Workspace(object):
 	log = logging.getLogger(f'{__name__}.Workspace')
 
 	def __init__(self, workspaceconfig, resourceconfig):
-		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(workspaceconfig))}')
+		self.root = workspaceconfig.rootPath.resolve()
+		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(workspaceconfig))} at {self.root}')
 		self.nheaderlines: int = workspaceconfig.nheaderlines
 		self.language = workspaceconfig.language
-		self.resources = ResourceManager(resourceconfig)
+		self.resources = ResourceManager(self.root, resourceconfig)
 		self.paths: Dict[str, PathManager] = dict()
-		self._originalPath = workspaceconfig.originalPath
-		self._goldPath = workspaceconfig.goldPath
-		self._trainingPath = workspaceconfig.trainingPath
-		self._correctedPath = workspaceconfig.correctedPath
+		self._originalPath = self.root.joinpath(workspaceconfig.originalPath).resolve()
+		self._goldPath = self.root.joinpath(workspaceconfig.goldPath).resolve()
+		self._trainingPath = self.root.joinpath(workspaceconfig.trainingPath).resolve()
+		self._correctedPath = self.root.joinpath(workspaceconfig.correctedPath).resolve()
 		for file in workspaceconfig.originalPath.iterdir():
 			if file.name in {'.DS_Store'}:
 				continue
@@ -364,12 +365,13 @@ class PathManager(object):
 class ResourceManager(object):
 	log = logging.getLogger(f'{__name__}.ResourceManager')
 
-	def __init__(self, config):
-		ResourceManager.log.info(f'ResourceManager configuration:\n{pformat(vars(config))}')
-		self.correctionTracking = JSONResource(config.correctionTrackingFile)
-		self.memoizedCorrections = JSONResource(config.memoizedCorrectionsFile)
-		self.multiCharacterError = JSONResource(config.multiCharacterErrorFile)
-		self.dictionary = Dictionary(config.dictionaryFile, config.caseInsensitive)
-		self.hmm = HMM(config.hmmParamsFile, self.multiCharacterError, self.dictionary)
-		self.reportFile = config.reportFile
-		self.heuristics = Heuristics(JSONResource(config.heuristicSettingsFile), self.dictionary)
+	def __init__(self, root, config):
+		self.root = root.joinpath(config.resourceRootPath).resolve()
+		ResourceManager.log.info(f'ResourceManager configuration:\n{pformat(vars(config))} at {self.root}')
+		self.correctionTracking = JSONResource(self.root.joinpath(config.correctionTrackingFile).resolve())
+		self.memoizedCorrections = JSONResource(self.root.joinpath(config.memoizedCorrectionsFile).resolve())
+		self.multiCharacterError = JSONResource(self.root.joinpath(config.multiCharacterErrorFile).resolve())
+		self.dictionary = Dictionary(self.root.joinpath(config.dictionaryFile).resolve(), config.caseInsensitive)
+		self.hmm = HMM(self.root.joinpath(config.hmmParamsFile).resolve(), self.multiCharacterError, self.dictionary)
+		self.reportFile = self.root.joinpath(config.reportFile).resolve()
+		self.heuristics = Heuristics(JSONResource(self.root.joinpath(config.heuristicSettingsFile).resolve()), self.dictionary)
