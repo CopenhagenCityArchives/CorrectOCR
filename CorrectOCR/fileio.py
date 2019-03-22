@@ -33,12 +33,12 @@ class FileIO(object):
 	@classmethod
 	def _csv_header(cls, kind: str, k: int) -> List[str]:
 		header = ['Original']
-		if kind in {'.alignedTokens', '.kbestTokens', '.binnedTokens'}:
+		if kind in {'.alignedTokens', '.kbestTokens', '.binnedTokens', '.correctedTokens'}:
 			header = ['Gold'] + header
-		if kind in {'.kbestTokens', '.binnedTokens'}:
+		if kind in {'.kbestTokens', '.binnedTokens', '.correctedTokens'}:
 			for n in range(1, k+1):
 				header += [f'{n}-best', f'{n}-best prob.']
-		if kind in {'.binnedTokens'}:
+		if kind in {'.binnedTokens', '.correctedTokens'}:
 			header += ['Bin', 'Heuristic', 'Decision', 'Selection']
 		header += ['Token type', 'Token info', 'File ID']
 		cls.log.debug(f'header for {kind} k={k}: {header}')

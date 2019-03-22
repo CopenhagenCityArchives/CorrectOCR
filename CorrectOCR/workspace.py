@@ -374,6 +374,7 @@ class PathManager(object):
 		self.alignedTokenFile = training.joinpath(f'{fileid}.alignedTokens.csv')
 		self.kbestTokenFile = training.joinpath(f'{fileid}.kbestTokens.csv')
 		self.binnedTokenFile = training.joinpath(f'{fileid}.binnedTokens.csv')
+		self.correctedTokenFile = training.joinpath(f'{fileid}.correctedTokens.csv')
 		self.fullAlignmentsFile = training.joinpath(f'{fileid}.fullAlignments.json')
 		self.wordAlignmentsFile = training.joinpath(f'{fileid}.wordAlignments.json')
 		self.readCountsFile = training.joinpath(f'{fileid}.readCounts.json')
