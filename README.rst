@@ -1,15 +1,20 @@
 CorrectOCR
 ==========
 
-.. image:: https://readthedocs.org/projects/correctocr/badge/?version=latest
-   :target: https://correctocr.readthedocs.io/en/latest/?badge=latest
-   :alt: Documentation Status
-
 Introduction
-============
+------------
 
 CorrectOCR is a tool to post-process OCR text in order to improve its
 quality, using a number of methods to minimize annotator work.
+
+Documentation
+-------------
+
+Documentation can be found here:
+
+.. image:: https://readthedocs.org/projects/correctocr/badge/?version=latest
+   :target: https://correctocr.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
 
 Usage
 =====
@@ -127,7 +132,7 @@ The following commands are available:
 
    -  The ``--smoothingParameter`` option can be adjusted as needed.
 
--  ``prepare`` prepares texts in preparation for corrections.
+-  ``prepare`` tokenizes and prepare texts for corrections.
 
    -  The ``--fileid`` option specifies which file to tokenize.
    -  The ``--all`` option tokenizes all available texts. Can be
@@ -185,6 +190,10 @@ The following commands are available:
       with highlighted words (only available for PDFs).
    -  The ``--autocorrect`` option applies available corrections prior
       to search/highlighting, as above.
+
+-  ``server`` starts a simple Flask server backend that provides ``JSON``
+   descriptions and ``.png`` images, as well as accepts ``POST``-requests
+   to update corrected tokens.
 
 -  ``cleanup`` deletes the backup files in the training directory.
 

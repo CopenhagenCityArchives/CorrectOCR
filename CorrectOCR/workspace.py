@@ -54,14 +54,14 @@ class Workspace(object):
 
 	:param workspaceconfig: An object with the following properties:
 
-	   -  `nheaderlines`: The number of header lines in corpus texts.
-	   -  `language`: A language instance from `pycountry <https://pypi.org/project/pycountry/>`.
-	   -  `originalPath`: A :class:`pathlib.Path` to a directory containing the original files.
-	   -  `goldPath`: A :class:`pathlib.Path` to a directory containing the gold (if any) files.
-	   -  `trainingPath`: A :class:`pathlib.Path` to a directory for saving intermediate files.
-	   -  `correctedPath`: A :class:`pathlib.Path` to a directory for saving corrected files.
+	   -  **nheaderlines** (:class:`int`): The number of header lines in corpus texts.
+	   -  **language**: A language instance from `pycountry <https://pypi.org/project/pycountry/>`.
+	   -  **originalPath** (:class:`Path<pathlib.Path>`): Directory containing the original files.
+	   -  **goldPath** (:class:`Path<pathlib.Path>`): Directory containing the gold (if any) files.
+	   -  **trainingPath** (:class:`Path<pathlib.Path>`): Directory for storing intermediate files.
+	   -  **correctedPath** (:class:`Path<pathlib.Path>`): Directory for saving corrected files.
 
-	:param resourceconfig: An object TODO
+	:param resourceconfig: Passed directly to :class:`ResourceManager<CorrectOCR.workspace.ResourceManager>`, see this for further info.
 	"""
 	log = logging.getLogger(f'{__name__}.Workspace')
 
@@ -309,9 +309,16 @@ class Workspace(object):
 
 
 class CorpusFile(object):
+	"""
+	Simple wrapper for text files to manage a number of lines as a separate header.
+	"""
 	log = logging.getLogger(f'{__name__}.CorpusFile')
 
-	def __init__(self, path, nheaderlines=0):
+	def __init__(self, path: Path, nheaderlines: int = 0):
+		"""
+		:param path: Path to text file.
+		:param nheaderlines: Number of lines from beginning to separate out as header.
+		"""
 		self.path = path
 		self.nheaderlines = nheaderlines
 		if self.path.is_file():
@@ -324,6 +331,9 @@ class CorpusFile(object):
 			(self.header, self.body) = ('', '')
 
 	def save(self):
+		"""
+		Concatenate header and body and save.
+		"""
 		if not self.header or self.header.strip() == '':
 			self.header = ''
 		elif self.header[-1] != '\n':
@@ -331,7 +341,10 @@ class CorpusFile(object):
 		CorpusFile.log.info(f'Saving file to {self.path}')
 		FileIO.save(self.header + self.body, self.path)
 
-	def is_file(self):
+	def is_file(self) -> bool:
+		"""
+		:return: Does the file exist? See :meth:`pathlib.Path.is_file`.
+		"""
 		return self.path.is_file()
 
 
@@ -339,9 +352,16 @@ class CorpusFile(object):
 
 
 class JSONResource(dict):
+	"""
+	Simple wrapper for JSON files.
+	"""
 	log = logging.getLogger(f'{__name__}.JSONResource')
 
 	def __init__(self, path, **kwargs):
+		"""
+		:param path: Path to load from.
+		:param kwargs: TODO
+		"""
 		super().__init__(**kwargs)
 		JSONResource.log.info(f'Loading {path}')
 		self._path = path
@@ -350,6 +370,9 @@ class JSONResource(dict):
 			self.update(data)
 
 	def save(self):
+		"""
+		Save to JSON file.
+		"""
 		FileIO.save(self, self._path)
 
 	def __repr__(self):
@@ -360,7 +383,20 @@ class JSONResource(dict):
 
 
 class PathManager(object):
+	"""
+	Helper for the Workspace that generates all the necessary paths to permanent and temporary
+	files.
+	"""
 	def __init__(self, fileid: str, ext: str, original: Path, gold: Path, training: Path, corrected: Path, nheaderlines: int = 0):
+		"""
+		:param fileid: Base filename (ie. without extension).
+		:param ext: The extension (including leading period).
+		:param original: Directory for original uncorrected files.
+		:param gold: Directory for known correct “gold” files (if any).
+		:param training: Directory for storing intermediate files.
+		:param corrected: Directory for saving corrected files.
+		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)
+		"""
 		self.ext = ext
 		if self.ext == '.txt':
 			self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(f'{fileid}{ext}'), nheaderlines)
@@ -370,23 +406,30 @@ class PathManager(object):
 			self.originalFile: Union[CorpusFile, Path] = original.joinpath(f'{fileid}{ext}')
 			self.goldFile: Union[CorpusFile, Path] = gold.joinpath(f'{fileid}{ext}')
 			self.correctedFile: Union[CorpusFile, Path] = corrected.joinpath(f'{fileid}{ext}')
-		self.originalTokenFile = training.joinpath(f'{fileid}.tokens.csv')
-		self.alignedTokenFile = training.joinpath(f'{fileid}.alignedTokens.csv')
-		self.kbestTokenFile = training.joinpath(f'{fileid}.kbestTokens.csv')
-		self.binnedTokenFile = training.joinpath(f'{fileid}.binnedTokens.csv')
-		self.correctedTokenFile = training.joinpath(f'{fileid}.correctedTokens.csv')
-		self.fullAlignmentsFile = training.joinpath(f'{fileid}.fullAlignments.json')
-		self.wordAlignmentsFile = training.joinpath(f'{fileid}.wordAlignments.json')
-		self.readCountsFile = training.joinpath(f'{fileid}.readCounts.json')
+		self.originalTokenFile = training.joinpath(f'{fileid}.tokens.csv')  #: Path to original token file (CSV format).
+		self.alignedTokenFile = training.joinpath(f'{fileid}.alignedTokens.csv')  #: Path to aligned token file (CSV format).
+		self.kbestTokenFile = training.joinpath(f'{fileid}.kbestTokens.csv')  #: Path to token file with *k*-best suggestions (CSV format).
+		self.binnedTokenFile = training.joinpath(f'{fileid}.binnedTokens.csv')  #: Path to token file with bins applied (CSV format).
+		self.correctedTokenFile = training.joinpath(f'{fileid}.correctedTokens.csv')  #: Path to token file with autocorrections applied (CSV format).
+		self.fullAlignmentsFile = training.joinpath(f'{fileid}.fullAlignments.json')  #: Path to full letter-by-letter alignments (JSON format).
+		self.wordAlignmentsFile = training.joinpath(f'{fileid}.wordAlignments.json')  #: Path to word-by-word alignments (JSON format).
+		self.readCountsFile = training.joinpath(f'{fileid}.readCounts.json')  #: Path to letter read counts (JSON format).
 
 
 ##########################################################################################
 
 
 class ResourceManager(object):
+	"""
+	Helper for the Workspace to manage various resources.
+	"""
 	log = logging.getLogger(f'{__name__}.ResourceManager')
 
-	def __init__(self, root, config):
+	def __init__(self, root: Path, config):
+		"""
+		:param root: Path to resources directory.
+		:param config: TODO
+		"""
 		self.root = root.joinpath(config.resourceRootPath).resolve()
 		ResourceManager.log.info(f'ResourceManager configuration:\n{pformat(vars(config))} at {self.root}')
 		self.correctionTracking = JSONResource(self.root.joinpath(config.correctionTrackingFile).resolve())
