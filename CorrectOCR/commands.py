@@ -13,6 +13,7 @@ import requests
 from lxml import etree
 from tei_reader import TeiReader
 
+from . import progname
 from .correcter import CorrectionShell
 from .fileio import _open_for_reading, FileIO
 from .model import HMMBuilder
@@ -402,6 +403,8 @@ def do_index(workspace: Workspace, config):
 					red = (1.0, 0.0, 0.0)
 					annotation.setColors({'fill': red, 'stroke': red})
 					annotation.setOpacity(0.5)
+					annotation.info['title'] = progname
+					annotation.info['content'] = str.join(', ', tagged_token.tags)
 					annotation.update()
 			filename = f'{fileid}-highlighted.pdf'
 			log.info(f'Saving highlighted PDF to {filename}')
