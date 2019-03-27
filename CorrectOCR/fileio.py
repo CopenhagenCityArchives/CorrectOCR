@@ -73,7 +73,7 @@ class FileIO(object):
 			)
 			counter += 1
 		if counter > 0:
-			logging.getLogger(f'{__name__}.ensure_new_file').info(f'Existing file moved to {path}')
+			cls.log.info(f'Existing file moved to {path}')
 			originalpath.rename(path)
 
 	@classmethod

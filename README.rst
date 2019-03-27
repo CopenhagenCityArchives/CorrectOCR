@@ -116,6 +116,8 @@ The following commands are available:
    -  The ``--corpusFile`` option specifies a file containing paths and
       URLs. One such file for a dictionary covering 1800–1948 Danish is
       provided under ``resources/``.
+   -  The ``--clear`` option clears the dictionary before adding words
+      (the file is backed up first).
 
    It is strongly recommended to generate a large dictionary for best
    performance.

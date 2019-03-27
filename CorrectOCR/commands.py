@@ -40,7 +40,10 @@ def extract_text_from_pdf(filename: str):
 
 def build_dictionary(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.build_dictionary')
-	
+
+	if config.clear:
+		workspace.resources.dictionary.clear()
+
 	corpusPath = config.corpusPath or FileIO._cachePath.joinpath('dictionary/')
 
 	if config.corpusFile:

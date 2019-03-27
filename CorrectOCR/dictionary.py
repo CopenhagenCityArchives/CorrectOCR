@@ -23,9 +23,9 @@ class Dictionary(Set[str]):
 			Dictionary.log.info(f'Loading dictionary from {self._path.name}')
 			for line in FileIO.load(self._path).split('\n'):
 				if self.caseInsensitive:
-					self.add(line.strip().lower(), nowarn=True)
+					self.add(line.lower(), nowarn=True)
 				else:
-					self.add(line.strip(), nowarn=True)
+					self.add(line, nowarn=True)
 		Dictionary.log.info(f'{len(self)} words in dictionary')
 	
 	def __repr__(self) -> str:
@@ -37,7 +37,12 @@ class Dictionary(Set[str]):
 		if self.caseInsensitive:
 			word = word.lower()
 		return super().__contains__(word)
-	
+
+	def clear(self):
+		Dictionary.log.info(f'Clearing dictionary at {self._path}.')
+		FileIO.ensure_new_file(self._path)
+		super().clear()
+
 	def add(self, word: str, nowarn: bool = False):
 		"""
 		Add a new word to the dictionary. Silently drops non-alpha strings.
@@ -45,7 +50,8 @@ class Dictionary(Set[str]):
 		:param word: The word to add.
 		:param nowarn: Don't warn about long words (>15 letters).
 		"""
-		if not word.isalpha() or word in self:
+		word = word.strip()
+		if word == '' or not word.isalpha() or word in self:
 			return
 		if len(word) > 15 and not nowarn:
 			Dictionary.log.warning(f'Added word is more than 15 characters long: {word}')
