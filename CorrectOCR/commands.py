@@ -25,19 +25,6 @@ from .workspace import Workspace
 ##########################################################################################
 
 
-def extract_text_from_pdf(filename: str):
-	doc = fitz.open(filename)
-
-	text = ''
-
-	for p in range(0, doc.pageCount):
-		page = doc.loadPage(p)
-
-		text += page.getText()
-
-	return text
-
-
 def build_dictionary(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.build_dictionary')
 
@@ -95,7 +82,6 @@ def build_dictionary(workspace: Workspace, config):
 				unzip_recursive(zf)
 
 	ignore: Set[str] = {
-		'.DS_Store',
 		# extraneous files in Joh. V. Jensen zip:
 		'teiHeader.xsd',
 		'text-format.pdf',
@@ -171,9 +157,11 @@ def build_dictionary(workspace: Workspace, config):
 			continue
 		log.info(f'Getting words from {file}')
 		if file.suffix == '.pdf':
-			text = extract_text_from_pdf(file)
-			for word in tokenize_str(str(text), workspace.language.name):
-				workspace.resources.dictionary.add(word)
+			doc = fitz.open(str(file))
+
+			for page in progressbar.progressbar(doc):
+				for word_info in page.getTextWords():
+					workspace.resources.dictionary.add(word_info[4])
 		elif file.suffix == '.xml':
 			try:
 				reader = TeiReader()
