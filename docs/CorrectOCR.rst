@@ -18,6 +18,7 @@ Submodules
    CorrectOCR.fileio
    CorrectOCR.heuristics
    CorrectOCR.model
+   CorrectOCR.server
    CorrectOCR.tokens
    CorrectOCR.workspace
 

@@ -1,5 +1,6 @@
 beautifulsoup4
 cachetools
+Flask
 lxml
 nltk
 numpy
@@ -16,3 +17,4 @@ tei-reader
 # documentation packages:
 sphinx-autodoc-typehints
 sphinx_rtd_theme
+sphinxcontrib.httpdomain

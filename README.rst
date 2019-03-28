@@ -193,9 +193,9 @@ The following commands are available:
    -  The ``--autocorrect`` option applies available corrections prior
       to search/highlighting, as above.
 
--  ``server`` starts a simple Flask server backend that provides ``JSON``
-   descriptions and ``.png`` images, as well as accepts ``POST``-requests
-   to update corrected tokens.
+-  ``server`` starts a simple Flask backend server that provides ``JSON``
+   descriptions and ``.png`` images of tokens, as well as accepts
+   ``POST``-requests to update tokens with corrections.
 
 -  ``cleanup`` deletes the backup files in the training directory.
 
