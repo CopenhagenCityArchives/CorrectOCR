@@ -30,7 +30,7 @@ class FileIO(object):
 
 	@classmethod
 	def cachePath(cls, name: str = ''):
-		path = Path('./__COCRcache__/').joinpath(f'{name}/')
+		path = Path('./__COCRcache__/').joinpath(name)
 		cls.ensure_directories(path)
 		return path
 
@@ -87,6 +87,8 @@ class FileIO(object):
 
 		:param path: The path to check.
 		"""
+		if path.is_file():
+			path = path.parent
 		path.mkdir(parents=True, exist_ok=True)
 
 	@classmethod

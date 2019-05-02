@@ -14,7 +14,7 @@ class TokenList(List['Token'], abc.ABC):
 		"""
 		Decorator which registers a :class:`TokenList` subclass with the base class.
 
-		:param type: TODO
+		:param storagetype: `fs` or `db`
 		"""
 		def wrapper(cls):
 			TokenList._subclasses[storagetype] = cls
@@ -22,34 +22,41 @@ class TokenList(List['Token'], abc.ABC):
 		return wrapper
 
 	@staticmethod
-	def for_type(type: str) -> 'TokenList':
+	def new(config, tokens = None) -> TokenList:
+		if tokens:
+			return TokenList.for_type(config.type)(config, tokens)
+		else:
+			return TokenList.for_type(config.type)(config)
+
+	@staticmethod
+	def for_type(type: str) -> TokenList.__class__:
 		TokenList.log.debug(f'_subclasses: {TokenList._subclasses}')
 		if type not in TokenList._subclasses:
-			raise Error('Unknown storage type: {type}')
+			raise NameError(f'Unknown storage type: {type}')
 		return TokenList._subclasses[type]
 
-	def __init__(self, config, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, config, *args):
+		list.__init__(self, *args)
 		self.config = config
 		TokenList.log.debug(f'init: {self.config}')
 
-	@classmethod
+	@staticmethod
+	def exists(config, path) -> bool:
+		return TokenList.new(config)._exists(path) #TODO
+
 	@abc.abstractmethod
-	def load(cls, fileid: str, name: str) -> 'TokenList':
+	def load(self, fileid: str, path = None):
 		pass
 
 	@abc.abstractmethod
-	def save(self):
+	def save(self, path = None, token = None):
 		pass
 
-    @classmethod
-    @abc.abstractmethod
-    def load(cls, fileid: str) -> 'TokenList':
-        pass
-
-    @abc.abstractmethod
-    def save(self, name: str):
-        pass
-
+	@staticmethod
+	@abc.abstractmethod
+	def _exists(self, path):
+		pass
 
 ##########################################################################################
+
+

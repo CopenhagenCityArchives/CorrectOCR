@@ -38,7 +38,7 @@ class PDFToken(Token):
 		return (self.page_n, self.block_n, self.line_n, self.word_n)
 
 	def extract_image(self, workspace, xmargin=300, ymargin=15, highlight_word=True):
-		imagefile = workspace.cachePath.joinpath('pdf/').joinpath(
+		imagefile = workspace.cachePath('pdf/').joinpath(
 			f'{self.fileid}-{self.page_n}-{self.block_n}-{self.line_n}-{self.word_n}-{self.lookup}.png'
 		)
 		if imagefile.is_file():
@@ -73,14 +73,11 @@ class PDFTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.PDFTokenizer')
 
 	def tokenize(self, file: Path, storageconfig):
-		from .list import DBTokenList, FSTokenList
+		from .list import TokenList
 
 		doc = fitz.open(str(file))
 
-		if storageconfig.kind == "fs":
-			tokens = FSTokenList(storageconfig)
-		elif storageconfig.kind == "db":
-			tokens = DBTokenList(storageconfig)
+		tokens = TokenList.new(storageconfig)
 		for page in doc:
 			PDFTokenizer.log.info(f'Getting tokens from {file.name} page {page.number}')
 			for w in progressbar.progressbar(page.getTextWords()):

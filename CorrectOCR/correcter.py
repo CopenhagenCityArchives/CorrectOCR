@@ -4,7 +4,7 @@ from collections import deque
 from typing import List, Iterator, TypeVar, Tuple
 
 from . import punctuationRE
-from .tokens import Token, TokenList
+from .tokens import TokenList
 
 '''
 IMPORTANT BEFORE USING:

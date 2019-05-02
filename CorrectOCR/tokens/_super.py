@@ -11,7 +11,6 @@ from typing import Any, DefaultDict, List, NamedTuple
 import nltk
 import regex
 
-
 from .list import TokenList
 from ..heuristics import Bin
 
@@ -232,7 +231,7 @@ class Tokenizer(abc.ABC):
 		return wrapper
 
 	@staticmethod
-	def for_extension(ext: str) -> Tokenizer:
+	def for_extension(ext: str) -> TokenList.__class__:
 		"""
 		Obtain the suitable subclass for the given extension. Currently, Tokenizers are
 		provided for the following extensions:
@@ -280,7 +279,7 @@ def dehyphenate_tokens(tokens: TokenList) -> TokenList:
 	log = logging.getLogger(f'{__name__}.dehyphenate_tokens')
 	r = regex.compile(r'\p{Dash}$') # ends in char from 'Dash' category of Unicode
 
-	dehyphenated = []
+	dehyphenated = TokenList.new(tokens.config)
 	tokens = iter(tokens)
 	for token in tokens:
 		if r.search(token.original):
