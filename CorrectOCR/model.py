@@ -11,7 +11,7 @@ from . import punctuationRE
 from ._cache import PickledLRUCache, cached
 from .dictionary import Dictionary
 from .fileio import FileIO
-from .tokens import KBestItem, Token
+from .tokens import KBestItem, Token, TokenList
 
 
 class HMM(object):
@@ -226,7 +226,7 @@ class HMM(object):
 
 		return variant_words
 
-	def generate_kbest(self, tokens: List[Token], k: int = 4):
+	def generate_kbest(self, tokens: TokenList, k: int = 4):
 		"""
 		Generates *k*-best correction candidates for a list of Tokens and adds them
 		to each token.

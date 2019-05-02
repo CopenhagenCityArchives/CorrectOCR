@@ -17,7 +17,7 @@ class PDFToken(Token):
 	def token_info(self):
 		return (self.page_n, self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.original, self.block_n, self.line_n, self.word_n)
 
-	def __init__(self, info, fileid, **kwargs):
+	def __init__(self, info, fileid, index):
 		self.page_n = int(info[0])
 		self.rect = fitz.Rect(
 			float(info[1]),
@@ -31,7 +31,7 @@ class PDFToken(Token):
 			int(info[7]),
 			int(info[8]),
 		)
-		super().__init__(info[5], fileid)
+		super().__init__(info[5], fileid, index)
 
 	@property
 	def ordering(self):
@@ -72,14 +72,16 @@ class PDFToken(Token):
 class PDFTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.PDFTokenizer')
 
-	def tokenize(self, file: Path):
+	def tokenize(self, file: Path, storageconfig):
+		from .list import TokenList
+
 		doc = fitz.open(str(file))
 
-		tokens = []
+		tokens = TokenList(storageconfig)
 		for page in doc:
 			PDFTokenizer.log.info(f'Getting tokens from {file.name} page {page.number}')
 			for w in progressbar.progressbar(page.getTextWords()):
-				token = PDFToken((page.number, ) + tuple(w), file.stem)
+				token = PDFToken((page.number, ) + tuple(w), file.stem, len(tokens))
 				tokens.append(token)
 
 		PDFTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')

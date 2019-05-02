@@ -4,7 +4,7 @@ from collections import deque
 from typing import List, Iterator, TypeVar, Tuple
 
 from . import punctuationRE
-from .tokens import Token
+from .tokens import Token, TokenList
 
 '''
 IMPORTANT BEFORE USING:
@@ -33,7 +33,7 @@ class CorrectionShell(cmd.Cmd):
 	log = logging.getLogger(f'{__name__}.CorrectionShell')
 	_prompt = 'CorrectOCR> '
 
-	def __init__(self, tokens: List[Token], dictionary, correctionTracking: dict):
+	def __init__(self, tokens: TokenList, dictionary, correctionTracking: dict):
 		super().__init__()
 		self.token = None
 		self.decision = None
@@ -50,7 +50,7 @@ class CorrectionShell(cmd.Cmd):
 		self.use_rawinput = True
 
 	@classmethod
-	def start(cls, tokens: List[Token], dictionary, correctionTracking: dict, intro: str = None):
+	def start(cls, tokens: TokenList, dictionary, correctionTracking: dict, intro: str = None):
 		"""
 		:param tokens: A list of Tokens.
 		:param dictionary: A dictionary against which to check validity.

@@ -5,7 +5,6 @@ from flask import Flask, Response, json, redirect, request, url_for
 import requests
 
 from . import progname
-from .fileio import FileIO
 from .tokens._pdf import PDFToken
 from .workspace import Workspace
 
@@ -82,7 +81,7 @@ def create_app(workspace: Workspace = None, config = None):
 				return {'error': 'Unauthorized.'}, 401
 			token.gold = request.form['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
-			FileIO.save(files[fileid]['tokens'], workspace.paths[fileid].correctedTokenFile)
+			files[fileid]['tokens'].save(workspace.paths[fileid].correctedTokenFile)
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = url_for('tokenimage', fileid=fileid, index=index)

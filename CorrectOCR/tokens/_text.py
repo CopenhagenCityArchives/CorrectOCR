@@ -11,9 +11,9 @@ class StringToken(Token):
 	def token_info(self):
 		return self._string
 
-	def __init__(self, original, fileid, **kwargs):
+	def __init__(self, original, fileid, index):
 		self._string = original
-		super().__init__(original, fileid)
+		super().__init__(original, fileid, index)
 
 
 ##########################################################################################
@@ -23,8 +23,10 @@ class StringToken(Token):
 class StringTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.StringTokenizer')
 
-	def tokenize(self, file: CorpusFile):
-		tokens = [StringToken(w, file.path.stem) for w in tokenize_str(file.body, self.language.name)]
+	def tokenize(self, file: CorpusFile, storageconfig):
+		from .list import TokenList
+
+		tokens = TokenList(storageconfig, [StringToken(w, file.path.stem, i) for i, w in enumerate(tokenize_str(file.body, self.language.name))])
 		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
 	
 		return tokens

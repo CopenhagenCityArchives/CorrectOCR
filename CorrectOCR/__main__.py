@@ -38,7 +38,9 @@ multiCharacterErrorFile = multicharacter_errors.json
 reportFile = report.txt
 heuristicSettingsFile = settings.json
 
-[server]
+[storage]
+kind = fs
+connectionString = NONE[server]
 host = 127.0.0.1
 """
 
@@ -85,6 +87,12 @@ resourceparser.add_argument('--caseInsensitive', action='store_true', default=Fa
 resourceparser.set_defaults(**dict(config.items('resources')))
 (resourceconfig, args) = resourceparser.parse_known_args(args)
 #print(resourceconfig, args)
+
+storageparser = argparse.ArgumentParser()
+storageparser.add_argument('--kind', type=str, choices=['db', 'fs'], help='Log level')
+storageparser.add_argument('--connectionString', type=str, help='Log level')
+resourceparser.set_defaults(**dict(config.items('resources')))
+(storageconfig, args) = resourceparser.parse_known_args(args)
 
 configuration = dict(config.items('configuration'))
 #print(configuration)
@@ -179,7 +187,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(progname)
 
-workspace = workspace.Workspace(workspaceconfig, resourceconfig)
+workspace = workspace.Workspace(workspaceconfig, resourceconfig, storageconfig)
 
 log.info(f'Configuration for this invocation:\n{pformat(vars(args))}')
 args.func(workspace, args)

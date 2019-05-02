@@ -12,6 +12,7 @@ import nltk
 import regex
 
 
+from .list import TokenList
 from ..heuristics import Bin
 
 
@@ -51,7 +52,7 @@ class Token(abc.ABC):
 
 	_punctuation_splitter = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
 
-	def __init__(self, original: str, fileid: str):
+	def __init__(self, original: str, fileid: str, index: int):
 		"""
 		:param original: Original spelling of the token.
 		:param fileid: The file with which the Token is associated.
@@ -59,6 +60,7 @@ class Token(abc.ABC):
 		m = Token._punctuation_splitter.search(original)
 		(self._punct_prefix, self.lookup, self._punct_suffix) = m.groups('')
 		self.fileid = fileid  #: The file with which the Token is associated.
+		self.index = index #: The placement of the Token in the file.
 		self.gold = None
 		self.bin: Bin = None  #: Heuristics bin.
 		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
@@ -156,6 +158,7 @@ class Token(abc.ABC):
 			'Gold': self.gold or '',
 			'Original': self.original,
 			'File ID': self.fileid,
+			'Index': self.index,
 		}
 		for k, item in self.kbest.items():
 			output[f'{k}-best'] = item.candidate
@@ -179,7 +182,11 @@ class Token(abc.ABC):
 		"""
 		classname = d['Token type']
 		#Token._subclasses[classname].log.debug(f'from_dict: {d}')
-		t = Token._subclasses[classname](json.loads(d['Token info']), d.get('File ID', None))
+		t = Token._subclasses[classname](
+			json.loads(d['Token info']),
+			d.get('File ID', None),
+			d.get('Index', -1)
+		)
 		t.gold = d.get('Gold', None)
 		kbest = collections.defaultdict(lambda: KBestItem(''))
 		k = 1
@@ -225,7 +232,7 @@ class Tokenizer(abc.ABC):
 		return wrapper
 
 	@staticmethod
-	def for_extension(ext: str):
+	def for_extension(ext: str) -> Tokenizer:
 		"""
 		Obtain the suitable subclass for the given extension. Currently, Tokenizers are
 		provided for the following extensions:
@@ -251,7 +258,7 @@ class Tokenizer(abc.ABC):
 		self.tokens = []
 
 	@abc.abstractmethod
-	def tokenize(self, file: Path) -> List[Token]:
+	def tokenize(self, file: Path, storageconfig) -> TokenList:
 		"""
 		Generate tokens for the given document.
 
@@ -262,14 +269,14 @@ class Tokenizer(abc.ABC):
 
 	@staticmethod
 	@abc.abstractmethod
-	def apply(original: Path, tokens: List[Token], corrected: Path):
+	def apply(original: Path, tokens: TokenList, corrected: Path):
 		pass
 
 
 ##########################################################################################
 
 
-def dehyphenate_tokens(tokens: List[Token]) -> List[Token]:
+def dehyphenate_tokens(tokens: TokenList) -> TokenList:
 	log = logging.getLogger(f'{__name__}.dehyphenate_tokens')
 	r = regex.compile(r'\p{Dash}$') # ends in char from 'Dash' category of Unicode
 
@@ -290,7 +297,7 @@ class DehyphenationToken(Token):
 	def __init__(self, first: Token, second: Token):
 		self.first = first
 		self.second = second
-		super().__init__(self.original, first.fileid)
+		super().__init__(self.original, first.fileid, self.first.index)
 
 	@property
 	def original(self):
