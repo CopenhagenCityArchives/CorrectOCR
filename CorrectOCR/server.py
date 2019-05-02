@@ -2,6 +2,7 @@ import io
 import random
 
 from flask import Flask, Response, json, redirect, request, url_for
+import requests
 
 from . import progname
 from .fileio import FileIO
@@ -23,6 +24,11 @@ def create_app(workspace: Workspace = None, config = None):
 			'tokens': workspace.autocorrectedTokens(fileid, k=config.k),
 		} for fileid in workspace.paths if workspace.paths[fileid].ext == '.pdf'
 	} if workspace else {}
+
+	authentication_endpoint = 'https://example.com' # configure?
+	def authenticated(formdata) -> bool:
+		r = requests.post(authentication_endpoint, data=formdata)
+		return r.status_code == 200
 
 	@app.route('/')
 	def index():
@@ -72,6 +78,8 @@ def create_app(workspace: Workspace = None, config = None):
 		token = files[fileid]['tokens'][index]
 		if request.method == 'POST' and 'gold' in request.form:
 			# NB: only works in singlethread/-process environs
+			if not authenticated(request.form):
+				return {'error': 'Unauthorized.'}, 401
 			token.gold = request.form['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
 			FileIO.save(files[fileid]['tokens'], workspace.paths[fileid].correctedTokenFile)
