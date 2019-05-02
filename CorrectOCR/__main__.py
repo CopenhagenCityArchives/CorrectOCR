@@ -37,6 +37,9 @@ memoizedCorrectionsFile = memoized_corrections.json
 multiCharacterErrorFile = multicharacter_errors.json
 reportFile = report.txt
 heuristicSettingsFile = settings.json
+
+[server]
+host = 127.0.0.1
 """
 
 loglevels = dict(logging._nameToLevel)
@@ -162,7 +165,8 @@ extractparser.add_argument('--fileid', help='Input file ID (filename without pat
 extractparser.set_defaults(func=commands.do_extract, **configuration)
 
 serverparser = subparsers.add_parser('server', parents=[commonparser], help='Run JSON-dispensing server')
-serverparser.set_defaults(func=commands.run_server, **configuration)
+serverparser.add_argument('--host', help='The host address.')
+serverparser.set_defaults(func=commands.run_server, **dict(config.items('server')))
 
 args = rootparser.parse_args(args)
 
