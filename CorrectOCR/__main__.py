@@ -39,7 +39,8 @@ reportFile = report.txt
 heuristicSettingsFile = settings.json
 
 [storage]
-kind = fs
+type = fs
+db_driver = 
 db_host =
 db_user =
 db_password =
@@ -94,13 +95,15 @@ resourceparser.set_defaults(**dict(config.items('resources')))
 #print(resourceconfig, args)
 
 storageparser = argparse.ArgumentParser()
-storageparser.add_argument('--kind', type=str, choices=['db', 'fs'], help='Log level')
-storageparser.add_argument('--db-host', type=str, help='Database hostname')
-storageparser.add_argument('--db-user', type=str, help='Database username')
-storageparser.add_argument('--db-password', type=str, help='Database user password')
+storageparser.add_argument('--type', type=str, choices=['db', 'fs'], help='Storage type')
+storageparser.add_argument('--db_driver', type=str, help='Database hostname')
+storageparser.add_argument('--db_host', type=str, help='Database hostname')
+storageparser.add_argument('--db_user', type=str, help='Database username')
+storageparser.add_argument('--db_password', type=str, help='Database user password')
 storageparser.add_argument('--db', type=str, help='Database name')
 storageparser.set_defaults(**dict(config.items('storage')))
 (storageconfig, args) = storageparser.parse_known_args(args)
+print(storageconfig, args)
 
 configuration = dict(config.items('configuration'))
 #print(configuration)

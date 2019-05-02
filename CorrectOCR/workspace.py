@@ -13,7 +13,7 @@ from .dictionary import Dictionary
 from .fileio import FileIO
 from .heuristics import Heuristics
 from .model import HMM
-from .tokens import Token, Tokenizer, DBTokenList, FSTokenList, TokenList, tokenize_str, dehyphenate_tokens
+from .tokens import Token, Tokenizer, TokenList, tokenize_str, dehyphenate_tokens
 
 
 def _tokensaver(get_path):
@@ -31,15 +31,18 @@ def _tokensaver(get_path):
 			fileid = arg('fileid', 1)
 			force = arg('force', 4)
 			path = get_path(self.paths[fileid])
-			if not force and path.is_file():
-				Workspace.log.info(f'File containing {func.__name__} for {fileid} exists and will be returned as a TokenList. Use --force or delete it to rerun.')
-				return TokenList.for_type(self.storageconfig.type).load(fileid, path)
+			if not force and TokenList.exists(self.storageconfig, path):
+				Workspace.log.info(f'Storage containing {func.__name__} for {fileid} exists and will be returned as a TokenList. Use --force or delete it to rerun.')
+				tl = TokenList.new(self.storageconfig)
+				tl.load(path)
+				Workspace.log.debug(f'Loaded {len(tl)} tokens.')
+				return tl
 
 			tokens = func(*args, **kwargs)
 
 			if len(tokens) > 0:
 				Workspace.log.info(f'Writing tokens to {path}')
-				tokens.save()
+				tokens.save(path)
 
 			return tokens
 		return wrapper
@@ -214,10 +217,7 @@ class Workspace(object):
 					token.gold = closest[0][1]
 
 			return tokens
-		if self.storageconfig.kind == "db":
-			return DBTokenList(self.storageconfig)
-		else self.storageconfig.kind == "fs":
-			return FSTokenList(self.storageconfig)
+		return TokenList.new(self.storageconfig)
 
 	@_tokensaver(lambda p: p.kbestTokenFile)
 	def kbestTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> TokenList:
@@ -261,6 +261,7 @@ class Workspace(object):
 
 		return tokens
 
+	@_tokensaver(lambda p: p.correctedTokenFile)
 	def autocorrectedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> TokenList:
 		"""
 		Applies the suggested corrections and leaves those marked 'annotator'

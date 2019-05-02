@@ -15,6 +15,7 @@ def create_app(workspace: Workspace = None, config = None):
 		instance_path = workspace.root if workspace else None,
 	)
 	app.config.from_mapping(
+		host = config.host,
 		#SECRET_KEY='dev', # TODO needed?
 	)
 
@@ -81,7 +82,7 @@ def create_app(workspace: Workspace = None, config = None):
 				return {'error': 'Unauthorized.'}, 401
 			token.gold = request.form['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
-			files[fileid]['tokens'].save(workspace.paths[fileid].correctedTokenFile)
+			files[fileid]['tokens'].save(token=token)
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = url_for('tokenimage', fileid=fileid, index=index)

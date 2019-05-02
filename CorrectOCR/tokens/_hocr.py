@@ -13,7 +13,7 @@ import progressbar
 from PIL import Image
 from lxml import html
 
-from ._super import Token, Tokenizer
+from ._super import Token, Tokenizer, TokenList
 
 
 class TokenSegment(NamedTuple):
@@ -23,7 +23,7 @@ class TokenSegment(NamedTuple):
 	rect: Tuple[float, float, float, float]
 	image: Any # PIL.Image doesnt work...?
 	hocr: html.Element
-	tokens: 'TokenList'
+	tokens: TokenList
 
 
 ##########################################################################################
@@ -180,7 +180,7 @@ class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
 	def tokenize(self, file: Path, storageconfig):
-		from .list import DBTokenList, FSTokenList
+		from .list import TokenList
 		from ..fileio import FileIO
 
 		cachefile = FileIO.cachePath('hocr').joinpath(f'{file.stem}.cache.json')
@@ -198,14 +198,11 @@ class HOCRTokenizer(Tokenizer):
 					rect,
 					image,
 					hocr,
-					tokens
+					TokenList.new(storageconfig, tokens)
 				))
 			FileIO.save(segments, cachefile)
 
-		if storageconfig.kind == "fs":
-			all_tokens = FSTokenList(storageconfig, [t for s in segments for t in s.tokens])
-		elif storageconfig.kind == "db":
-			all_tokens = DBTokenList(storageconfig, [t for s in segments for t in s.tokens])
+		all_tokens = TokenList.new(storageconfig, [t for s in segments for t in s.tokens])
 
 		HOCRTokenizer.log.debug(f'Found {len(all_tokens)} tokens, first 10: {all_tokens[:10]}')
 

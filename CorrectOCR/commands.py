@@ -31,7 +31,7 @@ def build_dictionary(workspace: Workspace, config):
 	if config.clear:
 		workspace.resources.dictionary.clear()
 
-	corpusPath = config.corpusPath or FileIO.cachePath('dictionary')
+	corpusPath = config.corpusPath or FileIO.cachePath('dictionary/')
 
 	if config.corpusFile:
 		for line in _open_for_reading(config.corpusFile).readlines():
@@ -455,4 +455,4 @@ def run_server(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.run_server')
 
 	app = create_app(workspace, config)
-	app.run(host=config.host)
+	app.run()

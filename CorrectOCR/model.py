@@ -11,7 +11,7 @@ from . import punctuationRE
 from ._cache import PickledLRUCache, cached
 from .dictionary import Dictionary
 from .fileio import FileIO
-from .tokens import KBestItem, Token, TokenList
+from .tokens import KBestItem, TokenList
 
 
 class HMM(object):

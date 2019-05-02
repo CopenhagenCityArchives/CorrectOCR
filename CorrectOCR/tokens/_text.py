@@ -6,15 +6,15 @@ from ..workspace import CorpusFile
 
 @Token.register
 class StringToken(Token):
-    log = logging.getLogger(f'{__name__}.StringToken')
+	log = logging.getLogger(f'{__name__}.StringToken')
 
-    @property
-    def token_info(self):
-        return self._string
+	@property
+	def token_info(self):
+		return self._string
 
-    def __init__(self, original, fileid, index):
-        self._string = original
-        super().__init__(original, fileid, index)
+	def __init__(self, original, fileid, index):
+		self._string = original
+		super().__init__(original, fileid, index)
 
 
 ##########################################################################################
@@ -22,33 +22,21 @@ class StringToken(Token):
 
 @Tokenizer.register(['.txt'])
 class StringTokenizer(Tokenizer):
-    log = logging.getLogger(f'{__name__}.StringTokenizer')
+	log = logging.getLogger(f'{__name__}.StringTokenizer')
 
-    def tokenize(self, file: CorpusFile, storageconfig):
-        from .list import DBTokenList, FSTokenList
+	def tokenize(self, file: CorpusFile, storageconfig):
+		from .list import TokenList
 
-        if storageconfig.kind == "fs":
-            tokens = FSTokenList(storageconfig, [
-                StringToken(w, file.path.stem, i)
-                for i, w in enumerate(tokenize_str(file.body, self.language.name))
-            ])
-        elif storageconfig.kind == "db":
-            tokens = DBTokenList(storageconfig, [
-            StringToken(w, file.path.stem, i)
-            for i, w in enumerate(tokenize_str(file.body, self.language.name))
-        ])
-        StringTokenizer.log.debug(
-            f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
+		tokens = TokenList.new(storageconfig, [StringToken(w, file.path.stem, i) for i, w in enumerate(tokenize_str(file.body, self.language.name))])
+		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
+	
+		return tokens
 
-        return tokens
+	@staticmethod
+	def apply(original: CorpusFile, tokens, corrected: CorpusFile):
+		spaced = str.join(' ', [token.gold or token.original for token in tokens])
+		despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
-    @staticmethod
-    def apply(original: CorpusFile, tokens, corrected: CorpusFile):
-        spaced = str.join(' ',
-                          [token.gold or token.original for token in tokens])
-        despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
-
-        corrected.header = original.header.replace(u'Corrected: No',
-                                                   u'Corrected: Yes')
-        corrected.body = despaced
-        corrected.save()
+		corrected.header = original.header.replace(u'Corrected: No', u'Corrected: Yes') 
+		corrected.body = despaced
+		corrected.save()
