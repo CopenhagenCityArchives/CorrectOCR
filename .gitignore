@@ -16,3 +16,4 @@ docs/*.html
 docs/objects.inv
 venv
 apidoc
+node_modules
