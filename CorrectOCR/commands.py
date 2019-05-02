@@ -455,4 +455,4 @@ def run_server(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.run_server')
 
 	app = create_app(workspace, config)
-	app.run()
+	app.run(host=config.host)
