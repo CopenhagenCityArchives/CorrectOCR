@@ -1,6 +1,7 @@
 import io
+import random
 
-from flask import Flask, Response, json, request, url_for
+from flask import Flask, Response, json, redirect, request, url_for
 
 from . import progname
 from .fileio import FileIO
@@ -74,7 +75,10 @@ def create_app(workspace: Workspace = None, config = None):
 			token.gold = request.form['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
 			FileIO.save(files[fileid]['tokens'], workspace.paths[fileid].correctedTokenFile)
-		return json.jsonify(vars(token))
+		tokendict = vars(token)
+		if 'image_url' not in tokendict:
+			tokendict['image_url'] = url_for('tokenimage', fileid=fileid, index=index)
+		return json.jsonify(tokendict)
 
 	@app.route('/<fileid>/token-<int:index>.png')
 	def tokenimage(fileid, index):
@@ -88,5 +92,11 @@ def create_app(workspace: Workspace = None, config = None):
 		with io.BytesIO() as output:
 			image.save(output, format="PNG")
 			return Response(output.getvalue(), mimetype='image/png')
+
+	@app.route('/random')
+	def rand():
+		fileid = random.choice(list(files.keys()))
+		index = random.randint(0, len(files[fileid]['tokens']))
+		return redirect(url_for('tokeninfo', fileid=fileid, index=index))
 
 	return app
