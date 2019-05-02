@@ -28,7 +28,11 @@ class FileIO(object):
 	"""
 	log = logging.getLogger(f'{__name__}.FileIO')
 
-	_cachePath = Path('./__COCRcache__/')
+	@classmethod
+	def cachePath(cls, name: str = ''):
+		path = Path('./__COCRcache__/').joinpath(f'{name}/')
+		cls.ensure_directories(path)
+		return path
 
 	@classmethod
 	def _csv_header(cls, kind: str, k: int) -> List[str]:

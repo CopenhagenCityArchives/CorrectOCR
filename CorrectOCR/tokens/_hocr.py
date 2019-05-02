@@ -182,7 +182,7 @@ class HOCRTokenizer(Tokenizer):
 	def tokenize(self, file: Path):
 		from ..fileio import FileIO
 
-		cachefile = FileIO._cachePath.joinpath(f'hocr/{file.stem}.cache.json')
+		cachefile = FileIO.cachePath('hocr').joinpath(f'{file.stem}.cache.json')
 		FileIO.ensure_directories(cachefile.parent)
 
 		if cachefile.is_file():
