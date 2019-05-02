@@ -5,7 +5,7 @@ import logging
 import re
 from pathlib import Path
 from pprint import pformat
-from typing import Dict, Iterator, List, Tuple, Union
+from typing import Dict, Iterator, Tuple, Union
 
 from ._cache import LRUCache, cached
 from .aligner import Aligner
@@ -13,7 +13,7 @@ from .dictionary import Dictionary
 from .fileio import FileIO
 from .heuristics import Heuristics
 from .model import HMM
-from .tokens import Token, Tokenizer, tokenize_str, dehyphenate_tokens
+from .tokens import Token, Tokenizer, TokenList, tokenize_str, dehyphenate_tokens
 
 
 def _tokensaver(get_path):
@@ -32,14 +32,14 @@ def _tokensaver(get_path):
 			force = arg('force', 4)
 			path = get_path(self.paths[fileid])
 			if not force and path.is_file():
-				Workspace.log.info(f'File containing {func.__name__} for {fileid} exists and will be returned as Token objects. Use --force or delete it to rerun.')
-				return [Token.from_dict(row) for row in FileIO.load(path)]
+				Workspace.log.info(f'File containing {func.__name__} for {fileid} exists and will be returned as a TokenList. Use --force or delete it to rerun.')
+				return TokenList([Token.from_dict(row) for row in FileIO.load(path)])
 
 			tokens = func(*args, **kwargs)
 
 			if len(tokens) > 0:
 				Workspace.log.info(f'Writing tokens to {path}')
-				FileIO.save(tokens, path)
+				tokens.save(tokens, path)
 
 			return tokens
 		return wrapper
@@ -65,9 +65,10 @@ class Workspace(object):
 	"""
 	log = logging.getLogger(f'{__name__}.Workspace')
 
-	def __init__(self, workspaceconfig, resourceconfig):
+	def __init__(self, workspaceconfig, resourceconfig, storageconfig):
 		self.root = workspaceconfig.rootPath.resolve()
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(workspaceconfig))} at {self.root}')
+		self.storageconfig = storageconfig
 		self.nheaderlines: int = workspaceconfig.nheaderlines
 		self.language = workspaceconfig.language
 		self.resources = ResourceManager(self.root, resourceconfig)
@@ -104,7 +105,7 @@ class Workspace(object):
 			self.nheaderlines,
 		)
 
-	def originalTokens(self) -> Iterator[Tuple[str, List[Token]]]:
+	def originalTokens(self) -> Iterator[Tuple[str, TokenList]]:
 		"""
 		Yields an iterator of (fileid, list of tokens).
 		"""
@@ -113,7 +114,7 @@ class Workspace(object):
 				Workspace.log.debug(f'Getting original tokens from {fileid}')
 				yield fileid, [Token.from_dict(row) for row in FileIO.load(pathManager.originalTokenFile)]
 
-	def goldTokens(self) -> Iterator[Tuple[str, List[Token]]]:
+	def goldTokens(self) -> Iterator[Tuple[str, TokenList]]:
 		"""
 		Yields an iterator of (fileid, list of gold-aligned tokens).
 		"""
@@ -164,7 +165,7 @@ class Workspace(object):
 		return fullAlignments, wordAlignments, readCounts
 
 	@_tokensaver(lambda p: p.originalTokenFile)
-	def tokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+	def tokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> TokenList:
 		"""
 		Generate :class:`Tokens<CorrectOCR.tokens.Token>` for the given file.
 
@@ -179,6 +180,7 @@ class Workspace(object):
 		tokenizer = Tokenizer.for_extension(self.paths[fileid].ext)(self.language)
 		tokens = tokenizer.tokenize(
 			self.paths[fileid].originalFile,
+			self.storageconfig
 		)
 
 		if dehyphenate:
@@ -187,7 +189,7 @@ class Workspace(object):
 		return tokens
 
 	@_tokensaver(lambda p: p.alignedTokenFile)
-	def alignedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+	def alignedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> TokenList:
 		"""
 		If possible, uses the ``alignments`` to add gold alignments to the generated tokens.
 
@@ -211,10 +213,10 @@ class Workspace(object):
 					token.gold = closest[0][1]
 
 			return tokens
-		return []
+		return TokenList(self.storageconfig)
 
 	@_tokensaver(lambda p: p.kbestTokenFile)
-	def kbestTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+	def kbestTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> TokenList:
 		"""
 		Uses the :class:`HMM<CorrectOCR.model.HMM>` to add *k*-best suggestions to the generated tokens.
 
@@ -236,7 +238,7 @@ class Workspace(object):
 		return tokens
 
 	@_tokensaver(lambda p: p.binnedTokenFile)
-	def binnedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+	def binnedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> TokenList:
 		"""
 		Uses the :class:`Heuristics<CorrectOCR.heuristics.Heuristics>` to decide whether human or
 		automatic corrections are appropriate for the generated tokens.
@@ -255,7 +257,7 @@ class Workspace(object):
 
 		return tokens
 
-	def autocorrectedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> List[Token]:
+	def autocorrectedTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> TokenList:
 		"""
 		Applies the suggested corrections and leaves those marked 'annotator'
 		for human annotation.

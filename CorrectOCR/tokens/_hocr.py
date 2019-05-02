@@ -23,7 +23,7 @@ class TokenSegment(NamedTuple):
 	rect: Tuple[float, float, float, float]
 	image: Any # PIL.Image doesnt work...?
 	hocr: html.Element
-	tokens: List[Token]
+	tokens: 'TokenList'
 
 
 ##########################################################################################
@@ -54,14 +54,14 @@ class HOCRToken(Token):
 	def token_info(self):
 		return (html.tostring(self._element, encoding='unicode'), self.page)
 
-	def __init__(self, info, fileid, **kwargs):
+	def __init__(self, info, fileid, index):
 		(element, page) = info
 		if isinstance(element, str):
 			self._element = html.fromstring(element)
 		else:
 			self._element = element
 		self.page = page
-		super().__init__(self._element.text.strip(), fileid)
+		super().__init__(self._element.text.strip(), fileid, index)
 
 	def rect(self):
 		# example: title='bbox 77 204 93 234; x_wconf 95'
@@ -168,7 +168,7 @@ def tokenize_image(fileid: str, page: int, image: Image, language='Eng', force=F
 					rect,
 					image,
 					hocr,
-					[HOCRToken((e, page), fileid) for e in elements if e.text.strip() != '']
+					[HOCRToken((e, page), fileid, i) for i, e in enumerate(elements) if e.text.strip() != '']
 				)
 
 
@@ -179,11 +179,11 @@ def tokenize_image(fileid: str, page: int, image: Image, language='Eng', force=F
 class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
-	def tokenize(self, file: Path):
+	def tokenize(self, file: Path, storageconfig):
+		from .list import TokenList
 		from ..fileio import FileIO
 
 		cachefile = FileIO.cachePath('hocr').joinpath(f'{file.stem}.cache.json')
-		FileIO.ensure_directories(cachefile.parent)
 
 		if cachefile.is_file():
 			HOCRTokenizer.log.info(f'Using cached hOCR from {cachefile}')
@@ -202,7 +202,7 @@ class HOCRTokenizer(Tokenizer):
 				))
 			FileIO.save(segments, cachefile)
 
-		all_tokens = [t for s in segments for t in s.tokens]
+		all_tokens = TokenList(storageconfig, [t for s in segments for t in s.tokens])
 
 		HOCRTokenizer.log.debug(f'Found {len(all_tokens)} tokens, first 10: {all_tokens[:10]}')
 

@@ -9,7 +9,7 @@ from typing import Any, List
 from bs4.dammit import UnicodeDammit
 
 from ._codecs import COCRJSONCodec
-from .tokens import Token
+from .tokens.list import TokenList
 
 
 def _open_for_reading(file: Path, binary=False):
@@ -44,7 +44,7 @@ class FileIO(object):
 				header += [f'{n}-best', f'{n}-best prob.']
 		if kind in {'.binnedTokens', '.correctedTokens'}:
 			header += ['Bin', 'Heuristic', 'Decision', 'Selection']
-		header += ['Token type', 'Token info', 'File ID']
+		header += ['Token type', 'Token info', 'File ID', 'Index']
 		cls.log.debug(f'header for {kind} k={k}: {header}')
 		return header
 
@@ -143,7 +143,7 @@ class FileIO(object):
 			elif path.suffix == '.json':
 				json.dump(data, f, cls=COCRJSONCodec)
 			elif path.suffix == '.csv':
-				if isinstance(data[0], Token):
+				if isinstance(data, TokenList):
 					header = cls._csv_header(path.suffixes[0], data[0].k)
 					rows = [vars(x) for x in data]
 				else:
