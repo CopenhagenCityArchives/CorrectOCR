@@ -81,7 +81,7 @@ class Workspace(object):
 				continue
 			self.add_fileid(file.stem, file.suffix)
 		self.cache = LRUCache(maxsize=1000)
-		self.cachePath = FileIO._cachePath
+		self.cachePath = FileIO.cachePath
 
 	def add_fileid(self, fileid: str, ext: str, new_original: Path = None):
 		"""
