@@ -73,11 +73,14 @@ class PDFTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.PDFTokenizer')
 
 	def tokenize(self, file: Path, storageconfig):
-		from .list import TokenList
+		from .list import DBTokenList, FSTokenList
 
 		doc = fitz.open(str(file))
 
-		tokens = TokenList(storageconfig)
+		if storageconfig.kind == "fs":
+			tokens = FSTokenList(storageconfig)
+		elif storageconfig.kind == "db":
+			tokens = DBTokenList(storageconfig)
 		for page in doc:
 			PDFTokenizer.log.info(f'Getting tokens from {file.name} page {page.number}')
 			for w in progressbar.progressbar(page.getTextWords()):

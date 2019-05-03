@@ -180,7 +180,7 @@ class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 
 	def tokenize(self, file: Path, storageconfig):
-		from .list import TokenList
+		from .list import DBTokenList, FSTokenList
 		from ..fileio import FileIO
 
 		cachefile = FileIO.cachePath('hocr').joinpath(f'{file.stem}.cache.json')
@@ -202,7 +202,10 @@ class HOCRTokenizer(Tokenizer):
 				))
 			FileIO.save(segments, cachefile)
 
-		all_tokens = TokenList(storageconfig, [t for s in segments for t in s.tokens])
+		if storageconfig.kind == "fs":
+			all_tokens = FSTokenList(storageconfig, [t for s in segments for t in s.tokens])
+		elif storageconfig.kind == "db":
+			all_tokens = DBTokenList(storageconfig, [t for s in segments for t in s.tokens])
 
 		HOCRTokenizer.log.debug(f'Found {len(all_tokens)} tokens, first 10: {all_tokens[:10]}')
 
