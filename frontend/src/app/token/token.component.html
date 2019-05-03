@@ -1,10 +1,20 @@
 <p>
   token component
 </p>
-<ul ng-for="let token of Observable | async as users; index as i; first as isFirst">
-  <div ng-if="i!=5; then thenBlock else elseBlock"></div>
-  <ng-template #thenBlock><li><a ng-click="selectToken(token)" href="">{{token}}</a></li></ng-template>
-  <ng-template #elseBlock><li>{{token}}</li></ng-template>
-</ul>
-<div><a href="" ng-click="withPrevious()">Sammensat med forrige ord</a></div>
-<div><a href="" ng-click="withNext()">Sammensat med næste ord</a></div>
+
+<div ng-if="token | async then thenBlock else elseBlock">
+  <ng-template #elseBlock>
+    <p>loading</p>
+  </ng-template>
+
+  <ng-template #thenBlock>
+    <img src={{token.image_url}} />
+    <ul ng-for="let suggestion of token.suggestions; index as i; first as isFirst">
+      <div ng-if="i!=5; then thenBlock else elseBlock"></div>
+      <ng-template #thenBlock><li><a ng-click="selectToken(suggestion)" href="">{{suggestion}}</a></li></ng-template>
+      <ng-template #elseBlock><li>{{suggestion}}</li></ng-template>
+    </ul>
+    <div><a href="" ng-click="withPrevious()">Sammensat med forrige ord</a></div>
+    <div><a href="" ng-click="withNext()">Sammensat med næste ord</a></div>
+  </ng-template>
+</div>
