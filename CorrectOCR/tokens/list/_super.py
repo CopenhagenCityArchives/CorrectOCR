@@ -10,14 +10,14 @@ class TokenList(List['Token'], abc.ABC):
 	_subclasses = dict()
 
 	@staticmethod
-	def register(type: str):
+	def register(storagetype: str):
 		"""
 		Decorator which registers a :class:`TokenList` subclass with the base class.
 
 		:param type: TODO
 		"""
 		def wrapper(cls):
-			TokenList._subclasses[type] = cls
+			TokenList._subclasses[storagetype] = cls
 			return cls
 		return wrapper
 

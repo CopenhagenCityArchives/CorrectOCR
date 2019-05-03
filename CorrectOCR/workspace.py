@@ -39,7 +39,7 @@ def _tokensaver(get_path):
 
 			if len(tokens) > 0:
 				Workspace.log.info(f'Writing tokens to {path}')
-				tokens.save(tokens, path)
+				tokens.save(path)
 
 			return tokens
 		return wrapper
