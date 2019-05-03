@@ -39,8 +39,11 @@ reportFile = report.txt
 heuristicSettingsFile = settings.json
 
 [storage]
-type = fs
-connectionString = NONE
+kind = fs
+db_host =
+db_user =
+db_password =
+db =
 
 [server]
 host = 127.0.0.1
@@ -92,9 +95,12 @@ resourceparser.set_defaults(**dict(config.items('resources')))
 
 storageparser = argparse.ArgumentParser()
 storageparser.add_argument('--kind', type=str, choices=['db', 'fs'], help='Log level')
-storageparser.add_argument('--connectionString', type=str, help='Log level')
-storageparser.set_defaults(**dict(config.items('storage')))
-(storageconfig, args) = storageparser.parse_known_args(args)
+storageparser.add_argument('--db-host', type=str, help='Database hostname')
+storageparser.add_argument('--db-user', type=str, help='Database username')
+storageparser.add_argument('--db-password', type=str, help='Database user password')
+storageparser.add_argument('--db', type=str, help='Database name')
+resourceparser.set_defaults(**dict(config.items('storage')))
+(storageconfig, args) = resourceparser.parse_known_args(args)
 
 configuration = dict(config.items('configuration'))
 #print(configuration)
