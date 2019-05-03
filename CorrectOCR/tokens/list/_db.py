@@ -4,7 +4,7 @@ from ._super import TokenList
 
 @TokenList.register('db')
 class DBTokenList(TokenList):
-	def save(self, name: str):
+	def save(self):
 		connection = pyodbc.connect(self.config.connectionString)
 		cursor = connection.cursor()
 

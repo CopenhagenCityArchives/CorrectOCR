@@ -25,7 +25,7 @@ def create_app(workspace: Workspace = None, config = None):
 	} if workspace else {}
 
 	authentication_endpoint = 'https://example.com' # configure?
-	def authenticated(formdata) -> bool:
+	def is_authenticated(formdata) -> bool:
 		r = requests.post(authentication_endpoint, data=formdata)
 		return r.status_code == 200
 
@@ -77,7 +77,7 @@ def create_app(workspace: Workspace = None, config = None):
 		token = files[fileid]['tokens'][index]
 		if request.method == 'POST' and 'gold' in request.form:
 			# NB: only works in singlethread/-process environs
-			if not authenticated(request.form):
+			if not is_authenticated(request.form):
 				return {'error': 'Unauthorized.'}, 401
 			token.gold = request.form['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
