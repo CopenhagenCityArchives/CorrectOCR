@@ -42,6 +42,14 @@ class TokenList(List['Token'], abc.ABC):
 	def save(self):
 		pass
 
+    @classmethod
+    @abc.abstractmethod
+    def load(cls, fileid: str) -> 'TokenList':
+        pass
+
+    @abc.abstractmethod
+    def save(self, name: str):
+        pass
+
+
 ##########################################################################################
-
-

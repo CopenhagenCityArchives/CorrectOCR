@@ -9,7 +9,7 @@ Pillow
 progressbar2
 pycountry
 PyMuPDF>=1.14.10
-pyodbc
+pymysql
 regex
 requests
 tei-reader
