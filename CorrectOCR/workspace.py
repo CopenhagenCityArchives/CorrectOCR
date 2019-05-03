@@ -13,7 +13,7 @@ from .dictionary import Dictionary
 from .fileio import FileIO
 from .heuristics import Heuristics
 from .model import HMM
-from .tokens import Token, Tokenizer, TokenList, tokenize_str, dehyphenate_tokens
+from .tokens import Token, Tokenizer, DBTokenList, FSTokenList, TokenList, tokenize_str, dehyphenate_tokens
 
 
 def _tokensaver(get_path):
@@ -214,7 +214,10 @@ class Workspace(object):
 					token.gold = closest[0][1]
 
 			return tokens
-		return TokenList(self.storageconfig)
+		if self.storageconfig.kind == "db":
+			return DBTokenList(self.storageconfig)
+		else self.storageconfig.kind == "fs":
+			return FSTokenList(self.storageconfig)
 
 	@_tokensaver(lambda p: p.kbestTokenFile)
 	def kbestTokens(self, fileid: str, k: int, dehyphenate=False, force=False) -> TokenList:
