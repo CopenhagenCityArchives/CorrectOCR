@@ -6,7 +6,7 @@ from typing import List
 
 
 class TokenList(List['Token'], abc.ABC):
-	log = logging.getLogger(f'{__name__}.Tokenizer')
+	log = logging.getLogger(f'{__name__}.TokenList')
 	_subclasses = dict()
 
 	@staticmethod
@@ -24,19 +24,22 @@ class TokenList(List['Token'], abc.ABC):
 	@staticmethod
 	def for_type(type: str) -> 'TokenList':
 		TokenList.log.debug(f'_subclasses: {TokenList._subclasses}')
+		if type not in TokenList._subclasses:
+			raise Error('Unknown storage type: {type}')
 		return TokenList._subclasses[type]
 
 	def __init__(self, config, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.config = config
+		TokenList.log.debug(f'init: {self.config}')
 
 	@classmethod
 	@abc.abstractmethod
-	def load(cls, name: str) -> 'TokenList':
+	def load(cls, fileid: str, name: str) -> 'TokenList':
 		pass
 
 	@abc.abstractmethod
-	def save(self, name: str):
+	def save(self):
 		pass
 
 ##########################################################################################

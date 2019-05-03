@@ -33,13 +33,13 @@ def _tokensaver(get_path):
 			path = get_path(self.paths[fileid])
 			if not force and path.is_file():
 				Workspace.log.info(f'File containing {func.__name__} for {fileid} exists and will be returned as a TokenList. Use --force or delete it to rerun.')
-				return TokenList([Token.from_dict(row) for row in FileIO.load(path)])
+				return TokenList.for_type(self.storageconfig.type).load(fileid, path)
 
 			tokens = func(*args, **kwargs)
 
 			if len(tokens) > 0:
 				Workspace.log.info(f'Writing tokens to {path}')
-				tokens.save(path)
+				tokens.save()
 
 			return tokens
 		return wrapper
@@ -68,6 +68,7 @@ class Workspace(object):
 	def __init__(self, workspaceconfig, resourceconfig, storageconfig):
 		self.root = workspaceconfig.rootPath.resolve()
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(workspaceconfig))} at {self.root}')
+		Workspace.log.info(f'Storage configuration:\n{pformat(vars(storageconfig))}')
 		self.storageconfig = storageconfig
 		self.nheaderlines: int = workspaceconfig.nheaderlines
 		self.language = workspaceconfig.language
