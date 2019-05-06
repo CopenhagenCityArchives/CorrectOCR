@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+import weakref
 
 import pyodbc
 
@@ -11,110 +12,104 @@ from ._super import TokenList
 class DBTokenList(TokenList):
 	log = logging.getLogger(f'{__name__}.DBTokenList')
 
-	@property
-	def connection(self):
-		return pyodbc.connect(f'driver={{{self.config.db_driver}}};server={self.config.db_host};database={self.config.db};uid={self.config.db_user};pwd={self.config.db_password}')
+	def __init__(self, *args):
+		super().__init__(*args)
+		self.connection = pyodbc.connect(f'driver={{{self.config.db_driver}}};server={self.config.db_host};database={self.config.db};uid={self.config.db_user};pwd={self.config.db_password}')
+		self.log.debug(f'Opened connection {self.connection}')
+		self._finalize = weakref.finalize(self, DBTokenList.close_connection, self)
+
+	def close_connection(self):
+		self.log.debug(f'Closing connection {self.connection}')
+		self.connection.close()
 
 	def load(self, fileid: str, kind: str):
 		from .. import Token
-		connection = self.connection
 		self.fileid = fileid
 		self.kind = kind
-		try:
-			with self.connection.cursor() as cursor:
+		with self.connection.cursor() as cursor:
+			cursor.execute(
+				"SELECT * FROM token WHERE file_id = ? AND kind = ? ORDER BY file_index",
+				fileid,
+				kind
+			)
+			for result in cursor.fetchall():
 				cursor.execute(
-					"SELECT * FROM token WHERE file_id = ? AND kind = ? ORDER BY file_index",
-					fileid,
-					kind
+					"SELECT * FROM kbest WHERE file_id = ? AND file_index = ? ORDER BY k",
+					result.file_id,
+					result.file_index
 				)
-				for result in cursor.fetchall():
-					cursor.execute(
-						"SELECT * FROM kbest WHERE file_id = ? AND file_index = ? ORDER BY k",
-						result.file_id,
-						result.file_index
-					)
-					kbest = cursor.fetchall()
-					token_dict = {
-						'Token type': result.token_type,
-						'Token info': result.token_info,
-						'File ID': result.file_id,
-						'Index': result.file_index,
-						'Gold': result.gold,
-						'Bin': result.bin,
-						'Heuristic': result.heuristic,
-						'Selection': json.loads(result.selection),
-						'Decision': result.decision
-					}
-					for best in kbest:
-						token_dict[f"{best.k}-best"] = best.candidate
-						token_dict[f"{best.k}-best prob."] = best.probability
-					self.append(Token.from_dict(token_dict))
-		finally:
-			connection.close()
+				kbest = cursor.fetchall()
+				token_dict = {
+					'Token type': result.token_type,
+					'Token info': result.token_info,
+					'File ID': result.file_id,
+					'Index': result.file_index,
+					'Gold': result.gold,
+					'Bin': result.bin,
+					'Heuristic': result.heuristic,
+					'Selection': json.loads(result.selection),
+					'Decision': result.decision
+				}
+				for best in kbest:
+					token_dict[f"{best.k}-best"] = best.candidate
+					token_dict[f"{best.k}-best prob."] = best.probability
+				self.append(Token.from_dict(token_dict))
 
-	def save_token(self, token):
-		#self.log.debug(f'saving token {token.fileid}, {token.index}, {token.original}')
-		connection = self.connection
-		try:
-			with connection.cursor() as cursor:
-				cursor.execute("""
-					REPLACE INTO token (kind, file_id, file_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
-					""",
-					self.kind,
+	def _save_token(self, token):
+		#self.log.debug(f'saving token {token.fileid}, {token.index}, {token.original}, {token.gold}')
+		with self.connection.cursor() as cursor:
+			cursor.execute("""
+				REPLACE INTO token (kind, file_id, file_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				""",
+				self.kind,
+				token.fileid,
+				token.index,
+				token.original,
+				token.gold,
+				token.bin.number if token.bin else -1,
+				token.bin.heuristic if token.bin else '',
+				token.decision,
+				json.dumps(token.selection),
+				token.__class__.__name__,
+				json.dumps(token.token_info)
+			)
+			if len(token.kbest) > 0:
+				cursor.execute(
+					"DELETE FROM kbest WHERE file_id = ? AND file_index = ?",
 					token.fileid,
-					token.index,
-					token.original,
-					token.gold,
-					token.bin.number if token.bin else -1,
-					token.bin.heuristic if token.bin else '',
-					token.decision,
-					json.dumps(token.selection),
-					token.__class__.__name__,
-					json.dumps(token.token_info)
+					token.index
 				)
-				if len(token.kbest) > 0:
-					cursor.execute(
-						"DELETE FROM kbest WHERE file_id = ? AND file_index = ?",
+				for k, item in token.kbest.items():
+					cursor.execute("""
+						INSERT INTO kbest (file_id, file_index, k, candidate, probability)
+						VALUES (?, ?, ?, ?, ?)
+						""",
 						token.fileid,
-						token.index
+						token.index,
+						k,
+						item.candidate,
+						item.probability
 					)
-					for k, item in token.kbest.items():
-						cursor.execute("""
-							INSERT INTO kbest (file_id, file_index, k, candidate, probability)
-							VALUES (?, ?, ?, ?, ?)
-							""",
-							token.fileid,
-							token.index,
-							k,
-							item.candidate,
-							item.probability
-						)
-			connection.commit()
-		finally:
-			connection.close()
+		self.connection.commit()
 
 	def save(self, kind: str = None, token: 'Token' = None):
 		if kind:
 			self.kind = kind
 		if token:
-			self.save_token(token)
+			self._save_token(token)
 		else:
 			for token in self:
-				self.save_token(token)
+				self._save_token(token)
 
 	def _exists(self, fileid: str, kind: str):
-		connection = self.connection
-		try:
-			with self.connection.cursor() as cursor:
-				cursor.execute(
-					"SELECT * FROM token WHERE file_id = ? AND kind = ?",
-					fileid,
-					kind
-				)
-				return cursor.fetchone() != None
-		finally:
-			connection.close()
+		with self.connection.cursor() as cursor:
+			cursor.execute(
+				"SELECT * FROM token WHERE file_id = ? AND kind = ?",
+				fileid,
+				kind
+			)
+			return cursor.fetchone() != None
 
 
 def logging_execute(cursor, sql, *args) :

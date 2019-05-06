@@ -19,6 +19,7 @@ def create_app(workspace: Workspace = None, config = None):
 		#SECRET_KEY='dev', # TODO needed?
 	)
 
+	# TODO reload
 	files = {
 		fileid: {
 			'tokens': workspace.autocorrectedTokens(fileid, k=config.k),
