@@ -41,20 +41,20 @@ class TokenList(List['Token'], abc.ABC):
 		TokenList.log.debug(f'init: {self.config}')
 
 	@staticmethod
-	def exists(config, path) -> bool:
-		return TokenList.new(config)._exists(path) #TODO
+	def exists(config, fileid: str, kind: str) -> bool:
+		return TokenList.new(config)._exists(fileid, kind)
 
 	@abc.abstractmethod
-	def load(self, fileid: str, path = None):
+	def load(self, fileid: str, kind: str):
 		pass
 
 	@abc.abstractmethod
-	def save(self, path = None, token = None):
+	def save(self, kind: str = None, token: 'Token' = None):
 		pass
 
 	@staticmethod
 	@abc.abstractmethod
-	def _exists(self, path):
+	def _exists(self, fileid: str, kind: str):
 		pass
 
 ##########################################################################################
