@@ -17,7 +17,8 @@ hocr
 
 pdf
 ---
-*	--option to generate images for each token
+*	test --apply with db storage
+*	document storageconfig
 
 align
 -----
