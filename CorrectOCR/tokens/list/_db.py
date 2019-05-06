@@ -15,15 +15,17 @@ class DBTokenList(TokenList):
 	def connection(self):
 		return pyodbc.connect(f'driver={{{self.config.db_driver}}};server={self.config.db_host};database={self.config.db};uid={self.config.db_user};pwd={self.config.db_password}')
 
-	def load(self, path=None):
+	def load(self, fileid: str, kind: str):
 		from .. import Token
-		self.path = path
 		connection = self.connection
+		self.fileid = fileid
+		self.kind = kind
 		try:
 			with self.connection.cursor() as cursor:
 				cursor.execute(
-					"SELECT * FROM token WHERE path = ? ORDER BY file_index",
-					str(path)
+					"SELECT * FROM token WHERE file_id = ? AND kind = ? ORDER BY file_index",
+					fileid,
+					kind
 				)
 				for result in cursor.fetchall():
 					cursor.execute(
@@ -50,16 +52,16 @@ class DBTokenList(TokenList):
 		finally:
 			connection.close()
 
-	def save_token(self, path, token):
-		self.log.debug(f'saving token {token.fileid}, {token.index}, {token.original}')
+	def save_token(self, token):
+		#self.log.debug(f'saving token {token.fileid}, {token.index}, {token.original}')
 		connection = self.connection
 		try:
 			with connection.cursor() as cursor:
 				cursor.execute("""
-					REPLACE INTO token (path, file_id, file_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
+					REPLACE INTO token (kind, file_id, file_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
 					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 					""",
-					str(path or self.path),
+					self.kind,
 					token.fileid,
 					token.index,
 					token.original,
@@ -92,20 +94,23 @@ class DBTokenList(TokenList):
 		finally:
 			connection.close()
 
-	def save(self, path = None, token = None):
+	def save(self, kind: str = None, token: 'Token' = None):
+		if kind:
+			self.kind = kind
 		if token:
-			self.save_token(path, token)
+			self.save_token(token)
 		else:
 			for token in self:
-				self.save_token(path, token)
+				self.save_token(token)
 
-	def _exists(self, path):
+	def _exists(self, fileid: str, kind: str):
 		connection = self.connection
 		try:
 			with self.connection.cursor() as cursor:
 				cursor.execute(
-					"SELECT * FROM token WHERE path = ?",
-					str(path)
+					"SELECT * FROM token WHERE file_id = ? AND kind = ?",
+					fileid,
+					kind
 				)
 				return cursor.fetchone() != None
 		finally:

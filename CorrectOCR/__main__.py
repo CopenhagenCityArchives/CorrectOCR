@@ -103,6 +103,7 @@ storageparser.add_argument('--db_password', type=str, help='Database user passwo
 storageparser.add_argument('--db', type=str, help='Database name')
 storageparser.set_defaults(**dict(config.items('storage')))
 (storageconfig, args) = storageparser.parse_known_args(args)
+storageconfig.trainingPath = workspaceconfig.trainingPath
 print(storageconfig, args)
 
 configuration = dict(config.items('configuration'))

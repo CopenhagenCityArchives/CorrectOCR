@@ -1,5 +1,5 @@
 CREATE TABLE token (
-	path VARCHAR(255) NOT NULL,
+	kind VARCHAR(255) NOT NULL,
 	file_id VARCHAR(255) NOT NULL,
 	file_index INT NOT NULL,
 	original VARCHAR(255) NOT NULL,
