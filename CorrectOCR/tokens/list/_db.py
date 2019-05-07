@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import logging
-import sys
 import weakref
 
 import pyodbc
@@ -55,7 +56,7 @@ class DBTokenList(TokenList):
 					token_dict[f"{best.k}-best prob."] = best.probability
 				self.append(Token.from_dict(token_dict))
 
-	def _save_token(self, token):
+	def _save_token(self, token: 'Token'):
 		#self.log.debug(f'saving token {token.fileid}, {token.index}, {token.original}, {token.gold}')
 		with self.connection.cursor() as cursor:
 			cursor.execute("""
@@ -112,6 +113,7 @@ class DBTokenList(TokenList):
 			return cursor.fetchone() != None
 
 
+# for testing:
 def logging_execute(cursor, sql, *args) :
 	run_sql = sql.replace('?', '{!r}').format(*args)
 	try:
