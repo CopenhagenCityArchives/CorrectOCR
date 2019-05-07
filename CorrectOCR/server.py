@@ -1,4 +1,5 @@
 import io
+import logging
 import random
 
 from flask import Flask, Response, json, redirect, request, url_for
@@ -10,12 +11,15 @@ from .workspace import Workspace
 
 
 def create_app(workspace: Workspace = None, config = None):
+	log = logging.getLogger(f'{__name__}.server')
+
 	# create and configure the app
 	app = Flask(progname,
 		instance_path = workspace.root if workspace else None,
 	)
 	app.config.from_mapping(
 		host = config.host,
+		threaded=True,
 		#SECRET_KEY='dev', # TODO needed?
 	)
 
@@ -26,9 +30,15 @@ def create_app(workspace: Workspace = None, config = None):
 		} for fileid in workspace.paths if workspace.paths[fileid].ext == '.pdf'
 	} if workspace else {}
 
-	authentication_endpoint = 'https://example.com' # configure?
 	def is_authenticated(formdata) -> bool:
-		r = requests.post(authentication_endpoint, data=formdata)
+		if config.auth_header not in formdata:
+			return False
+		r = requests.post(
+			config.auth_endpoint,
+			data={
+				config.auth_header: formdata[config.auth_header]
+			}
+		)
 		return r.status_code == 200
 
 	@app.route('/')
@@ -78,9 +88,8 @@ def create_app(workspace: Workspace = None, config = None):
 		"""
 		token = files[fileid]['tokens'][index]
 		if request.method == 'POST' and 'gold' in request.form:
-			# NB: only works in singlethread/-process environs
 			if not is_authenticated(request.form):
-				return {'error': 'Unauthorized.'}, 401
+				return json.jsonify({'error': 'Unauthorized.'}), 401
 			token.gold = request.form['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
 			files[fileid]['tokens'].save(token=token)
@@ -107,5 +116,12 @@ def create_app(workspace: Workspace = None, config = None):
 		fileid = random.choice(list(files.keys()))
 		index = random.randint(0, len(files[fileid]['tokens']))
 		return redirect(url_for('tokeninfo', fileid=fileid, index=index))
+
+	# for local testing:
+	@app.route('/auth', methods=['POST'])
+	def auth():
+		log.debug(f'request.form: {request.form}')
+		authorized = request.form['auth_token'] == 'TEST'
+		return json.jsonify({'Authorized': authorized}), 200 if authorized else 401
 
 	return app
