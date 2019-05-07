@@ -23,12 +23,12 @@ def create_app(workspace: Workspace = None, config = None):
 		#SECRET_KEY='dev', # TODO needed?
 	)
 
-	# TODO reload
-	files = {
-		fileid: {
-			'tokens': workspace.autocorrectedTokens(fileid, k=config.k),
-		} for fileid in workspace.paths if workspace.paths[fileid].ext == '.pdf'
-	} if workspace else {}
+	def get_files():
+		return {
+			fileid: {
+				'tokens': workspace.autocorrectedTokens(fileid, k=config.k),
+			} for fileid in workspace.paths if workspace.paths[fileid].ext == '.pdf'
+		} if workspace else {}
 
 	def is_authenticated(formdata) -> bool:
 		if config.auth_header not in formdata:
@@ -50,6 +50,7 @@ def create_app(workspace: Workspace = None, config = None):
 		:>jsonarr int count: Total number of Tokens.
 		:>jsonarr int corrected: Number of corrected Tokens.
 		"""
+		files = get_files()
 		fileindex = [{
 			'url': url_for('tokens', fileid=fileid),
 			'count': len(file['tokens']),
@@ -69,6 +70,7 @@ def create_app(workspace: Workspace = None, config = None):
 		:>jsonarr string string: Current Token string.
 		:>jsonarr bool is_corrected: Whether the Token has been corrected at the moment.
 		"""
+		files = get_files()
 		tokenindex = [{
 			'info_url': url_for('tokeninfo', fileid=fileid, index=n),
 			'image_url': url_for('tokenimage', fileid=fileid, index=n),
@@ -86,6 +88,7 @@ def create_app(workspace: Workspace = None, config = None):
 		:param int index: The index of the Token in the file.
 		:return: A JSON dictionary of the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
+		files = get_files()
 		token = files[fileid]['tokens'][index]
 		if request.method == 'POST' and 'gold' in request.form:
 			if not is_authenticated(request.form):
@@ -105,6 +108,7 @@ def create_app(workspace: Workspace = None, config = None):
 		:param int index: The index of the Token in the file.
 		:return: A PNG image of the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
+		files = get_files()
 		token: PDFToken = files[fileid]['tokens'][index]
 		(filename, image) = token.extract_image(workspace)
 		with io.BytesIO() as output:
@@ -113,6 +117,7 @@ def create_app(workspace: Workspace = None, config = None):
 
 	@app.route('/random')
 	def rand():
+		files = get_files()
 		fileid = random.choice(list(files.keys()))
 		index = random.randint(0, len(files[fileid]['tokens']))
 		return redirect(url_for('tokeninfo', fileid=fileid, index=index))
