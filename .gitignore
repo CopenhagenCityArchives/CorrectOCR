@@ -17,3 +17,7 @@ docs/objects.inv
 venv
 apidoc
 node_modules
+names.*.txt
+index*.csv
+*.db
+*.zip
