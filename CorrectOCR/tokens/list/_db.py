@@ -28,33 +28,38 @@ class DBTokenList(TokenList):
 		self.fileid = fileid
 		self.kind = kind
 		with self.connection.cursor() as cursor:
-			cursor.execute(
-				"SELECT * FROM token WHERE file_id = ? AND kind = ? ORDER BY file_index",
+			cursor.execute("""
+				SELECT *
+				FROM token
+				LEFT JOIN kbest
+				ON token.file_id = kbest.file_id AND token.file_index = kbest.file_index
+				WHERE token.file_id = ? AND token.kind = ?
+				ORDER BY token.file_index, k
+				""",
 				fileid,
 				kind
 			)
-			for result in cursor.fetchall():
-				cursor.execute(
-					"SELECT * FROM kbest WHERE file_id = ? AND file_index = ? ORDER BY k",
-					result.file_id,
-					result.file_index
-				)
-				kbest = cursor.fetchall()
-				token_dict = {
-					'Token type': result.token_type,
-					'Token info': result.token_info,
-					'File ID': result.file_id,
-					'Index': result.file_index,
-					'Gold': result.gold,
-					'Bin': result.bin,
-					'Heuristic': result.heuristic,
-					'Selection': json.loads(result.selection),
-					'Decision': result.decision
-				}
-				for best in kbest:
-					token_dict[f"{best.k}-best"] = best.candidate
-					token_dict[f"{best.k}-best prob."] = best.probability
-				self.append(Token.from_dict(token_dict))
+			token_dict = None
+			for result in cursor:
+				self.log.debug(f'result: {result}')
+				if token_dict and result.file_index != token_dict['Index']:
+					self.append(Token.from_dict(token_dict))
+					token_dict = None
+				if not token_dict:
+					token_dict = {
+						'Token type': result.token_type,
+						'Token info': result.token_info,
+						'File ID': result.file_id,
+						'Index': result.file_index,
+						'Gold': result.gold,
+						'Bin': result.bin,
+						'Heuristic': result.heuristic,
+						'Selection': json.loads(result.selection),
+						'Decision': result.decision
+					}
+				token_dict[f"{result.k}-best"] = result.candidate
+				token_dict[f"{result.k}-best prob."] = result.probability
+			self.append(Token.from_dict(token_dict))
 
 	def _save_token(self, token: 'Token'):
 		#self.log.debug(f'saving token {token.fileid}, {token.index}, {token.original}, {token.gold}')
