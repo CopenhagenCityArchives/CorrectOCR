@@ -23,3 +23,12 @@ CREATE TABLE kbest (
 	PRIMARY KEY (id),
 	CONSTRAINT FOREIGN KEY fk_kbest_token(file_id, file_index) REFERENCES token(file_id, file_index)
 );
+
+CREATE INDEX idx_token_file_id_file_index
+	ON token(file_id, file_index);
+
+CREATE INDEX idx_token_file_id_kind
+	ON token(file_id, kind);
+
+CREATE INDEX idx_kbest_file_id_file_index
+	ON token(file_id, file_index);
