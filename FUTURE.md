@@ -44,3 +44,9 @@ misc
 *	http://sprogtek2018.dk/
 *	https://alf.hum.ku.dk/korp/?mode=da1800
 *	https://clarin.dk/clarindk/find.jsp
+
+Transkribus
+-----------
+
+* Look into integrating with the python client
+	* https://github.com/Transkribus/TranskribusPyClient
