@@ -39,7 +39,7 @@ class PDFToken(Token):
 
 	def extract_image(self, workspace, xmargin=300, ymargin=15, highlight_word=True):
 		imagefile = workspace.cachePath('pdf/').joinpath(
-			f'{self.fileid}-{self.page_n}-{self.block_n}-{self.line_n}-{self.word_n}-{self.lookup}.png'
+			f'{self.fileid}-{self.page_n}-{self.block_n}-{self.line_n}-{self.word_n}-{self.normalized}.png'
 		)
 		if imagefile.is_file():
 			return imagefile, Image.open(str(imagefile))

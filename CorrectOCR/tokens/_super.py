@@ -57,7 +57,7 @@ class Token(abc.ABC):
 		:param fileid: The file with which the Token is associated.
 		"""
 		m = Token._punctuation_splitter.search(original)
-		(self._punct_prefix, self.lookup, self._punct_suffix) = m.groups('')
+		(self._punct_prefix, self.normalized, self._punct_suffix) = m.groups('')
 		self.fileid = fileid  #: The file with which the Token is associated.
 		self.index = index #: The placement of the Token in the file.
 		self.gold = None
@@ -73,7 +73,7 @@ class Token(abc.ABC):
 
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
-			self._gold = self.lookup
+			self._gold = self.normalized
 
 	@property
 	@abc.abstractmethod
@@ -89,7 +89,7 @@ class Token(abc.ABC):
 		"""
 		The original spelling of the Token.
 		"""
-		return f'{self._punct_prefix}{self.lookup}{self._punct_suffix}'
+		return f'{self._punct_prefix}{self.normalized}{self._punct_suffix}'
 
 	@property
 	def gold(self) -> str:

@@ -52,7 +52,7 @@ class Heuristics(object):
 
 		token_bin = None
 		for num, _bin in _bins.items():
-			if _bin.matcher(token.lookup, token.kbest[1].candidate, self.dictionary, dcode):
+			if _bin.matcher(token.normalized, token.kbest[1].candidate, self.dictionary, dcode):
 				token_bin = _bin._copy()
 				break
 
