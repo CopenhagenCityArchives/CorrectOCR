@@ -367,7 +367,7 @@ def do_index(workspace: Workspace, config):
 			tt = TaggedToken(token, [])
 			matched = False
 			for tag, terms in taggedTerms.items():
-				key = token.gold if token.gold and token.gold != '' else token.lookup
+				key = token.gold if token.gold and token.gold != '' else token.normalized
 				key = key.lstrip(string.punctuation).rstrip(string.punctuation)
 				log.debug(f'token: {token} key: {key}')
 				if key != '' and key.lower() in terms:
@@ -419,7 +419,7 @@ def do_index(workspace: Workspace, config):
 			for tagged_tokens in run:
 				rows.append({
 					'fileid': fileid,
-					'tokens': [r.token.lookup for r in run],
+					'tokens': [r.token.normalized for r in run],
 					'tags': [r.tags for r in run],
 				})
 	if len(rows) > 0:
