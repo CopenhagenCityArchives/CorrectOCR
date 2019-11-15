@@ -252,13 +252,12 @@ class HMM(object):
 class HMMBuilder(object):
 	log = logging.getLogger(f'{__name__}.HMMBuilder')
 
-	def __init__(self, dictionary: Dictionary, smoothingParameter: float, language, characterSet, readCounts, remove_chars: List[str], gold_words: List[str]):
+	def __init__(self, dictionary: Dictionary, smoothingParameter: float, characterSet, readCounts, remove_chars: List[str], gold_words: List[str]):
 		"""
 		Calculates parameters for a HMM based on the input. They can be accessed via the three properties.
 
 		:param dictionary: The dictionary to use for generating probabilities.
 		:param smoothingParameter: Lower bound for probabilities.
-		:param language: A language instance from `pycountry <https://pypi.org/project/pycountry/>`.
 		:param characterSet: Set of required characters for the final HMM.
 		:param readCounts: See :class:`Aligner<CorrectOCR.aligner.Aligner>`.
 		:param remove_chars: List of characters to remove from the final HMM.
@@ -281,7 +280,7 @@ class HMMBuilder(object):
 		self.emis: DefaultDict[str, float] = emis  #: Emission probabilities.
 
 		# Create the initial and transition probabilities from the gold files
-		init, tran = self._init_tran_probabilities(gold_words, language)
+		init, tran = self._init_tran_probabilities(gold_words)
 		self.init: DefaultDict[str, float] = init  #: Initial probabilities.
 		self.tran: DefaultDict[str, DefaultDict[str, float]] = tran  #: Transition probabilities.
 
@@ -395,7 +394,7 @@ class HMMBuilder(object):
 
 	# Create the initial and transition probabilities from the gold
 	# text in the training data.
-	def _init_tran_probabilities(self, gold_words, language=None):
+	def _init_tran_probabilities(self, gold_words):
 		tran = defaultdict(lambda: defaultdict(int))
 		init = defaultdict(int)
 

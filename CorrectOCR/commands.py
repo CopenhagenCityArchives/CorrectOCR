@@ -217,7 +217,7 @@ def build_model(workspace: Workspace, config):
 		gold_words.extend([t.gold for t in tokens])
 		log.debug(f'{fileid}: {gold_words[-1]}')
 
-	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, workspace.language, config.characterSet, readCounts, remove_chars, gold_words)
+	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, config.characterSet, readCounts, remove_chars, gold_words)
 
 	workspace.resources.hmm.init = builder.init
 	workspace.resources.hmm.tran = builder.tran
