@@ -261,6 +261,7 @@ class Tokenizer(abc.ABC):
 		"""
 		Generate tokens for the given document.
 
+		:param storageconfig: Storage configuration (database, filesystem); see TODO
 		:param file: A path to an input file.
 		:return:
 		"""

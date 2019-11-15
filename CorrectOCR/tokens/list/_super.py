@@ -9,6 +9,10 @@ class TokenList(List['Token'], abc.ABC):
 	log = logging.getLogger(f'{__name__}.TokenList')
 	_subclasses = dict()
 
+	def __init__(self):
+		self.fileid = None
+		self.kind = None
+
 	@staticmethod
 	def register(storagetype: str):
 		"""
