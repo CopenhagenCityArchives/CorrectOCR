@@ -32,6 +32,7 @@ def build_dictionary(workspace: Workspace, config):
 		workspace.resources.dictionary.clear()
 
 	corpusPath = config.corpusPath or FileIO.cachePath('dictionary/')
+	FileIO.ensure_directories(corpusPath)
 
 	if config.corpusFile:
 		for line in _open_for_reading(config.corpusFile).readlines():
