@@ -108,6 +108,7 @@ class DBTokenList(TokenList):
 			for token in self:
 				self._save_token(token)
 
+	@staticmethod
 	def exists(config, fileid: str, kind: str):
 		connection = pyodbc.connect(f'driver={{{config.db_driver}}};server={config.db_host};database={config.db};uid={config.db_user};pwd={config.db_password}')
 		with connection.cursor() as cursor:
