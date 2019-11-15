@@ -9,10 +9,6 @@ class TokenList(List['Token'], abc.ABC):
 	log = logging.getLogger(f'{__name__}.TokenList')
 	_subclasses = dict()
 
-	def __init__(self):
-		self.fileid = None
-		self.kind = None
-
 	@staticmethod
 	def register(storagetype: str):
 		"""
@@ -42,11 +38,14 @@ class TokenList(List['Token'], abc.ABC):
 	def __init__(self, config, *args):
 		list.__init__(self, *args)
 		self.config = config
+		self.fileid = None
+		self.kind = None
 		TokenList.log.debug(f'init: {self.config}')
 
 	@staticmethod
+	@abc.abstractmethod
 	def exists(config, fileid: str, kind: str) -> bool:
-		return TokenList.new(config)._exists(fileid, kind)
+		pass
 
 	@abc.abstractmethod
 	def load(self, fileid: str, kind: str):
@@ -54,11 +53,6 @@ class TokenList(List['Token'], abc.ABC):
 
 	@abc.abstractmethod
 	def save(self, kind: str = None, token: 'Token' = None):
-		pass
-
-	@staticmethod
-	@abc.abstractmethod
-	def _exists(self, fileid: str, kind: str):
 		pass
 
 ##########################################################################################

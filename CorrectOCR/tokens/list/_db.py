@@ -108,8 +108,9 @@ class DBTokenList(TokenList):
 			for token in self:
 				self._save_token(token)
 
-	def _exists(self, fileid: str, kind: str):
-		with self.connection.cursor() as cursor:
+	def exists(config, fileid: str, kind: str):
+		connection = pyodbc.connect(f'driver={{{config.db_driver}}};server={config.db_host};database={config.db};uid={config.db_user};pwd={config.db_password}')
+		with connection.cursor() as cursor:
 			cursor.execute(
 				"SELECT * FROM token WHERE file_id = ? AND kind = ?",
 				fileid,
