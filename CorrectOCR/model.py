@@ -3,7 +3,7 @@ import logging
 import re
 from collections import defaultdict, Counter
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Tuple, Sequence
+from typing import DefaultDict, Dict, List, Optional, Tuple, Sequence
 
 import progressbar
 
@@ -136,8 +136,8 @@ class HMM(object):
 		"""
 		# delta[t][j] is probability of max probability path to state j
 		# at time t given the observation sequence up to time t.
-		delta: List[Dict[str, float]] = [None] * len(char_seq)
-		back_pointers: List[Dict[str, float]] = [None] * len(char_seq)
+		delta: List[Optional[Dict[str, float]]] = [None] * len(char_seq)
+		back_pointers: List[Optional[Dict[str, float]]] = [None] * len(char_seq)
 
 		delta[0] = {i: self.init[i] * self.emis[i][char_seq[0]]
                     for i in self.states}

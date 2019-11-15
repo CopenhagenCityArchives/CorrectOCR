@@ -6,7 +6,7 @@ import json
 import logging
 import string
 from pathlib import Path
-from typing import Any, DefaultDict, List, NamedTuple
+from typing import Any, DefaultDict, List, NamedTuple, Optional
 
 import nltk
 import regex
@@ -61,14 +61,14 @@ class Token(abc.ABC):
 		self.fileid = fileid  #: The file with which the Token is associated.
 		self.index = index #: The placement of the Token in the file.
 		self.gold = None
-		self.bin: Bin = None  #: Heuristics bin.
+		self.bin: Optional[Bin] = None  #: Heuristics bin.
 		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
 		"""
 		Dictionary of *k*-best suggestions for the Token. They are keyed
 		with a numerical index starting at 1, and the values are instances
 		of :class:`KBestItem`.
 		"""
-		self.decision: str = None #: The decision that was made when :attr:`gold` was set automatically.
+		self.decision: Optional[str] = None #: The decision that was made when :attr:`gold` was set automatically.
 		self.selection: Any = None #: The selected automatic correction for the :attr:`decision`.
 
 		if self.is_punctuation():
