@@ -143,6 +143,7 @@ class CorrectionShell(cmd.Cmd):
 		print('Deferring decision...')
 		return self._nexttoken()
 
+	# noinspection PyMethodMayBeStatic
 	def do_quit(self, _: str):
 		return True
 
