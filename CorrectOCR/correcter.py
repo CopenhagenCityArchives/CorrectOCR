@@ -109,7 +109,7 @@ class CorrectionShell(cmd.Cmd):
 		else:
 			pass # dont repeat other commands
 
-	def do_original(self, arg: str):
+	def do_original(self, _: str):
 		"""Choose original (abbreviation: o)"""
 		return self._select(self.token.original, 'original')
 
@@ -135,15 +135,15 @@ class CorrectionShell(cmd.Cmd):
 	def do_error(self, arg: str):
 		CorrectionShell.log.error(f'ERROR: {arg} {self.token}')
 
-	def do_linefeed(self, arg: str):
+	def do_linefeed(self, _: str):
 		return self._select('\n', 'linefeed', save=False)
 
-	def do_defer(self, arg: str):
+	def do_defer(self, _: str):
 		"""Defer decision for another time."""
 		print('Deferring decision...')
 		return self._nexttoken()
 
-	def do_quit(self, arg: str):
+	def do_quit(self, _: str):
 		return True
 
 	def default(self, line: str):

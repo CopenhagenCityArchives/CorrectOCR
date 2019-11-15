@@ -141,8 +141,6 @@ def columnize(image, columncount):
 def tokenize_image(fileid: str, page: int, image: Image, language='Eng', force=False):
 	log = logging.getLogger(f'{__name__}.tokenize_image')
 
-	columns = []
-
 	with c_locale():
 		# C locale workaround, see:
 		# https://github.com/sirfz/tesserocr/issues/165
