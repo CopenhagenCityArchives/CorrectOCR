@@ -15,7 +15,7 @@ class PDFToken(Token):
 
 	@property
 	def token_info(self):
-		return (self.page_n, self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.original, self.block_n, self.line_n, self.word_n)
+		return self.page_n, self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.original, self.block_n, self.line_n, self.word_n
 
 	def __init__(self, info, fileid, index):
 		self.page_n = int(info[0])
@@ -35,7 +35,7 @@ class PDFToken(Token):
 
 	@property
 	def ordering(self):
-		return (self.page_n, self.block_n, self.line_n, self.word_n)
+		return self.page_n, self.block_n, self.line_n, self.word_n
 
 	def extract_image(self, workspace, xmargin=300, ymargin=15, highlight_word=True):
 		imagefile = workspace.cachePath('pdf/').joinpath(
@@ -44,7 +44,7 @@ class PDFToken(Token):
 		if imagefile.is_file():
 			return imagefile, Image.open(str(imagefile))
 		#PDFToken.log.debug(f'word_image: {file.name} token {self} filename {imagefile}')
-		xref, pagerect, pix = workspace._cached_page_image(self.fileid, self.page_n)
+		xref, pagerect, pix = workspace._cached_page_image(self.fileid, self.page_n) # TODO
 		xscale = pix.width / pagerect.width
 		yscale = pix.height / pagerect.height
 		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)
@@ -63,6 +63,10 @@ class PDFToken(Token):
 		image = image.crop(croprect)
 		image.save(imagefile)
 		return imagefile, image
+
+	@staticmethod
+	def register(cls):
+		return super().register(cls)
 
 
 ##########################################################################################

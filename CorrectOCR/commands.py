@@ -417,12 +417,11 @@ def do_index(workspace: Workspace, config):
 	for fileid, runs in matches.items():
 		for run in runs:
 			#log.debug(f'run: {run}')
-			for tagged_tokens in run:
-				rows.append({
-					'fileid': fileid,
-					'tokens': [r.token.normalized for r in run],
-					'tags': [r.tags for r in run],
-				})
+			rows.append({
+				'fileid': fileid,
+				'tokens': [r.token.normalized for r in run],
+				'tags': [r.tags for r in run],
+			})
 	if len(rows) > 0:
 		log.info(f'Saving index to {outfile}')
 		FileIO.save(rows, outfile)
@@ -446,7 +445,7 @@ def do_extract(workspace: Workspace, config):
 	tokens = [t for t in workspace.binnedTokens(config.fileid) if t.decision == 'annotator']
 
 	for token in progressbar.progressbar(tokens):
-		(filename, image) = token.extract_image(workspace)
+		_, _ = token.extract_image(workspace)
 
 
 ##########################################################################################
