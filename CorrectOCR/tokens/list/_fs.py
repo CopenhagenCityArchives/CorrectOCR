@@ -28,7 +28,7 @@ class FSTokenList(TokenList):
 		FileIO.save(self, path)
 
 	@staticmethod
-	def _exists(self, fileid: str, kind: str):
-		path = self.config.trainingPath.joinpath(f'{fileid}.{kind}.csv')
+	def exists(config, fileid: str, kind: str):
+		path = config.trainingPath.joinpath(f'{fileid}.{kind}.csv')
 
 		return path.is_file()
