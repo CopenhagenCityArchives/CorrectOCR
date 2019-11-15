@@ -397,7 +397,7 @@ class PathManager(object):
 		:param fileid: Base filename (ie. without extension).
 		:param ext: The extension (including leading period).
 		:param original: Directory for original uncorrected files.
-		:param gold: Directory for known correct “gold” files (if any).
+		:param gold: Directory for known correct "gold" files (if any).
 		:param training: Directory for storing intermediate files.
 		:param corrected: Directory for saving corrected files.
 		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)

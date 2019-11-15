@@ -115,7 +115,7 @@ class DBTokenList(TokenList):
 				fileid,
 				kind
 			)
-			return cursor.fetchone() != None
+			return cursor.fetchone() is not None
 
 
 # for testing:
