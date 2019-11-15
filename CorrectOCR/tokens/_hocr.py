@@ -52,7 +52,7 @@ class HOCRToken(Token):
 
 	@property
 	def token_info(self):
-		return (html.tostring(self._element, encoding='unicode'), self.page)
+		return html.tostring(self._element, encoding='unicode'), self.page
 
 	def __init__(self, info, fileid, index):
 		(element, page) = info

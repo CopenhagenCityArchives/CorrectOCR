@@ -4,7 +4,7 @@ import logging
 from lxml import html
 
 from .tokens import Token
-from .tokens._hocr import TokenSegment
+from .tokens._hocr import TokenSegment #TODO just use token dict instead?
 
 class COCRJSONCodec(json.JSONEncoder):
 	log = logging.getLogger(f'{__name__}.COCRJSONEncoder')

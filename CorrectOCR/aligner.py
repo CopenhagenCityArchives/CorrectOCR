@@ -1,7 +1,7 @@
 import collections
 import logging
 from difflib import SequenceMatcher
-from typing import Counter, DefaultDict, Dict, List, Tuple
+from typing import Counter, DefaultDict, Dict, List, Optional, Tuple
 
 from . import punctuationRE
 
@@ -10,9 +10,9 @@ class Aligner(object):
 	log = logging.getLogger(f'{__name__}.Aligner')
 
 	def __init__(self):
-		self._fullAlignments: List[List[str, str]] = None
-		self._wordAlignments: DefaultDict[str, Dict[int, str]] = None
-		self._readCounts: DefaultDict[str, Counter[str]] = None
+		self._fullAlignments: Optional[List[List[str, str]]] = None
+		self._wordAlignments: Optional[DefaultDict[str, Dict[int, str]]] = None
+		self._readCounts: Optional[DefaultDict[str, Counter[str]]] = None
 
 	def _align_words(self, left: str, right: str):
 		(aPos, bPos, aStr, bStr) = (0, 0, '', '')

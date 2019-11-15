@@ -42,7 +42,7 @@ def create_app(workspace: Workspace = None, config = None):
 		return r.status_code == 200
 
 	@app.route('/')
-	def index():
+	def indexpage():
 		"""
 		Get an overview of the files available for correction.
 
