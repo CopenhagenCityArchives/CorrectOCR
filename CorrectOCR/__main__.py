@@ -52,9 +52,7 @@ auth_endpoint = http://127.0.0.1/auth
 auth_header = auth_token
 """
 
-def setup(configfiles, args=None):
-	args = args or sys.argv[1:]
-
+def setup(configfiles, args=sys.argv[1:]):
 	loglevels = dict(logging._nameToLevel)
 	del loglevels['NOTSET']
 	del loglevels['WARN']
