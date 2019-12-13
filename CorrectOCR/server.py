@@ -1,6 +1,7 @@
 import io
 import logging
 import random
+from typing import Any
 
 from flask import Flask, Response, json, redirect, request, url_for
 import requests
@@ -10,7 +11,13 @@ from .tokens._pdf import PDFToken
 from .workspace import Workspace
 
 
-def create_app(workspace: Workspace = None, config = None):
+def create_app(workspace: Workspace = None, config: Any = None):
+	"""
+	Creates and returns Flask app.
+
+	:param workspace: TODO
+	:param config: TODO
+	"""
 	log = logging.getLogger(f'{__name__}.server')
 
 	# create and configure the app
@@ -18,7 +25,7 @@ def create_app(workspace: Workspace = None, config = None):
 		instance_path = workspace.root if workspace else None,
 	)
 	app.config.from_mapping(
-		host = config.host,
+		host = config.host if config else None,
 		threaded=True,
 		#SECRET_KEY='dev', # TODO needed?
 	)
@@ -44,26 +51,28 @@ def create_app(workspace: Workspace = None, config = None):
 	@app.route('/')
 	def indexpage():
 		"""
-		Get an overview of the docs available for correction.
+		Get an overview of the documents available for correction.
 
+		:>jsonarr string docid: ID for the document.
 		:>jsonarr string url: URL to list of Tokens in doc.
 		:>jsonarr int count: Total number of Tokens.
 		:>jsonarr int corrected: Number of corrected Tokens.
 		"""
 		docs = get_docs()
 		docindex = [{
+			'docid': docid,
 			'url': url_for('tokens', docid=docid),
 			'count': len(doc['tokens']),
 			'corrected': len([t for t in doc['tokens'] if t.gold]),
 		} for docid, doc in docs.items()]
 		return json.jsonify(docindex)
 
-	@app.route('/<docid>/tokens.json')
+	@app.route('/<string:docid>/tokens.json')
 	def tokens(docid):
 		"""
-		Get information about the :class:`Tokens<CorrectOCR.tokens.Token>` in a given doc.
+		Get information about the :class:`Tokens<CorrectOCR.tokens.Token>` in a given document.
 
-		:param docid: The ID of the doc containing the tokens. TODO
+		:param docid string: The ID of the requested document.
 
 		:>jsonarr string info_url: URL to Token info.
 		:>jsonarr string image_url: URL to Token image.
@@ -79,18 +88,32 @@ def create_app(workspace: Workspace = None, config = None):
 		} for n, token in enumerate(docs[docid]['tokens'])]
 		return json.jsonify(tokenindex)
 
-	@app.route('/<docid>/token-<int:index>.json', methods=['GET', 'POST'])
+	@app.route('/<string:docid>/token-<int:index>.json')
 	def tokeninfo(docid, index):
 		"""
-		:form gold: Set new correction for this Token (optional).
-
-		:param string docid: The ID of the doc containing the Tokens.
-		:param int index: The index of the Token in the doc.
-		:return: A JSON dictionary of the requested :class:`Token<CorrectOCR.tokens.Token>`.
+		:param string docid: The ID of the requested document.
+		:param int index: The placement of the requested Token in the document.
+		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`. Relevant keys for frontend display are `original` (uncorrected OCR result), `gold` (corrected version), TODO
 		"""
 		docs = get_docs()
 		token = docs[docid]['tokens'][index]
-		if request.method == 'POST' and 'gold' in request.form:
+		tokendict = vars(token)
+		if 'image_url' not in tokendict:
+			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
+		return json.jsonify(tokendict)
+
+	@app.route('/<string:docid>/token-<int:index>.json', methods=[ 'POST'])
+	def update_token(docid, index):
+		"""
+		:form gold string: Set new correction for this Token.
+
+		:param string docid: The ID of the requested document.
+		:param int index: The placement of the requested Token in the document.
+		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`.
+		"""
+		docs = get_docs()
+		token = docs[docid]['tokens'][index]
+		if 'gold' in request.form:
 			if not is_authenticated(request.form):
 				return json.jsonify({'error': 'Unauthorized.'}), 401
 			token.gold = request.form['gold']
@@ -101,22 +124,29 @@ def create_app(workspace: Workspace = None, config = None):
 			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
 		return json.jsonify(tokendict)
 
-	@app.route('/<docid>/token-<int:index>.png')
+	@app.route('/<string:docid>/token-<int:index>.png')
 	def tokenimage(docid, index):
 		"""
-		:param string docid: The ID of the doc containing the Tokens.
-		:param int index: The index of the Token in the doc.
+		Returns a snippet of the original document as an image, for comparing with the OCR result.
+
+		:param string docid: The ID of the requested document.
+		:param int index: The placement of the requested Token in the document.
 		:return: A PNG image of the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
 		docs = get_docs()
 		token: PDFToken = docs[docid]['tokens'][index]
 		(docname, image) = token.extract_image(workspace)
+		if 'image_url' not in vars(token):
+			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
 		with io.BytesIO() as output:
 			image.save(output, format="PNG")
 			return Response(output.getvalue(), mimetype='image/png')
 
 	@app.route('/random')
 	def rand():
+		"""
+		Returns a 302-redirect to a random token from a random document. TODO: filter by needing annotator
+		"""
 		docs = get_docs()
 		docid = random.choice(list(docs.keys()))
 		index = random.randint(0, len(docs[docid]['tokens']))

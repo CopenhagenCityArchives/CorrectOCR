@@ -189,9 +189,6 @@ autodoc_default_options = {
     'exclude-members': 'log, preloop, emptyline, default',
 }
 autodoc_member_order = 'bysource'
-autodoc_default_flags = [
-    ':exclude-members: log, preloop, emptyline, default',
-]
 
 autodoc_mock_imports = ['tesserocr']
 
