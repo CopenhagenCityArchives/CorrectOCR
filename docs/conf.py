@@ -190,7 +190,7 @@ autodoc_default_options = {
 }
 autodoc_member_order = 'bysource'
 
-autodoc_mock_imports = ['tesserocr']
+autodoc_mock_imports = ['pyodbc', 'tesserocr']
 
 autoclass_content = 'both'
 
