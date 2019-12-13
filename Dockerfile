@@ -1,7 +1,7 @@
 FROM python:3.7
 
 RUN apt update
-RUN apt install -y tesseract-ocr libtesseract-dev libleptonica-dev
+RUN apt install -y tesseract-ocr libtesseract-dev libleptonica-dev mupdf unixodbc-dev
 
 COPY ./requirements.txt /requirements.txt
 RUN pip3 install -r requirements.txt
