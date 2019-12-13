@@ -12,9 +12,12 @@ PyMuPDF>=1.14.10
 regex
 requests
 tei-reader
-#tesserocr -- cannot be installed on RTD (C dependency), so it is mocked in conf.py
 
 # documentation packages:
 sphinx-autodoc-typehints
 sphinx_rtd_theme
 sphinxcontrib.httpdomain
+
+# packages that cannot be installed on ReadTheDocs, so are mocked in conf.py:
+#pyodbc
+#tesserocr
