@@ -17,7 +17,7 @@ class PDFToken(Token):
 	def token_info(self):
 		return self.page_n, self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.original, self.block_n, self.line_n, self.word_n
 
-	def __init__(self, info, fileid, index):
+	def __init__(self, info, docid, index):
 		self.page_n = int(info[0])
 		self.rect = fitz.Rect(
 			float(info[1]),
@@ -31,7 +31,7 @@ class PDFToken(Token):
 			int(info[7]),
 			int(info[8]),
 		)
-		super().__init__(info[5], fileid, index)
+		super().__init__(info[5], docid, index)
 
 	@property
 	def ordering(self):
@@ -39,12 +39,12 @@ class PDFToken(Token):
 
 	def extract_image(self, workspace, xmargin=300, ymargin=15, highlight_word=True):
 		imagefile = workspace.cachePath('pdf/').joinpath(
-			f'{self.fileid}-{self.page_n}-{self.block_n}-{self.line_n}-{self.word_n}-{self.normalized}.png'
+			f'{self.docid}-{self.page_n}-{self.block_n}-{self.line_n}-{self.word_n}-{self.normalized}.png'
 		)
 		if imagefile.is_file():
 			return imagefile, Image.open(str(imagefile))
 		#PDFToken.log.debug(f'word_image: {file.name} token {self} filename {imagefile}')
-		xref, pagerect, pix = workspace._cached_page_image(self.fileid, self.page_n) # TODO
+		xref, pagerect, pix = workspace._cached_page_image(self.docid, self.page_n) # TODO
 		xscale = pix.width / pagerect.width
 		yscale = pix.height / pagerect.height
 		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)

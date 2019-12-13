@@ -38,17 +38,17 @@ class TokenList(List['Token'], abc.ABC):
 	def __init__(self, config, *args):
 		list.__init__(self, *args)
 		self.config = config
-		self.fileid = None
+		self.docid = None
 		self.kind = None
 		TokenList.log.debug(f'init: {self.config}')
 
 	@staticmethod
 	@abc.abstractmethod
-	def exists(config, fileid: str, kind: str) -> bool:
+	def exists(config, docid: str, kind: str) -> bool:
 		pass
 
 	@abc.abstractmethod
-	def load(self, fileid: str, kind: str):
+	def load(self, docid: str, kind: str):
 		pass
 
 	@abc.abstractmethod

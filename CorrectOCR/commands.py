@@ -192,11 +192,11 @@ def build_dictionary(workspace: Workspace, config):
 
 
 def do_align(workspace: Workspace, config):
-	if config.fileid:
-		workspace.alignments(config.fileid, force=config.force)
+	if config.docid:
+		workspace.alignments(config.docid, force=config.force)
 	elif config.all:
-		for fileid, pathManager in filter(lambda x: x[1].goldFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
-			workspace.alignments(fileid, force=config.force)
+		for docid, pathManager in filter(lambda x: x[1].goldFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
+			workspace.alignments(docid, force=config.force)
 
 
 ##########################################################################################
@@ -208,14 +208,14 @@ def build_model(workspace: Workspace, config):
 	# Extra config
 	remove_chars: List[str] = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
 
-	# Select the gold files which correspond to the read count files.
+	# Select the gold docs which correspond to the read count files.
 	readCounts = collections.defaultdict(collections.Counter)
 	gold_words = []
-	for fileid, tokens in workspace.goldTokens():
-		(_, _, counts) = workspace.alignments(fileid)
+	for docid, tokens in workspace.goldTokens():
+		(_, _, counts) = workspace.alignments(docid)
 		readCounts.update(counts)
 		gold_words.extend([t.gold for t in tokens])
-		log.debug(f'{fileid}: {gold_words[-1]}')
+		log.debug(f'{docid}: {gold_words[-1]}')
 
 	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, config.characterSet, readCounts, remove_chars, gold_words)
 
@@ -238,11 +238,11 @@ def do_prepare(workspace: Workspace, config):
 	}
 	method = methods[config.step]
 	Workspace.log.debug(f'Selecting {method} for {config.step}')
-	if config.fileid:
-		method(fileid=config.fileid, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
+	if config.docid:
+		method(docid=config.docid, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 	elif config.all:
-		for fileid, pathManager in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
-			method(fileid=fileid, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
+		for docid, pathManager in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
+			method(docid=docid, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 
 
 ##########################################################################################
@@ -252,8 +252,8 @@ def do_stats(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_stats')
 
 	if config.make_report:
-		for fileid, goldTokens in workspace.goldTokens():
-			log.info(f'Collecting stats from {fileid}')
+		for docid, goldTokens in workspace.goldTokens():
+			log.info(f'Collecting stats from {docid}')
 			for t in goldTokens:
 				workspace.resources.heuristics.add_to_report(t)
 
@@ -277,17 +277,17 @@ def do_correct(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_correct')
 
 	if config.filePath:
-		fileid = config.filePath.stem
-		if fileid in workspace.paths:
-			log.error(f'File ID already exists: {fileid}! You must rename the file first.')
+		docid = config.filePath.stem
+		if docid in workspace.paths:
+			log.error(f'File ID already exists: {docid}! You must rename the file first.')
 			raise SystemExit(-1)
-		workspace.add_fileid(fileid, config.filePath.suffix, new_original=config.filePath)
+		workspace.add_docid(docid, config.filePath.suffix, new_original=config.filePath)
 	else:
-		fileid = config.fileid
+		docid = config.docid
 	
 	if config.autocorrect:
 		log.info(f'Getting autocorrected tokens')
-		corrected = workspace.autocorrectedTokens(config.fileid, k=config.k)
+		corrected = workspace.autocorrectedTokens(config.docid, k=config.k)
 	elif config.apply:
 		log.info(f'Getting corrections from {config.apply}')
 		if not config.apply.is_file():
@@ -296,10 +296,10 @@ def do_correct(workspace: Workspace, config):
 		corrected = [Token.from_dict(row) for row in FileIO.load(config.apply)]
 	elif config.interactive:
 		log.info(f'Getting corrections from interactive session')
-		binned_tokens = workspace.binnedTokens(config.fileid, k=config.k)
+		binned_tokens = workspace.binnedTokens(config.docid, k=config.k)
 
 		# get header, if any
-		#header = workspace.paths[fileid].correctedFile.header
+		#header = workspace.paths[docid].correctedFile.header
 		# print info to annotator
 		#log.info(f'header: {header}')
 
@@ -320,11 +320,11 @@ def do_correct(workspace: Workspace, config):
 		log.critical('This shouldn''t happen!')
 		raise SystemExit(-1)
 
-	log.info(f'Applying corrections to {fileid}')
-	Tokenizer.for_extension(workspace.paths[fileid].ext).apply(
-		workspace.paths[fileid].originalFile,
+	log.info(f'Applying corrections to {docid}')
+	Tokenizer.for_extension(workspace.paths[docid].ext).apply(
+		workspace.paths[docid].originalFile,
 		corrected,
-		workspace.paths[fileid].correctedFile,
+		workspace.paths[docid].correctedFile,
 	)
 
 
@@ -349,17 +349,17 @@ def do_index(workspace: Workspace, config):
 		token: Token
 		tags: List[str]
 
-	def match_terms(fileid: str) -> List[List[TaggedToken]]:
-		log.info(f'Finding matching terms for {fileid}')
+	def match_terms(docid: str) -> List[List[TaggedToken]]:
+		log.info(f'Finding matching terms for {docid}')
 
 		if config.autocorrect:
 			log.info(f'Getting autocorrected tokens')
 
-			tokens = workspace.autocorrectedTokens(fileid, k=config.k)
+			tokens = workspace.autocorrectedTokens(docid, k=config.k)
 		else:
 			log.info(f'Getting unprepared tokens')
 
-			tokens = workspace.tokens(fileid)
+			tokens = workspace.tokens(docid)
 
 		log.info(f'Searching for terms')
 		matches = []
@@ -383,10 +383,10 @@ def do_index(workspace: Workspace, config):
 					matches.append(run)
 				run = []
 
-		if config.highlight and workspace.paths[fileid].ext == '.pdf':
+		if config.highlight and workspace.paths[docid].ext == '.pdf':
 			from .tokens._pdf import PDFToken
 			log.info(f'Applying highlights')
-			pdf = fitz.open(workspace.paths[fileid].originalFile)
+			pdf = fitz.open(workspace.paths[docid].originalFile)
 			red = (1.0, 0.0, 0.0)
 			for run in matches:
 				for tagged_token in run:
@@ -398,27 +398,27 @@ def do_index(workspace: Workspace, config):
 					annotation.info['title'] = progname
 					annotation.info['content'] = str.join(', ', tagged_token.tags)
 					annotation.update()
-			filename = f'{fileid}-highlighted.pdf'
+			filename = f'{docid}-highlighted.pdf'
 			log.info(f'Saving highlighted PDF to {filename}')
 			pdf.save(filename)
 
 		return matches
 	
 	matches = dict()
-	if config.fileid:
-		matches[config.fileid] = match_terms(fileid=config.fileid)
+	if config.docid:
+		matches[config.docid] = match_terms(docid=config.docid)
 	elif config.all:
 		matches = dict()
-		for fileid, pathManager in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
-			matches[fileid] = match_terms(fileid=fileid)
+		for docid, pathManager in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
+			matches[docid] = match_terms(docid=docid)
 	#log.debug(f'matches: {matches}')
 
 	rows = []
-	for fileid, runs in matches.items():
+	for docid, runs in matches.items():
 		for run in runs:
 			#log.debug(f'run: {run}')
 			rows.append({
-				'fileid': fileid,
+				'docid': docid,
 				'tokens': [r.token.normalized for r in run],
 				'tags': [r.tags for r in run],
 			})
@@ -442,7 +442,7 @@ def do_cleanup(workspace: Workspace, config):
 def do_extract(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_extract')
 
-	tokens = [t for t in workspace.binnedTokens(config.fileid) if t.decision == 'annotator']
+	tokens = [t for t in workspace.binnedTokens(config.docid) if t.decision == 'annotator']
 
 	for token in progressbar.progressbar(tokens):
 		_, _ = token.extract_image(workspace)

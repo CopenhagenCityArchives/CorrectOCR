@@ -23,11 +23,11 @@ def create_app(workspace: Workspace = None, config = None):
 		#SECRET_KEY='dev', # TODO needed?
 	)
 
-	def get_files():
+	def get_docs():
 		return {
-			fileid: {
-				'tokens': workspace.autocorrectedTokens(fileid, k=config.k),
-			} for fileid in workspace.paths if workspace.paths[fileid].ext == '.pdf'
+			docid: {
+				'tokens': workspace.autocorrectedTokens(docid, k=config.k),
+			} for docid in workspace.paths if workspace.paths[docid].ext == '.pdf'
 		} if workspace else {}
 
 	def is_authenticated(formdata) -> bool:
@@ -44,83 +44,83 @@ def create_app(workspace: Workspace = None, config = None):
 	@app.route('/')
 	def indexpage():
 		"""
-		Get an overview of the files available for correction.
+		Get an overview of the docs available for correction.
 
-		:>jsonarr string url: URL to list of Tokens in file.
+		:>jsonarr string url: URL to list of Tokens in doc.
 		:>jsonarr int count: Total number of Tokens.
 		:>jsonarr int corrected: Number of corrected Tokens.
 		"""
-		files = get_files()
-		fileindex = [{
-			'url': url_for('tokens', fileid=fileid),
-			'count': len(file['tokens']),
-			'corrected': len([t for t in file['tokens'] if t.gold]),
-		} for fileid, file in files.items()]
-		return json.jsonify(fileindex)
+		docs = get_docs()
+		docindex = [{
+			'url': url_for('tokens', docid=docid),
+			'count': len(doc['tokens']),
+			'corrected': len([t for t in doc['tokens'] if t.gold]),
+		} for docid, doc in docs.items()]
+		return json.jsonify(docindex)
 
-	@app.route('/<fileid>/tokens.json')
-	def tokens(fileid):
+	@app.route('/<docid>/tokens.json')
+	def tokens(docid):
 		"""
-		Get information about the :class:`Tokens<CorrectOCR.tokens.Token>` in a given file.
+		Get information about the :class:`Tokens<CorrectOCR.tokens.Token>` in a given doc.
 
-		:param fileid: The ID of the file containing the tokens. TODO
+		:param docid: The ID of the doc containing the tokens. TODO
 
 		:>jsonarr string info_url: URL to Token info.
 		:>jsonarr string image_url: URL to Token image.
 		:>jsonarr string string: Current Token string.
 		:>jsonarr bool is_corrected: Whether the Token has been corrected at the moment.
 		"""
-		files = get_files()
+		docs = get_docs()
 		tokenindex = [{
-			'info_url': url_for('tokeninfo', fileid=fileid, index=n),
-			'image_url': url_for('tokenimage', fileid=fileid, index=n),
+			'info_url': url_for('tokeninfo', docid=docid, index=n),
+			'image_url': url_for('tokenimage', docid=docid, index=n),
 			'string': (token.gold or token.original),
 			'is_corrected': (token.gold is not None and token.gold.strip() != ''),
-		} for n, token in enumerate(files[fileid]['tokens'])]
+		} for n, token in enumerate(docs[docid]['tokens'])]
 		return json.jsonify(tokenindex)
 
-	@app.route('/<fileid>/token-<int:index>.json', methods=['GET', 'POST'])
-	def tokeninfo(fileid, index):
+	@app.route('/<docid>/token-<int:index>.json', methods=['GET', 'POST'])
+	def tokeninfo(docid, index):
 		"""
 		:form gold: Set new correction for this Token (optional).
 
-		:param string fileid: The ID of the file containing the Tokens.
-		:param int index: The index of the Token in the file.
+		:param string docid: The ID of the doc containing the Tokens.
+		:param int index: The index of the Token in the doc.
 		:return: A JSON dictionary of the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
-		files = get_files()
-		token = files[fileid]['tokens'][index]
+		docs = get_docs()
+		token = docs[docid]['tokens'][index]
 		if request.method == 'POST' and 'gold' in request.form:
 			if not is_authenticated(request.form):
 				return json.jsonify({'error': 'Unauthorized.'}), 401
 			token.gold = request.form['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
-			files[fileid]['tokens'].save(token=token)
+			docs[docid]['tokens'].save(token=token)
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
-			tokendict['image_url'] = url_for('tokenimage', fileid=fileid, index=index)
+			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
 		return json.jsonify(tokendict)
 
-	@app.route('/<fileid>/token-<int:index>.png')
-	def tokenimage(fileid, index):
+	@app.route('/<docid>/token-<int:index>.png')
+	def tokenimage(docid, index):
 		"""
-		:param string fileid: The ID of the file containing the Tokens.
-		:param int index: The index of the Token in the file.
+		:param string docid: The ID of the doc containing the Tokens.
+		:param int index: The index of the Token in the doc.
 		:return: A PNG image of the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
-		files = get_files()
-		token: PDFToken = files[fileid]['tokens'][index]
-		(filename, image) = token.extract_image(workspace)
+		docs = get_docs()
+		token: PDFToken = docs[docid]['tokens'][index]
+		(docname, image) = token.extract_image(workspace)
 		with io.BytesIO() as output:
 			image.save(output, format="PNG")
 			return Response(output.getvalue(), mimetype='image/png')
 
 	@app.route('/random')
 	def rand():
-		files = get_files()
-		fileid = random.choice(list(files.keys()))
-		index = random.randint(0, len(files[fileid]['tokens']))
-		return redirect(url_for('tokeninfo', fileid=fileid, index=index))
+		docs = get_docs()
+		docid = random.choice(list(docs.keys()))
+		index = random.randint(0, len(docs[docid]['tokens']))
+		return redirect(url_for('tokeninfo', docid=docid, index=index))
 
 	# for local testing:
 	@app.route('/auth', methods=['POST'])

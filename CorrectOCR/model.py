@@ -279,7 +279,7 @@ class HMMBuilder(object):
 		emis = self._emission_probabilities(confusion, char_counts)
 		self.emis: DefaultDict[str, float] = emis  #: Emission probabilities.
 
-		# Create the initial and transition probabilities from the gold files
+		# Create the initial and transition probabilities from the gold documents
 		init, tran = self._init_tran_probabilities(gold_words)
 		self.init: DefaultDict[str, float] = init  #: Initial probabilities.
 		self.tran: DefaultDict[str, DefaultDict[str, float]] = tran  #: Transition probabilities.
@@ -316,7 +316,7 @@ class HMMBuilder(object):
 		#HMMBuilder.log.debug(confusion)
 		return confusion
 
-	# Get the character counts of the training files. Used for filling in
+	# Get the character counts of the training docs. Used for filling in
 	# gaps in the confusion probabilities.
 	def _text_char_counts(self, words: List[str]) -> Dict[str, int]:
 		char_count = Counter()
