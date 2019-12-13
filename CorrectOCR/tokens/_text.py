@@ -12,9 +12,9 @@ class StringToken(Token):
 	def token_info(self):
 		return self._string
 
-	def __init__(self, original, fileid, index):
+	def __init__(self, original, docid, index):
 		self._string = original
-		super().__init__(original, fileid, index)
+		super().__init__(original, docid, index)
 
 
 ##########################################################################################

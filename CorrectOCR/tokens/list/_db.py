@@ -23,34 +23,34 @@ class DBTokenList(TokenList):
 		self.log.debug(f'Closing connection {self.connection}')
 		self.connection.close()
 
-	def load(self, fileid: str, kind: str):
+	def load(self, docid: str, kind: str):
 		from .. import Token
-		self.fileid = fileid
+		self.docid = docid
 		self.kind = kind
 		with self.connection.cursor() as cursor:
 			cursor.execute("""
 				SELECT *
 				FROM token
 				LEFT JOIN kbest
-				ON token.file_id = kbest.file_id AND token.file_index = kbest.file_index
-				WHERE token.file_id = ? AND token.kind = ?
-				ORDER BY token.file_index, k
+				ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
+				WHERE token.doc_id = ? AND token.kind = ?
+				ORDER BY token.doc_index, k
 				""",
-				fileid,
+				docid,
 				kind
 			)
 			token_dict = None
 			for result in cursor:
 				self.log.debug(f'result: {result}')
-				if token_dict and result.file_index != token_dict['Index']:
+				if token_dict and result.doc_index != token_dict['Index']:
 					self.append(Token.from_dict(token_dict))
 					token_dict = None
 				if not token_dict:
 					token_dict = {
 						'Token type': result.token_type,
 						'Token info': result.token_info,
-						'File ID': result.file_id,
-						'Index': result.file_index,
+						'File ID': result.doc_id,
+						'Index': result.doc_index,
 						'Gold': result.gold,
 						'Bin': result.bin,
 						'Heuristic': result.heuristic,
@@ -62,14 +62,14 @@ class DBTokenList(TokenList):
 			self.append(Token.from_dict(token_dict))
 
 	def _save_token(self, token: 'Token'):
-		#self.log.debug(f'saving token {token.fileid}, {token.index}, {token.original}, {token.gold}')
+		#self.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
 		with self.connection.cursor() as cursor:
 			cursor.execute("""
-				REPLACE INTO token (kind, file_id, file_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
+				REPLACE INTO token (kind, doc_id, doc_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				self.kind,
-				token.fileid,
+				token.docid,
 				token.index,
 				token.original,
 				token.gold,
@@ -82,16 +82,16 @@ class DBTokenList(TokenList):
 			)
 			if len(token.kbest) > 0:
 				cursor.execute(
-					"DELETE FROM kbest WHERE file_id = ? AND file_index = ?",
-					token.fileid,
+					"DELETE FROM kbest WHERE doc_id = ? AND doc_index = ?",
+					token.docid,
 					token.index
 				)
 				for k, item in token.kbest.items():
 					cursor.execute("""
-						INSERT INTO kbest (file_id, file_index, k, candidate, probability)
+						INSERT INTO kbest (doc_id, doc_index, k, candidate, probability)
 						VALUES (?, ?, ?, ?, ?)
 						""",
-						token.fileid,
+						token.docid,
 						token.index,
 						k,
 						item.candidate,
@@ -109,12 +109,12 @@ class DBTokenList(TokenList):
 				self._save_token(token)
 
 	@staticmethod
-	def exists(config, fileid: str, kind: str):
+	def exists(config, docid: str, kind: str):
 		connection = pyodbc.connect(f'driver={{{config.db_driver}}};server={config.db_host};database={config.db};uid={config.db_user};pwd={config.db_password}')
 		with connection.cursor() as cursor:
 			cursor.execute(
-				"SELECT * FROM token WHERE file_id = ? AND kind = ?",
-				fileid,
+				"SELECT * FROM token WHERE doc_id = ? AND kind = ?",
+				docid,
 				kind
 			)
 			return cursor.fetchone() is not None

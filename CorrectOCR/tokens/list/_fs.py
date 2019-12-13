@@ -6,12 +6,12 @@ from ._super import TokenList
 class FSTokenList(TokenList):
 	log = logging.getLogger(f'{__name__}.FSTokenList')
 
-	def load(self, fileid: str, kind: str):
+	def load(self, docid: str, kind: str):
 		from .. import Token
 		from ...fileio import FileIO
-		self.fileid = fileid
+		self.docid = docid
 		self.kind = kind
-		path = self.config.trainingPath.joinpath(f'{fileid}.{kind}.csv')
+		path = self.config.trainingPath.joinpath(f'{docid}.{kind}.csv')
 		self.log.debug(f'Load from {path}')
 		for row in FileIO.load(path):
 			self.append(Token.from_dict(row))
@@ -21,14 +21,14 @@ class FSTokenList(TokenList):
 
 		if kind:
 			self.kind = kind
-		path = self.config.trainingPath.joinpath(f'{self.fileid}.{self.kind}.csv')
 
+		path = self.config.trainingPath.joinpath(f'{self.docid}.{self.kind}.csv')
 		self.log.debug(f'Save to {path}')
 
 		FileIO.save(self, path)
 
 	@staticmethod
-	def exists(config, fileid: str, kind: str):
-		path = config.trainingPath.joinpath(f'{fileid}.{kind}.csv')
+	def exists(config, docid: str, kind: str):
+		path = config.trainingPath.joinpath(f'{docid}.{kind}.csv')
 
 		return path.is_file()

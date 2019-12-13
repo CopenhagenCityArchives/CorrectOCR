@@ -13,7 +13,7 @@ class COCRJSONCodec(json.JSONEncoder):
 		if isinstance(obj, TokenSegment):
 			return {
 				'COCRkind': 'TokenSegment',
-				'fileid': obj.fileid,
+				'docid': obj.docid,
 				'page': obj.page,
 				'column': obj.column,
 				'rect': obj.rect,
@@ -42,7 +42,7 @@ class COCRJSONCodec(json.JSONEncoder):
 		if 'COCRkind' in obj:
 			if obj['COCRkind'] == 'TokenSegment':
 				return TokenSegment(
-					obj['fileid'],
+					obj['docid'],
 					obj['page'],
 					obj['column'],
 					obj['rect'],

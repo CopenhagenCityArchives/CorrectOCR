@@ -73,10 +73,10 @@ def setup(configfiles, args=sys.argv[1:]):
 
 	workspaceparser = argparse.ArgumentParser()
 	workspaceparser.add_argument('--rootPath', metavar='PATH', type=Path, help='Path to root of workspace')
-	workspaceparser.add_argument('--originalPath', metavar='PATH', type=Path, help='Path to directory of original, uncorrected files')
-	workspaceparser.add_argument('--goldPath', metavar='PATH', type=Path, help='Path to directory of known correct "gold" files')
+	workspaceparser.add_argument('--originalPath', metavar='PATH', type=Path, help='Path to directory of original, uncorrected docs')
+	workspaceparser.add_argument('--goldPath', metavar='PATH', type=Path, help='Path to directory of known correct "gold" docs')
 	workspaceparser.add_argument('--trainingPath', metavar='PATH', type=Path, help='Path for generated training files')
-	workspaceparser.add_argument('--correctedPath', metavar='PATH', type=Path, help='Directory to output corrected files')
+	workspaceparser.add_argument('--correctedPath', metavar='PATH', type=Path, help='Directory to output corrected docs')
 	workspaceparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus headers (default: 0)')
 	workspaceparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
 	workspaceparser.set_defaults(**dict(config.items('workspace')))
@@ -85,7 +85,7 @@ def setup(configfiles, args=sys.argv[1:]):
 
 	resourceparser = argparse.ArgumentParser()
 	resourceparser.add_argument('--resourceRootPath', metavar='PATH', type=Path, help='Path to root of resources')
-	resourceparser.add_argument('--hmmParamsFile', metavar='FILE', type=Path, help='Path to HMM parameters (generated from alignment files via build_model command)')
+	resourceparser.add_argument('--hmmParamsFile', metavar='FILE', type=Path, help='Path to HMM parameters (generated from alignment docs via build_model command)')
 	resourceparser.add_argument('--reportFile', metavar='FILE', type=Path, help='Path to output heuristics report (TXT file)')
 	resourceparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=Path, help='Path to heuristics settings (generated via make_settings command)')
 	resourceparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=Path, help='Path to output multi-character error file (JSON format)')
@@ -131,8 +131,8 @@ def setup(configfiles, args=sys.argv[1:]):
 
 	alignparser = subparsers.add_parser('align', parents=[commonparser], help='Create alignments')
 	group = alignparser.add_mutually_exclusive_group(required=True)
-	group.add_argument('--fileid', help='Input file ID (filename without path or extension)')
-	group.add_argument('--all', action='store_true', help='Align all pairs in original/gold paths')
+	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
+	group.add_argument('--all', action='store_true', help='Align all original/gold pairs')
 	alignparser.add_argument('--exclude', action='append', default=[], help='File ID to exclude (can be specified multiple times)')
 	alignparser.set_defaults(func=commands.do_align, **configuration)
 
@@ -142,8 +142,8 @@ def setup(configfiles, args=sys.argv[1:]):
 
 	prepareparser = subparsers.add_parser('prepare', parents=[commonparser], help='Prepare text for correction')
 	group = prepareparser.add_mutually_exclusive_group(required=True)
-	group.add_argument('--fileid', help='Input file ID (filename without path or extension)')
-	group.add_argument('--all', action='store_true', help='Prepare all files in original/gold paths')
+	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
+	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
 	prepareparser.add_argument('--exclude', action='append', default=[], help='File ID to exclude (can be specified multiple times)')
 	prepareparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation')
 	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all'], default='all', help='')
@@ -157,17 +157,17 @@ def setup(configfiles, args=sys.argv[1:]):
 
 	correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Apply corrections')
 	group1 = correctparser.add_mutually_exclusive_group(required=True)
-	group1.add_argument('--fileid', help='Input file ID (filename without path or extension)')
+	group1.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group1.add_argument('--filePath', type=Path, help='Input file path (will be copied to originalPath directory)')
 	group2 = correctparser.add_mutually_exclusive_group(required=True)
 	group2.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
-	group2.add_argument('--apply', type=Path, help='Apply externally corrected token CSV to original file')
+	group2.add_argument('--apply', type=Path, help='Apply externally corrected token CSV to original document')
 	group2.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
 	correctparser.set_defaults(func=commands.do_correct, **configuration)
 
 	indexparser = subparsers.add_parser('index', parents=[commonparser], help='Generate index data')
 	group = indexparser.add_mutually_exclusive_group(required=True)
-	group.add_argument('--fileid', help='Input file ID (filename without path or extension)')
+	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--filePath', type=Path, help='Input file path (will be copied to originalPath directory)')
 	indexparser.add_argument('--exclude', action='append', default=[], help='File ID to exclude (can be specified multiple times)')
 	indexparser.add_argument('--termFile', type=Path, action='append', default=[], dest='termFiles', required=True, help='File containing a string on each line, which will be matched against the tokens')
@@ -181,7 +181,7 @@ def setup(configfiles, args=sys.argv[1:]):
 	cleanupparser.set_defaults(func=commands.do_cleanup, **configuration)
 
 	extractparser = subparsers.add_parser('extract', parents=[commonparser], help='Various extraction methods')
-	extractparser.add_argument('--fileid', help='Input file ID (filename without path or extension)')
+	extractparser.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	extractparser.set_defaults(func=commands.do_extract, **configuration)
 
 	serverparser = subparsers.add_parser('server', parents=[commonparser], help='Run JSON-dispensing server')
@@ -203,13 +203,13 @@ def setup(configfiles, args=sys.argv[1:]):
 
 	log.info(f'Configuration for this invocation:\n{pformat(vars(args))}')
 
-	return workspace, config, args
+	return workspace, args
 
 ##########################################################################################
 
 if __name__ == "__main__":
-	workspace, config, args = setup(['CorrectOCR.ini'])
+	ws, a = setup(['CorrectOCR.ini'])
 
-	args.func(workspace, args)
+	a.func(ws, a)
 
 	exit()

@@ -51,15 +51,15 @@ class Token(abc.ABC):
 
 	_punctuation_splitter = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
 
-	def __init__(self, original: str, fileid: str, index: int):
+	def __init__(self, original: str, docid: str, index: int):
 		"""
 		:param original: Original spelling of the token.
-		:param fileid: The file with which the Token is associated.
+		:param docid: The doc with which the Token is associated.
 		"""
 		m = Token._punctuation_splitter.search(original)
 		(self._punct_prefix, self.normalized, self._punct_suffix) = m.groups('')
-		self.fileid = fileid  #: The file with which the Token is associated.
-		self.index = index #: The placement of the Token in the file.
+		self.docid = docid  #: The doc with which the Token is associated.
+		self.index = index #: The placement of the Token in the doc.
 		self.gold = None
 		self.bin: Optional[Bin] = None  #: Heuristics bin.
 		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
@@ -156,7 +156,7 @@ class Token(abc.ABC):
 		output = {
 			'Gold': self.gold or '',
 			'Original': self.original,
-			'File ID': self.fileid,
+			'File ID': self.docid,
 			'Index': self.index,
 		}
 		for k, item in self.kbest.items():
@@ -261,8 +261,8 @@ class Tokenizer(abc.ABC):
 		"""
 		Generate tokens for the given document.
 
-		:param storageconfig: Storage configuration (database, filesystem); see TODO
-		:param file: A path to an input file.
+		:param storageconfig: Storage configuration (database, filesystem) for resulting Tokens
+		:param file: A given document.
 		:return:
 		"""
 		pass
@@ -297,7 +297,7 @@ class DehyphenationToken(Token):
 	def __init__(self, first: Token, second: Token):
 		self.first = first
 		self.second = second
-		super().__init__(self.original, first.fileid, self.first.index)
+		super().__init__(self.original, first.docid, self.first.index)
 
 	@property
 	def original(self):
