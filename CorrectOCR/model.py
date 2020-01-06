@@ -248,7 +248,7 @@ class HMM(object):
 
 ##########################################################################################
 
-
+# TODO make build class method on HMM instead
 class HMMBuilder(object):
 	log = logging.getLogger(f'{__name__}.HMMBuilder')
 
