@@ -1,0 +1,47 @@
+@startuml
+
+|Frontend|
+start
+
+:Get available tokens
+""GET /""
+;
+
+|Backend|
+:Return available tokens;
+
+|Frontend|
+while (Tokens available?) is (yes)
+	:Request token from server
+	""GET /<docid>/token-<index>.json"";
+	
+	|Backend|
+	:Look up and return token from database;
+	
+	|Frontend|
+	:User is presented with a token to evaluate;
+
+	:User chooses;
+	
+	if (accept)
+		:Submit choice to server:
+		""POST /<docid>/token-<index>.json""
+		with //original// as ""gold"" parameter;
+	elseif (correct)
+		:Submit choice to server:
+		""POST /<docid>/token-<index>.json""
+		with //user input// as ""gold"" parameter;
+	elseif (merge)
+		:TODO;
+	else (nothing)
+		stop
+	endif
+	
+	|Backend|
+	:Server writes ""gold"" token to database;
+endwhile (no)
+
+|Frontend|
+stop
+
+@enduml

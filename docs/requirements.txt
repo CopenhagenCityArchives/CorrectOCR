@@ -13,11 +13,12 @@ regex
 requests
 tei-reader
 
+# these cannot be installed on RTD (C dependencies), so they're mocked in conf.py:
+# pyodbc
+# tesserocr
+
 # documentation packages:
 sphinx-autodoc-typehints
 sphinx_rtd_theme
 sphinxcontrib.httpdomain
-
-# packages that cannot be installed on ReadTheDocs, so are mocked in conf.py:
-#pyodbc
-#tesserocr
+sphinxcontrib.plantuml

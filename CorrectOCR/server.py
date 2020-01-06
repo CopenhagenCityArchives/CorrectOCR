@@ -72,7 +72,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		Get information about the :class:`Tokens<CorrectOCR.tokens.Token>` in a given document.
 
-		:param docid string: The ID of the requested document.
+		:param string docid: The ID of the requested document.
 
 		:>jsonarr string info_url: URL to Token info.
 		:>jsonarr string image_url: URL to Token image.
@@ -95,7 +95,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		:param string docid: The ID of the requested document.
 		:param int index: The placement of the requested Token in the document.
-		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`. Relevant keys for frontend display are `original` (uncorrected OCR result), `gold` (corrected version), TODO
+		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`.
+		    Relevant keys for frontend display are
+		    `original` (uncorrected OCR result),
+		    `gold` (corrected version, if available),
+		    TODO
 		"""
 		docs = get_docs()
 		if docid not in docs:
