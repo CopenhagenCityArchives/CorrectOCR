@@ -131,11 +131,15 @@ def create_app(workspace: Workspace = None, config: Any = None):
 
 		:param string docid: The ID of the requested document.
 		:param int index: The placement of the requested Token in the document.
+		:query int leftmargin: Optional left margin. See :meth:`PDFToken.extract_image()<CorrectOCR.tokens.PDFToken.extract_image>` for defaults. TODO
+		:query int rightmargin: Optional right margin.
+		:query int topmargin: Optional top margin.
+		:query int bottommargin: Optional bottom margin.
 		:return: A PNG image of the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
 		docs = get_docs()
 		token: PDFToken = docs[docid]['tokens'][index]
-		(docname, image) = token.extract_image(workspace)
+		(docname, image) = token.extract_image(workspace, left=leftmargin, right=rightmargin, top=topmargin, bottom=bottommargin)
 		if 'image_url' not in vars(token):
 			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
 		with io.BytesIO() as output:

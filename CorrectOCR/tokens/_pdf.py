@@ -37,7 +37,7 @@ class PDFToken(Token):
 	def ordering(self):
 		return self.page_n, self.block_n, self.line_n, self.word_n
 
-	def extract_image(self, workspace, xmargin=300, ymargin=15, highlight_word=True):
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15):
 		imagefile = workspace.cachePath('pdf/').joinpath(
 			f'{self.docid}-{self.page_n}-{self.block_n}-{self.line_n}-{self.word_n}-{self.normalized}.png'
 		)
@@ -50,10 +50,10 @@ class PDFToken(Token):
 		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)
 		#PDFTokenizer.log.debug(f'extract_image: {tokenrect} {xscale} {yscale}')
 		croprect = (
-			max(0, tokenrect.x0 - xmargin),
-			max(0, tokenrect.y0 - ymargin),
-			min(pix.width, tokenrect.x1 + xmargin),
-			min(pix.height, tokenrect.y1 + ymargin),
+			max(0, tokenrect.x0 - left),
+			max(0, tokenrect.y0 - top),
+			min(pix.width, tokenrect.x1 + right),
+			min(pix.height, tokenrect.y1 + bottom),
 		)
 		#PDFToken.log.debug(f'extract_image: {croprect}')
 		image = Image.frombytes('RGB', (pix.width, pix.height), pix.samples)
