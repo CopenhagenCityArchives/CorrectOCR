@@ -1,44 +1,66 @@
 @startuml
 
+!include https://raw.githubusercontent.com/bschwarz/puml-themes/master/themes/cerulean/puml-theme-cerulean.puml
+
 |Frontend|
 start
 
-:Get available tokens
-""GET /""
-;
+:Get available documents
+""GET /"";
 
 |Backend|
-:Return available tokens;
+:Look up and return
+available documents from database;
 
 |Frontend|
-while (Tokens available?) is (yes)
-	:Request token from server
-	""GET /<docid>/token-<index>.json"";
-	
-	|Backend|
-	:Look up and return token from database;
-	
-	|Frontend|
-	:User is presented with a token to evaluate;
+while (Documents available?) is (yes)
+	:Select document and request list of tokens
+	""GET /<docid>/tokens.json"";
 
-	:User chooses;
-	
-	if (accept)
-		:Submit choice to server:
-		""POST /<docid>/token-<index>.json""
-		with //original// as ""gold"" parameter;
-	elseif (correct)
-		:Submit choice to server:
-		""POST /<docid>/token-<index>.json""
-		with //user input// as ""gold"" parameter;
-	elseif (merge)
-		:TODO;
-	else (nothing)
-		stop
-	endif
-	
 	|Backend|
-	:Server writes ""gold"" token to database;
+	:Look up document and return
+	list of tokens from database;
+
+	|Frontend|
+	while (Tokens available?) is (yes)
+		:Request token info from server
+		""GET /<docid>/token-<index>.json""
+		""GET /<docid>/token-<index>.png""
+	
+		or
+	
+		""GET /random""
+		(redirects to a random token's JSON);
+	
+		|Backend|
+		:Look up and return
+		token from database;
+	
+		|Frontend|
+		:User is presented with a token to evaluate;
+
+		:User chooses;
+	
+		if (accept)
+			:Submit choice to server:
+			""POST /<docid>/token-<index>.json""
+			with //original// as ""gold"" parameter;
+		elseif (correct)
+			:Submit choice to server:
+			""POST /<docid>/token-<index>.json""
+			with //user input// as ""gold"" parameter;
+		elseif (merge)
+			:TODO;
+		else (nothing)
+			stop
+		endif
+
+		|Backend|
+		:Write ""gold"" token to database;
+	
+	endwhile (no)
+	'TODO fix arrow
+	-[#blue]->
 endwhile (no)
 
 |Frontend|

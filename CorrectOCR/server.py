@@ -51,6 +51,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/')
 	def indexpage():
 		"""
+		TODO example
+		
 		Get an overview of the documents available for correction.
 
 		:>jsonarr string docid: ID for the document.
@@ -70,6 +72,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/<string:docid>/tokens.json')
 	def tokens(docid):
 		"""
+		TODO example
+		
 		Get information about the :class:`Tokens<CorrectOCR.tokens.Token>` in a given document.
 
 		:param string docid: The ID of the requested document.
@@ -93,6 +97,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/<string:docid>/token-<int:index>.json')
 	def tokeninfo(docid, index):
 		"""
+		TODO example
+		
 		:param string docid: The ID of the requested document.
 		:param int index: The placement of the requested Token in the document.
 		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`.
