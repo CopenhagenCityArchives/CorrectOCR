@@ -80,6 +80,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:>jsonarr bool is_corrected: Whether the Token has been corrected at the moment.
 		"""
 		docs = get_docs()
+		if docid not in docs:
+			return f'Document "{docid}" not found.', 404
 		tokenindex = [{
 			'info_url': url_for('tokeninfo', docid=docid, index=n),
 			'image_url': url_for('tokenimage', docid=docid, index=n),
@@ -96,6 +98,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`. Relevant keys for frontend display are `original` (uncorrected OCR result), `gold` (corrected version), TODO
 		"""
 		docs = get_docs()
+		if docid not in docs:
+			return f'Document "{docid}" not found.', 404
+		if index >= len(docs[docid]['tokens']) or index < 0:
+			return f'Document "{docid}" does not have a token at {index}.', 404
 		token = docs[docid]['tokens'][index]
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
@@ -112,6 +118,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
 		docs = get_docs()
+		if docid not in docs:
+			return f'Document "{docid}" not found.', 404
+		if index >= len(docs[docid]['tokens']) or index < 0:
+			return f'Document "{docid}" does not have a token at {index}.', 404
 		token = docs[docid]['tokens'][index]
 		if 'gold' in request.form:
 			if not is_authenticated(request.form):
@@ -138,6 +148,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:return: A PNG image of the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
 		docs = get_docs()
+		if docid not in docs:
+			return f'Document "{docid}" not found.', 404
+		if index >= len(docs[docid]['tokens']) or index < 0:
+			return f'Document "{docid}" does not have a token at {index}.', 404
 		token: PDFToken = docs[docid]['tokens'][index]
 		(docname, image) = token.extract_image(workspace, left=leftmargin, right=rightmargin, top=topmargin, bottom=bottommargin)
 		if 'image_url' not in vars(token):
