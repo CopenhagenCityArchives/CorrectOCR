@@ -49,7 +49,7 @@ while (Documents available?) is (yes)
 			:Submit choice to server:
 			""POST /<docid>/token-<index>.json""
 			with //user input// as ""gold"" parameter;
-		elseif (merge)
+		elseif (hyphenate)
 			:TODO;
 		else (nothing)
 			stop

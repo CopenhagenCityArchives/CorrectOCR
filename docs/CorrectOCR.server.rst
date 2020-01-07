@@ -4,7 +4,12 @@ CorrectOCR.server module
 Example Workflow
 ----------------
 
-.. uml:: CorrectOCR.server.uml
+.. uml:: CorrectOCR.server.api.uml
+
+Example User Interface
+----------------------
+
+.. uml:: CorrectOCR.server.gui.uml
 
 Endpoint Documentation
 ----------------------

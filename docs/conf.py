@@ -194,6 +194,8 @@ autodoc_mock_imports = ['pyodbc', 'tesserocr']
 
 autoclass_content = 'both'
 
+plantuml_output_format = 'svg_img'
+
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.

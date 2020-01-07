@@ -1,0 +1,9 @@
+@startsalt
+{
+	{
+		. | IMAGE | .
+		. | ^Suggestions^ | .
+		[Hyphenate left] | [Accept] | [Hyphenate right]
+	}
+}
+@endsalt
