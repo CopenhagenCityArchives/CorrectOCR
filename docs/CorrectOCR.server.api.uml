@@ -37,7 +37,8 @@ while (Documents available?) is (yes)
 		token from database;
 	
 		|Frontend|
-		:User is presented with a token to evaluate;
+		:Present user with a
+		token to evaluate;
 
 		:User chooses;
 	
@@ -50,7 +51,9 @@ while (Documents available?) is (yes)
 			""POST /<docid>/token-<index>.json""
 			with //user input// as ""gold"" parameter;
 		elseif (hyphenate)
-			:TODO;
+			:Submit choice to server:
+			""POST /<docid>/token-<index>.json""
+			with //left// or //right// as ""hyphenate"" parameter;
 		else (nothing)
 			stop
 		endif

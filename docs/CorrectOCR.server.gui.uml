@@ -1,8 +1,10 @@
 @startsalt
 {
 	{
-		. | IMAGE | .
+		left token | TOKEN IMAGE | right token
+		.
 		. | ^Suggestions^ | .
+		.
 		[Hyphenate left] | [Accept] | [Hyphenate right]
 	}
 }

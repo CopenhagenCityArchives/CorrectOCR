@@ -47,6 +47,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx_autodoc_typehints',
     'sphinxcontrib.autohttp.flask',
+    'sphinxcontrib.autohttp.flaskqref',
     'sphinxcontrib.plantuml',
 ]
 

@@ -51,10 +51,26 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/')
 	def indexpage():
 		"""
-		TODO example
-		
 		Get an overview of the documents available for correction.
+		
+		.. :quickref: 1 Main; Get list of documents
 
+		**Example response**:
+
+		.. sourcecode:: http
+
+		   HTTP/1.1 200 OK
+		   Content-Type: application/json
+		   
+		   [
+		     {
+		       "docid": "<docid>",
+		       "url": "/<docid>/tokens.json",
+		       "count": 100,
+		       "corrected": 87
+		     }
+		   ]
+		
 		:>jsonarr string docid: ID for the document.
 		:>jsonarr string url: URL to list of Tokens in doc.
 		:>jsonarr int count: Total number of Tokens.
@@ -72,11 +88,33 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/<string:docid>/tokens.json')
 	def tokens(docid):
 		"""
-		TODO example
-		
 		Get information about the :class:`Tokens<CorrectOCR.tokens.Token>` in a given document.
+		
+		.. :quickref: 2 Documents; Get list of tokens in document
 
 		:param string docid: The ID of the requested document.
+
+		**Example response**:
+
+		.. sourcecode:: http
+
+		   HTTP/1.1 200 OK
+		   Content-Type: application/json
+		   
+		   [
+		     {
+		       "info_url": "/<docid>/token-0.json",
+		       "image_url": "/<docid>/token-0.png",
+		       "string": "Example",
+		       "is_corrected": true
+		     },
+		     {
+		       "info_url": "/<docid>/token-1.json",
+		       "image_url": "/<docid>/token-1.png",
+		       "string": "Exanpie",
+		       "is_corrected": false
+		     }
+		   ]
 
 		:>jsonarr string info_url: URL to Token info.
 		:>jsonarr string image_url: URL to Token image.
@@ -97,7 +135,18 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/<string:docid>/token-<int:index>.json')
 	def tokeninfo(docid, index):
 		"""
-		TODO example
+		Get information about a specific :class:`Token<CorrectOCR.tokens.Token>`
+		
+		.. :quickref: 3 Tokens; Get token
+
+		**Example response**:
+
+		.. sourcecode:: http
+
+		   HTTP/1.1 200 OK
+		   Content-Type: application/json
+		   
+		   {"TODO": "TODO"}
 		
 		:param string docid: The ID of the requested document.
 		:param int index: The placement of the requested Token in the document.
@@ -121,6 +170,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/<string:docid>/token-<int:index>.json', methods=[ 'POST'])
 	def update_token(docid, index):
 		"""
+		Update a given token with a `gold` transcription and/or hyphenation info.
+		
+		.. :quickref: 3 Tokens; Update token
+		
 		:form gold: Set new correction for this Token.
 		:form hyphenate: Optionally hyphenate to the `left` or `right`.
 
@@ -151,6 +204,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	def tokenimage(docid, index):
 		"""
 		Returns a snippet of the original document as an image, for comparing with the OCR result.
+		
+		.. :quickref: 3 Tokens; Get token image
 
 		:param string docid: The ID of the requested document.
 		:param int index: The placement of the requested Token in the document.
@@ -177,6 +232,15 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	def rand():
 		"""
 		Returns a 302-redirect to a random token from a random document. TODO: filter by needing annotator
+		
+		.. :quickref: 3 Tokens; Get random token
+
+		**Example response**:
+
+		.. sourcecode:: http
+
+		   HTTP/1.1 302 Found
+		   Location: <url-to-token>
 		"""
 		docs = get_docs()
 		docid = random.choice(list(docs.keys()))
