@@ -111,7 +111,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/<string:docid>/token-<int:index>.json', methods=[ 'POST'])
 	def update_token(docid, index):
 		"""
-		:form gold string: Set new correction for this Token.
+		:form gold: Set new correction for this Token.
+		:form hyphenate: Optionally hyphenate to the `left` or `right`.
 
 		:param string docid: The ID of the requested document.
 		:param int index: The placement of the requested Token in the document.
@@ -129,6 +130,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			token.gold = request.form['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
 			docs[docid]['tokens'].save(token=token)
+		if 'hyphenate' in request.form:
+			pass # TODO
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
