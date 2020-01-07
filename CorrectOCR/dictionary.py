@@ -11,30 +11,30 @@ class Dictionary(Set[str]):
 	"""
 	log = logging.getLogger(f'{__name__}.Dictionary')
 
-	def __init__(self, path: Path = None, caseInsensitive: bool = False):
+	def __init__(self, path: Path = None, ignoreCase: bool = False):
 		"""
 		:param path: A path for loading a previously saved dictionary.
-		:param caseInsensitive: Whether the dictionary is case sensitive.
+		:param ignoreCase: Whether the dictionary is case sensitive.
 		"""
 		super().__init__()
-		self.caseInsensitive = caseInsensitive
+		self.ignoreCase = ignoreCase
 		self._path = path
 		if self._path and self._path.is_file():
 			Dictionary.log.info(f'Loading dictionary from {self._path.name}')
 			for line in FileIO.load(self._path).split('\n'):
-				if self.caseInsensitive:
+				if self.ignoreCase:
 					self.add(line.lower(), nowarn=True)
 				else:
 					self.add(line, nowarn=True)
 		Dictionary.log.info(f'{len(self)} words in dictionary')
 	
 	def __repr__(self) -> str:
-		return f'<{self.__class__.__name__} "{len(self)}{" caseInsensitive" if self.caseInsensitive else ""}>'
+		return f'<{self.__class__.__name__} "{len(self)}{" ignoreCase" if self.ignoreCase else ""}>'
 	
 	def __contains__(self, word: str) -> bool:
 		if word.isnumeric():
 			return True
-		if self.caseInsensitive:
+		if self.ignoreCase:
 			word = word.lower()
 		return super().__contains__(word)
 
@@ -55,7 +55,7 @@ class Dictionary(Set[str]):
 			return
 		if len(word) > 15 and not nowarn:
 			Dictionary.log.warning(f'Added word is more than 15 characters long: {word}')
-		if self.caseInsensitive:
+		if self.ignoreCase:
 			word = word.lower()
 		return super().add(word)
 	

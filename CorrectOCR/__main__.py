@@ -92,7 +92,7 @@ def setup(configfiles, args=sys.argv[1:]):
 	resourceparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=Path, help='Path to memoizations of corrections.')
 	resourceparser.add_argument('--correctionTrackingFile', metavar='FILE', type=Path, help='Path to correction tracking.')
 	resourceparser.add_argument('--dictionaryFile', metavar='FILE', type=Path, help='Path to dictionary file')
-	resourceparser.add_argument('--caseInsensitive', action='store_true', default=False, help='Use case insensitive dictionary comparisons')
+	resourceparser.add_argument('--ignoreCase', action='store_true', default=False, help='Use case insensitive dictionary comparisons')
 	resourceparser.set_defaults(**dict(config.items('resources')))
 	(resourceconfig, args) = resourceparser.parse_known_args(args)
 	#print(resourceconfig, args)
