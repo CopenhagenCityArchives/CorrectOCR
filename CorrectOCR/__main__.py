@@ -181,7 +181,7 @@ def setup(configfiles, args=sys.argv[1:]):
 	cleanupparser.set_defaults(func=commands.do_cleanup, **configuration)
 
 	extractparser = subparsers.add_parser('extract', parents=[commonparser], help='Various extraction methods')
-	extractparser.add_argument('--docid', help='Input document ID (filename without path or extension)')
+	extractparser.add_argument('--docid', help='Input document ID (filename without path or extension)', required=True)
 	extractparser.set_defaults(func=commands.do_extract, **configuration)
 
 	serverparser = subparsers.add_parser('server', parents=[commonparser], help='Run JSON-dispensing server')
