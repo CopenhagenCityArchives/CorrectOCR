@@ -16,6 +16,8 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+
 
 # -- Project information -----------------------------------------------------
 
@@ -197,6 +199,8 @@ autoclass_content = 'both'
 
 plantuml_output_format = 'svg_img'
 plantuml_syntax_error_image = True
+if not on_rtd:
+	plantuml = 'java -jar plantuml.1.2019.13.jar'
 
 # -- Options for intersphinx extension ---------------------------------------
 
