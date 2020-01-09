@@ -192,8 +192,6 @@ def setup(configfiles, args=sys.argv[1:]):
 
 	args = rootparser.parse_args(args)
 
-	workspace = Workspace(workspaceconfig, resourceconfig, storageconfig)
-
 	logging.basicConfig(
 		stream=sys.stdout,
 		format='%(asctime)s - %(levelname)8s - %(name)s - %(message)s',
@@ -202,6 +200,8 @@ def setup(configfiles, args=sys.argv[1:]):
 	log = logging.getLogger(progname)
 
 	log.info(f'Configuration for this invocation:\n{pformat(vars(args))}')
+
+	workspace = Workspace(workspaceconfig, resourceconfig, storageconfig)
 
 	return workspace, args
 
