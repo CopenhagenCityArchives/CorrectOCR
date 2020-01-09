@@ -442,7 +442,7 @@ def do_cleanup(workspace: Workspace, config):
 def do_extract(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_extract')
 
-	tokens = [t for t in workspace.binnedTokens(config.docid) if t.decision == 'annotator']
+	tokens = [t for t in workspace.binnedTokens(config.docid, k=config.k) if t.decision == 'annotator']
 
 	for token in progressbar.progressbar(tokens):
 		_, _ = token.extract_image(workspace)
