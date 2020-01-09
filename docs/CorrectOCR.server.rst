@@ -7,12 +7,12 @@ suggestions and any workflow and interface may be used.
 Example Workflow
 ----------------
 
-.. uml:: CorrectOCR.server.api.uml
+.. uml:: CorrectOCR.server.api.puml
 
 Example User Interface
 ----------------------
 
-.. uml:: CorrectOCR.server.gui.uml
+.. uml:: CorrectOCR.server.gui.puml
 
 The Combo box would then contain the `k`-best suggestions from the backend,
 allowing the user to accept the desired one or enter their own correction.
