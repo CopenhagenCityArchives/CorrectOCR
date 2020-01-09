@@ -83,6 +83,7 @@ class Workspace(object):
 			if file.name in {'.DS_Store'}:
 				continue
 			self.add_docid(file.stem, file.suffix)
+		Workspace.log.debug(f'paths: {self.paths}')
 		self.cache = LRUCache(maxsize=1000)
 		self.cachePath = FileIO.cachePath
 
@@ -106,6 +107,7 @@ class Workspace(object):
 			self._correctedPath,
 			self.nheaderlines,
 		)
+		Workspace.log.debug(f'Added {docid}')
 
 	def originalTokens(self) -> Iterator[Tuple[str, TokenList]]:
 		"""
