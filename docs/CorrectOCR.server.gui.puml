@@ -1,6 +1,6 @@
 @startsalt
 {
-	{
+	{+
 		left token | TOKEN IMAGE | right token
 		.
 		. | ^Suggestions^ | .
