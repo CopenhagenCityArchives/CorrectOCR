@@ -123,7 +123,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		docs = get_docs()
 		if docid not in docs:
-			return f'Document "{docid}" not found.', 404
+			return json.jsonify({
+				'detail': f'Document "{docid}" not found.',
+			}), 404
 		tokenindex = [{
 			'info_url': url_for('tokeninfo', docid=docid, index=n),
 			'image_url': url_for('tokenimage', docid=docid, index=n),
@@ -158,9 +160,13 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		docs = get_docs()
 		if docid not in docs:
-			return f'Document "{docid}" not found.', 404
+			return json.jsonify({
+				'detail': f'Document "{docid}" not found.',
+			}), 404
 		if index >= len(docs[docid]['tokens']) or index < 0:
-			return f'Document "{docid}" does not have a token at {index}.', 404
+			return json.jsonify({
+				'detail': f'Document "{docid}" does not have a token at {index}.',
+			}), 404
 		token = docs[docid]['tokens'][index]
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
@@ -183,9 +189,13 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		docs = get_docs()
 		if docid not in docs:
-			return f'Document "{docid}" not found.', 404
+			return json.jsonify({
+				'detail': f'Document "{docid}" not found.',
+			}), 404
 		if index >= len(docs[docid]['tokens']) or index < 0:
-			return f'Document "{docid}" does not have a token at {index}.', 404
+			return json.jsonify({
+				'detail': f'Document "{docid}" does not have a token at {index}.',
+			}), 404
 		token = docs[docid]['tokens'][index]
 		if 'gold' in request.form:
 			if not is_authenticated(request.form):
@@ -217,9 +227,13 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		docs = get_docs()
 		if docid not in docs:
-			return f'Document "{docid}" not found.', 404
+			return json.jsonify({
+				'detail': f'Document "{docid}" not found.',
+			}), 404
 		if index >= len(docs[docid]['tokens']) or index < 0:
-			return f'Document "{docid}" does not have a token at {index}.', 404
+			return json.jsonify({
+				'detail': f'Document "{docid}" does not have a token at {index}.',
+			}), 404
 		token: PDFToken = docs[docid]['tokens'][index]
 		(docname, image) = token.extract_image(workspace, left=leftmargin, right=rightmargin, top=topmargin, bottom=bottommargin)
 		if 'image_url' not in vars(token):
@@ -252,6 +266,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	def auth():
 		log.debug(f'request.form: {request.form}')
 		authorized = request.form['auth_token'] == 'TEST'
-		return json.jsonify({'Authorized': authorized}), 200 if authorized else 401
+		return json.jsonify({'Authorized': authorized}), 200 if authorized else 401 # TODO rfc
 
 	return app

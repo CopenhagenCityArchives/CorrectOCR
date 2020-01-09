@@ -23,6 +23,8 @@ hyphenation TODO
 Endpoint Documentation
 ----------------------
 
+Errors are specified according to `RFC 7807 Problem Details for HTTP APIs <https://tools.ietf.org/html/rfc7807>`_.
+
 .. qrefflask:: CorrectOCR.server:create_app()
    :undoc-static:
 
