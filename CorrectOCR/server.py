@@ -3,7 +3,7 @@ import logging
 import random
 from typing import Any
 
-from flask import Flask, Response, json, redirect, request, url_for
+from flask import Flask, Response, g, json, redirect, request, url_for
 import requests
 
 from . import progname
@@ -30,8 +30,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		#SECRET_KEY='dev', # TODO needed?
 	)
 
-	def get_docs():
-		return {
+	@app.before_request
+	def before_request():
+		g.docs = {
 			docid: {
 				'tokens': workspace.autocorrectedTokens(docid, k=config.k),
 			} for docid in workspace.paths if workspace.paths[docid].ext == '.pdf'
@@ -76,13 +77,12 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:>jsonarr int count: Total number of Tokens.
 		:>jsonarr int corrected: Number of corrected Tokens.
 		"""
-		docs = get_docs()
 		docindex = [{
 			'docid': docid,
 			'url': url_for('tokens', docid=docid),
 			'count': len(doc['tokens']),
 			'corrected': len([t for t in doc['tokens'] if t.gold]),
-		} for docid, doc in docs.items()]
+		} for docid, doc in g.docs.items()]
 		return json.jsonify(docindex)
 
 	@app.route('/<string:docid>/tokens.json')
@@ -121,8 +121,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:>jsonarr string string: Current Token string.
 		:>jsonarr bool is_corrected: Whether the Token has been corrected at the moment.
 		"""
-		docs = get_docs()
-		if docid not in docs:
+		if docid not in g.docs:
 			return json.jsonify({
 				'detail': f'Document "{docid}" not found.',
 			}), 404
@@ -131,7 +130,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'image_url': url_for('tokenimage', docid=docid, index=n),
 			'string': (token.gold or token.original),
 			'is_corrected': (token.gold is not None and token.gold.strip() != ''),
-		} for n, token in enumerate(docs[docid]['tokens'])]
+		} for n, token in enumerate(g.docs[docid]['tokens'])]
 		return json.jsonify(tokenindex)
 
 	@app.route('/<string:docid>/token-<int:index>.json')
@@ -158,16 +157,15 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		    `gold` (corrected version, if available),
 		    TODO
 		"""
-		docs = get_docs()
-		if docid not in docs:
+		if docid not in g.docs:
 			return json.jsonify({
 				'detail': f'Document "{docid}" not found.',
 			}), 404
-		if index >= len(docs[docid]['tokens']) or index < 0:
+		if index >= len(g.docs[docid]['tokens']) or index < 0:
 			return json.jsonify({
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
-		token = docs[docid]['tokens'][index]
+		token = g.docs[docid]['tokens'][index]
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
@@ -187,22 +185,21 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:param int index: The placement of the requested Token in the document.
 		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
-		docs = get_docs()
-		if docid not in docs:
+		if docid not in g.docs:
 			return json.jsonify({
 				'detail': f'Document "{docid}" not found.',
 			}), 404
-		if index >= len(docs[docid]['tokens']) or index < 0:
+		if index >= len(g.docs[docid]['tokens']) or index < 0:
 			return json.jsonify({
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
-		token = docs[docid]['tokens'][index]
+		token = g.docs[docid]['tokens'][index]
 		if 'gold' in request.form:
 			if not is_authenticated(request.form):
 				return json.jsonify({'error': 'Unauthorized.'}), 401
 			token.gold = request.form['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
-			docs[docid]['tokens'].save(token=token)
+			g.docs[docid]['tokens'].save(token=token)
 		if 'hyphenate' in request.form:
 			pass # TODO
 		tokendict = vars(token)
@@ -225,16 +222,15 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:query int bottommargin: Optional bottom margin.
 		:return: A PNG image of the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
-		docs = get_docs()
-		if docid not in docs:
+		if docid not in g.docs:
 			return json.jsonify({
 				'detail': f'Document "{docid}" not found.',
 			}), 404
-		if index >= len(docs[docid]['tokens']) or index < 0:
+		if index >= len(g.docs[docid]['tokens']) or index < 0:
 			return json.jsonify({
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
-		token: PDFToken = docs[docid]['tokens'][index]
+		token: PDFToken = g.docs[docid]['tokens'][index]
 		(docname, image) = token.extract_image(workspace, left=leftmargin, right=rightmargin, top=topmargin, bottom=bottommargin)
 		if 'image_url' not in vars(token):
 			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
@@ -254,11 +250,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		.. sourcecode:: http
 
 		   HTTP/1.1 302 Found
-		   Location: <url-to-token>
+		   Location: /<docid>/token-<index>.json
 		"""
-		docs = get_docs()
-		docid = random.choice(list(docs.keys()))
-		index = random.randint(0, len(docs[docid]['tokens']))
+		g.docs = get_g.docs()
+		docid = random.choice(list(g.docs.keys()))
+		index = random.randint(0, len(g.docs[docid]['tokens']))
 		return redirect(url_for('tokeninfo', docid=docid, index=index))
 
 	# for local testing:
@@ -266,6 +262,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	def auth():
 		log.debug(f'request.form: {request.form}')
 		authorized = request.form['auth_token'] == 'TEST'
-		return json.jsonify({'Authorized': authorized}), 200 if authorized else 401 # TODO rfc
+		return json.jsonify({
+			'authorized': authorized
+		}), 200 if authorized else 401
 
 	return app
