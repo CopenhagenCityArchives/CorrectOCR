@@ -43,8 +43,8 @@ type = fs
 db_driver = 
 db_host =
 db_user =
-db_password =
-db =
+db_pass =
+db_name =
 
 [server]
 host = 127.0.0.1

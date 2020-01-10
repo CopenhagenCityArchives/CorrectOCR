@@ -15,7 +15,9 @@ class DBTokenList(TokenList):
 
 	def __init__(self, *args):
 		super().__init__(*args)
-		self.connection = pyodbc.connect(f'driver={{{self.config.db_driver}}};server={self.config.db_host};database={self.config.db};uid={self.config.db_user};pwd={self.config.db_password}')
+		con_str = f'DRIVER={{{self.config.db_driver}}};SERVER={self.config.db_host};DATABASE={self.config.db_name};UID={self.config.db_user};PWD={self.config.db_pass}'
+		self.log.debug(f'Connection string: {con_str}')
+		self.connection = pyodbc.connect(con_str)
 		self.log.debug(f'Opened connection {self.connection}')
 		self._finalize = weakref.finalize(self, DBTokenList.close_connection, self)
 
