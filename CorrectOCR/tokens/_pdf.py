@@ -50,10 +50,10 @@ class PDFToken(Token):
 		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)
 		#PDFTokenizer.log.debug(f'extract_image: {tokenrect} {xscale} {yscale}')
 		croprect = (
-			max(0, tokenrect.x0 - left),
-			max(0, tokenrect.y0 - top),
-			min(pix.width, tokenrect.x1 + right),
-			min(pix.height, tokenrect.y1 + bottom),
+			max(0, tokenrect.x0 - (left or 300)),
+			max(0, tokenrect.y0 - (top or 15)),
+			min(pix.width, tokenrect.x1 + (right or 300)),
+			min(pix.height, tokenrect.y1 + (bottom or 15)),
 		)
 		#PDFToken.log.debug(f'extract_image: {croprect}')
 		image = Image.frombytes('RGB', (pix.width, pix.height), pix.samples)
