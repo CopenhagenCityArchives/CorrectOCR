@@ -49,7 +49,7 @@ class DBTokenList(TokenList):
 					token_dict = {
 						'Token type': result.token_type,
 						'Token info': result.token_info,
-						'File ID': result.doc_id,
+						'Doc ID': result.doc_id,
 						'Index': result.doc_index,
 						'Gold': result.gold,
 						'Bin': result.bin,

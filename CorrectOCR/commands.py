@@ -218,7 +218,7 @@ def do_correct(workspace: Workspace, config):
 	if config.filePath:
 		docid = config.filePath.stem
 		if docid in workspace.paths:
-			log.error(f'File ID already exists: {docid}! You must rename the file first.')
+			log.error(f'Doc ID already exists: {docid}! You must rename the file first.')
 			raise SystemExit(-1)
 		workspace.add_docid(docid, config.filePath.suffix, new_original=config.filePath)
 	else:

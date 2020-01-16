@@ -164,7 +164,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     "4-best prob.": 5.52540106969346e-10,
 		     "Bin": 2,
 		     "Decision": "annotator",
-		     "File ID": "7696",
+		     "Doc ID": "7696",
 		     "Gold": "",
 		     "Heuristic": "a",
 		     "Index": 2676,

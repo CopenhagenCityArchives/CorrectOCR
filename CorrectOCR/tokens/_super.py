@@ -107,7 +107,7 @@ class Token(abc.ABC):
 	@property
 	def k(self) -> int:
 		"""
-		The number of k-best suggestions for the Token.
+		The number of *k*-best suggestions for the Token.
 		"""
 		return len(self.kbest)
 
@@ -156,7 +156,7 @@ class Token(abc.ABC):
 		output = {
 			'Gold': self.gold or '',
 			'Original': self.original,
-			'File ID': self.docid,
+			'Doc ID': self.docid,
 			'Index': self.index,
 		}
 		for k, item in self.kbest.items():
@@ -183,7 +183,7 @@ class Token(abc.ABC):
 		#Token._subclasses[classname].log.debug(f'from_dict: {d}')
 		t = Token._subclasses[classname](
 			json.loads(d['Token info']),
-			d.get('File ID', None),
+			d.get('Doc ID', None),
 			d.get('Index', -1)
 		)
 		t.gold = d.get('Gold', None)
