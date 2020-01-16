@@ -147,7 +147,27 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		   HTTP/1.1 200 OK
 		   Content-Type: application/json
 		   
-		   {"TODO": "TODO"}
+		   {
+		     "1-best": "Jornben",
+		     "1-best prob.": 2.96675056066388e-08,
+		     "2-best": "Joreben",
+		     "2-best prob.": 7.41372275428713e-10,
+		     "3-best": "Jornhen",
+		     "3-best prob.": 6.17986300962785e-10,
+		     "4-best": "Joraben",
+		     "4-best prob.": 5.52540106969346e-10,
+		     "Bin": 2,
+		     "Decision": "annotator",
+		     "File ID": "7696",
+		     "Gold": "",
+		     "Heuristic": "a",
+		     "Index": 2676,
+		     "Original": "Jornben.",
+		     "Selection": [],
+		     "Token info": "...",
+		     "Token type": "PDFToken",
+		     "image_url": "/7696/token-2676.png"
+		   }
 		
 		:param string docid: The ID of the requested document.
 		:param int index: The placement of the requested Token in the document.
