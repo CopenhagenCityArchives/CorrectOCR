@@ -30,7 +30,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		#SECRET_KEY='dev', # TODO needed?
 	)
 
-	if config.debug:
+	if config and config.debug:
 		app.config.update(
 			ENV = 'development',
 			DEBUG = True,
