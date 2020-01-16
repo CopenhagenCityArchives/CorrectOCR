@@ -17,52 +17,73 @@ class DBTokenList(TokenList):
 	def __init__(self, *args):
 		super().__init__(*args)
 		self.connection = DBTokenList.get_connection(self.config)
+		self.items = []
 		self._finalize = weakref.finalize(self, DBTokenList.close_connection, self)
 
 	def close_connection(self):
-		self.log.debug(f'Closing connection {self.connection}')
+		DBTokenList.log.debug(f'Closing connection {self.connection}')
 		self.connection.close()
 
 	def load(self, docid: str, kind: str):
-		from .. import Token
 		self.docid = docid
 		self.kind = kind
+		
 		with self.connection.cursor() as cursor:
 			cursor.execute("""
-				SELECT *
+				SELECT COUNT(*)
 				FROM token
-				LEFT JOIN kbest
-				ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
 				WHERE token.doc_id = ? AND token.kind = ?
-				ORDER BY token.doc_index, k
 				""",
 				docid,
 				kind
 			)
-			token_dict = None
-			for result in cursor:
-				#self.log.debug(f'result: {result}')
-				if token_dict and result.doc_index != token_dict['Index']:
-					self.append(Token.from_dict(token_dict))
-					token_dict = None
-				if not token_dict:
-					token_dict = {
-						'Token type': result.token_type,
-						'Token info': result.token_info,
-						'Doc ID': result.doc_id,
-						'Index': result.doc_index,
-						'Gold': result.gold,
-						'Bin': result.bin,
-						'Heuristic': result.heuristic,
-						'Selection': json.loads(result.selection),
-						'Decision': result.decision
-					}
-				token_dict[f"{result.k}-best"] = result.candidate
-				token_dict[f"{result.k}-best prob."] = result.probability
-			self.append(Token.from_dict(token_dict))
+			result = cursor.fetchone()
+			self.tokens = [None] * result[0]
+
+	def __len__(self):
+		return len(self.tokens)
+
+	def __getitem__(self, key):
+		from .. import Token
+		#DBTokenList.log.debug(f'Getting token at index {key}')
+		if self.tokens[key] is None:
+			with self.connection.cursor() as cursor:
+				cursor.execute("""
+					SELECT *
+					FROM token
+					LEFT JOIN kbest
+					ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
+					WHERE token.doc_id = ? AND token.kind = ? AND token.doc_index = ?
+					ORDER BY kbest.k
+					""",
+					self.docid,
+					self.kind,
+					key
+				)
+				token_dict = None
+				for result in cursor:
+					# init token with first row
+					if not token_dict:
+						token_dict = {
+							'Token type': result.token_type,
+							'Token info': result.token_info,
+							'Doc ID': result.doc_id,
+							'Index': result.doc_index,
+							'Gold': result.gold,
+							'Bin': result.bin,
+							'Heuristic': result.heuristic,
+							'Selection': json.loads(result.selection),
+							'Decision': result.decision,
+							'K': result.k,
+						}
+					# then set k-best from all rows
+					token_dict[f"{result.k}-best"] = result.candidate
+					token_dict[f"{result.k}-best prob."] = result.probability
+				self.tokens[key] = Token.from_dict(token_dict)
+		return self.tokens[key]
 
 	def _save_token(self, token: 'Token'):
-		#self.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
+		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
 		with self.connection.cursor() as cursor:
 			cursor.execute("""
 				REPLACE INTO token (kind, doc_id, doc_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
@@ -106,8 +127,9 @@ class DBTokenList(TokenList):
 		if token:
 			self._save_token(token)
 		else:
-			for token in progressbar.progressbar(self):
-				self._save_token(token)
+			for token in progressbar.progressbar(self.tokens):
+				if token:
+					self._save_token(token)
 
 	@staticmethod
 	def exists(config, docid: str, kind: str):

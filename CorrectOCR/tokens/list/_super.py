@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import abc
+import collections
 import logging
 from typing import List
 
 
-class TokenList(List['Token'], abc.ABC):
+class TokenList(collections.abc.Sequence):
 	log = logging.getLogger(f'{__name__}.TokenList')
 	_subclasses = dict()
 
@@ -36,7 +37,6 @@ class TokenList(List['Token'], abc.ABC):
 		return TokenList._subclasses[type]
 
 	def __init__(self, config, *args):
-		list.__init__(self, *args)
 		self.config = config
 		self.docid = None
 		self.kind = None
