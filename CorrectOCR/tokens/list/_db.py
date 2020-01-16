@@ -4,6 +4,7 @@ import json
 import logging
 import weakref
 
+import progressbar
 import pyodbc
 
 from ._super import TokenList
@@ -43,7 +44,7 @@ class DBTokenList(TokenList):
 			)
 			token_dict = None
 			for result in cursor:
-				self.log.debug(f'result: {result}')
+				#self.log.debug(f'result: {result}')
 				if token_dict and result.doc_index != token_dict['Index']:
 					self.append(Token.from_dict(token_dict))
 					token_dict = None
@@ -102,12 +103,13 @@ class DBTokenList(TokenList):
 		self.connection.commit()
 
 	def save(self, kind: str = None, token: 'Token' = None):
+		DBTokenList.log.info(f'Saving {kind}')
 		if kind:
 			self.kind = kind
 		if token:
 			self._save_token(token)
 		else:
-			for token in self:
+			for token in progressbar.progressbar(self):
 				self._save_token(token)
 
 	@staticmethod
