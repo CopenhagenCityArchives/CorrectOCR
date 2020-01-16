@@ -34,8 +34,8 @@ class DBTokenList(TokenList):
 				FROM token
 				WHERE token.doc_id = ? AND token.kind = ?
 				""",
-				docid,
-				kind
+				self.docid,
+				self.kind
 			)
 			result = cursor.fetchone()
 			self.tokens = [None] * result[0]
@@ -130,6 +130,20 @@ class DBTokenList(TokenList):
 			for token in progressbar.progressbar(self.tokens):
 				if token:
 					self._save_token(token)
+
+	def corrected_count(self):
+		with self.connection.cursor() as cursor:
+			cursor.execute("""
+				SELECT COUNT(*)
+				FROM token
+				WHERE token.doc_id = ? AND token.kind = ?
+				AND token.gold IS NOT NULL AND token.gold != ''
+				""",
+				self.docid,
+				self.kind
+			)
+			result = cursor.fetchone()
+			return result[0]
 
 	@staticmethod
 	def exists(config, docid: str, kind: str):

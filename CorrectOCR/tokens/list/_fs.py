@@ -32,3 +32,6 @@ class FSTokenList(TokenList):
 		path = config.trainingPath.joinpath(f'{docid}.{kind}.csv')
 
 		return path.is_file()
+
+	def corrected_count(self):
+		return len([t for t in self if t.gold])

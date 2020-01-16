@@ -87,7 +87,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'docid': docid,
 			'url': url_for('tokens', docid=docid),
 			'count': len(doc['tokens']),
-			'corrected': len([t for t in doc['tokens'] if t.gold]),
+			'corrected': doc['tokens'].corrected_count(),
 		} for docid, doc in g.docs.items()]
 		return json.jsonify(docindex)
 

@@ -54,6 +54,10 @@ class TokenList(collections.abc.Sequence):
 	def save(self, kind: str = None, token: 'Token' = None):
 		pass
 
+	@abc.abstractmethod
+	def corrected_count(self):
+		pass
+
 ##########################################################################################
 
 
