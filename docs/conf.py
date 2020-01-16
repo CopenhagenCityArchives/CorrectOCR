@@ -200,7 +200,7 @@ autoclass_content = 'both'
 plantuml_output_format = 'svg_img'
 plantuml_syntax_error_image = True
 if not on_rtd:
-	plantuml = 'java -jar plantuml.1.2019.13.jar'
+	plantuml = 'java -jar plantuml.1.2020.0.jar'
 
 # -- Options for intersphinx extension ---------------------------------------
 
