@@ -290,4 +290,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'authorized': authorized
 		}), 200 if authorized else 401
 
+	@app.route('/reload')
+	def reload():
+		# TODO only allow in testing
+		global to_reload
+		to_reload = True
+		return "reloaded"
+
 	return app
