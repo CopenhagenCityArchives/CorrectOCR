@@ -26,9 +26,15 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	)
 	app.config.from_mapping(
 		host = config.host if config else None,
-		threaded=True,
+		threaded = True,
 		#SECRET_KEY='dev', # TODO needed?
 	)
+
+	if config.debug:
+		app.config.update(
+			ENV = 'development',
+			DEBUG = True,
+		)
 
 	@app.before_request
 	def before_request():
@@ -290,11 +296,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'authorized': authorized
 		}), 200 if authorized else 401
 
-	@app.route('/reload')
-	def reload():
-		# TODO only allow in testing
-		global to_reload
-		to_reload = True
-		return "reloaded"
+	@app.route('/test')
+	def test():
+		log.debug(f'hit test endpoint')
+		return 'test', 200
 
 	return app
