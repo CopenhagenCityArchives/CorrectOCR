@@ -41,7 +41,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		g.docs = {
 			docid: {
 				'tokens': workspace.autocorrectedTokens(docid, k=config.k),
-			} for docid in workspace.paths if workspace.paths[docid].ext == '.pdf'
+			} for docid in workspace.docids_for_ext('.pdf')
 		} if workspace else {}
 
 	def is_authenticated(formdata) -> bool:

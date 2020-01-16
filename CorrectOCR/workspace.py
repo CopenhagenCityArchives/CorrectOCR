@@ -109,6 +109,9 @@ class Workspace(object):
 		)
 		Workspace.log.debug(f'Added {docid}')
 
+	def docids_for_ext(self, ext):
+		return [docid for docid in self.paths if self.paths[docid].ext == ext]
+
 	def originalTokens(self) -> Iterator[Tuple[str, TokenList]]:
 		"""
 		Yields an iterator of (docid, list of tokens).
