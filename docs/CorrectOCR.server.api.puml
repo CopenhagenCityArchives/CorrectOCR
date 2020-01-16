@@ -1,6 +1,6 @@
 @startuml
 
-!include puml-theme-cerulean.puml
+!include https://raw.githubusercontent.com/bschwarz/puml-themes/master/themes/cerulean/puml-theme-cerulean.puml
 
 |Frontend|
 start
