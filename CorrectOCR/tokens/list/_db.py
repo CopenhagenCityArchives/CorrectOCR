@@ -16,10 +16,7 @@ class DBTokenList(TokenList):
 
 	def __init__(self, *args):
 		super().__init__(*args)
-		con_str = f'DRIVER={{{self.config.db_driver}}};SERVER={self.config.db_host};DATABASE={self.config.db_name};UID={self.config.db_user};PWD={self.config.db_pass}'
-		self.log.debug(f'Connection string: {con_str}')
-		self.connection = pyodbc.connect(con_str)
-		self.log.debug(f'Opened connection {self.connection}')
+		self.connection = DBTokenList.get_connection(self.config)
 		self._finalize = weakref.finalize(self, DBTokenList.close_connection, self)
 
 	def close_connection(self):
@@ -114,14 +111,24 @@ class DBTokenList(TokenList):
 
 	@staticmethod
 	def exists(config, docid: str, kind: str):
-		connection = pyodbc.connect(f'driver={{{config.db_driver}}};server={config.db_host};database={config.db};uid={config.db_user};pwd={config.db_password}')
-		with connection.cursor() as cursor:
+		DBTokenList.log.debug(f'Checking if {kind} for {docid} exist')
+		with DBTokenList.get_connection(config).cursor() as cursor:
 			cursor.execute(
-				"SELECT * FROM token WHERE doc_id = ? AND kind = ?",
+				"SELECT * FROM token WHERE doc_id = ? AND kind = ? LIMIT 1",
 				docid,
 				kind
 			)
-			return cursor.fetchone() is not None
+			res = cursor.fetchone()
+			DBTokenList.log.debug(f'res: {res}')
+			return res is not None
+
+	@staticmethod
+	def get_connection(config):
+		# TODO global?
+		con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
+		DBTokenList.log.debug(f'Connection string: {con_str}')
+		connection = pyodbc.connect(con_str)
+		return connection
 
 
 # for testing:
