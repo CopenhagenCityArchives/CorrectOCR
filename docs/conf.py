@@ -187,6 +187,12 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
+if not on_rtd:
+	plantuml = 'java -jar plantuml.1.2020.0.jar'
+	os.environ['PUML_THEME'] = '' #'!include https://raw.githubusercontent.com/bschwarz/puml-themes/master/themes/cerulean/puml-theme-cerulean.puml'
+else:
+	os.environ['PUML_THEME'] = '' # doesn't currently work on RTD (their puml version is too old)
+
 autodoc_default_options = {
     'member-order': 'bysource',
     'exclude-members': 'log, preloop, emptyline, default',
@@ -199,8 +205,6 @@ autoclass_content = 'both'
 
 plantuml_output_format = 'svg_img'
 plantuml_syntax_error_image = True
-if not on_rtd:
-	plantuml = 'java -jar plantuml.1.2020.0.jar'
 
 # -- Options for intersphinx extension ---------------------------------------
 
