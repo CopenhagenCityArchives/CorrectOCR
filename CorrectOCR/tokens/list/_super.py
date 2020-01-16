@@ -43,9 +43,8 @@ class TokenList(List['Token'], abc.ABC):
 		TokenList.log.debug(f'init: {self.config}')
 
 	@staticmethod
-	@abc.abstractmethod
 	def exists(config, docid: str, kind: str) -> bool:
-		pass
+		return TokenList.for_type(config.type).exists(config, docid, kind)
 
 	@abc.abstractmethod
 	def load(self, docid: str, kind: str):
