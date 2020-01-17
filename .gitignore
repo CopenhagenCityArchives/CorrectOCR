@@ -22,3 +22,5 @@ index*.csv
 *.zip
 docs/*.png
 *.jar
+*.log
+*.db-journal
