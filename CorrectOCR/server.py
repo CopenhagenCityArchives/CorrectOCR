@@ -144,6 +144,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		Get information about a specific :class:`Token<CorrectOCR.tokens.Token>`
 		
+		**Note**: The data is not escaped; care must be taken when displaying in a browser.
+		
 		.. :quickref: 3 Tokens; Get token
 
 		**Example response**:
@@ -227,7 +229,17 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			app.logger.debug(f'Received new gold for token: {token}')
 			g.docs[docid]['tokens'].save(token=token)
 		if 'hyphenate' in request.form:
-			pass # TODO
+			if request.form['hyphenate'] == 'left':
+				token = g.docs[docid]['tokens'][index-1]
+				token.hyphenated = True
+				g.docs[docid]['tokens'].save(token=token)
+			elif request.form['hyphenate'] == 'right':
+				token.hyphenated = True
+				g.docs[docid]['tokens'].save(token=token)
+			else:
+				return json.jsonify({
+					'detail': f'Invalid hyphenation "{request.form["hyphenate"]}"',
+				}), 400
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)

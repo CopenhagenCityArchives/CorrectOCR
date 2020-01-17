@@ -17,7 +17,6 @@ class DBTokenList(TokenList):
 	def __init__(self, *args):
 		super().__init__(*args)
 		self.connection = DBTokenList.get_connection(self.config)
-		self.items = []
 		self._finalize = weakref.finalize(self, DBTokenList.close_connection, self)
 
 	def close_connection(self):
@@ -39,9 +38,6 @@ class DBTokenList(TokenList):
 			)
 			result = cursor.fetchone()
 			self.tokens = [None] * result[0]
-
-	def __len__(self):
-		return len(self.tokens)
 
 	def __getitem__(self, key):
 		from .. import Token

@@ -14,7 +14,7 @@ class FSTokenList(TokenList):
 		path = self.config.trainingPath.joinpath(f'{docid}.{kind}.csv')
 		self.log.debug(f'Load from {path}')
 		for row in FileIO.load(path):
-			self.append(Token.from_dict(row))
+			self.tokens.append(Token.from_dict(row))
 
 	def save(self, kind: str = None, token: 'Token' = None):
 		from ...fileio import FileIO

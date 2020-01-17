@@ -70,6 +70,7 @@ class Token(abc.ABC):
 		"""
 		self.decision: Optional[str] = None #: The decision that was made when :attr:`gold` was set automatically.
 		self.selection: Any = None #: The selected automatic correction for the :attr:`decision`.
+		self.is_hyphenated = False #: Whether the token is hyphenated to the following token.
 
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
@@ -158,6 +159,7 @@ class Token(abc.ABC):
 			'Original': self.original,
 			'Doc ID': self.docid,
 			'Index': self.index,
+			'Hyphenated': self.is_hyphenated,
 		}
 		for k, item in self.kbest.items():
 			output[f'{k}-best'] = item.candidate
@@ -187,6 +189,7 @@ class Token(abc.ABC):
 			d.get('Index', -1)
 		)
 		t.gold = d.get('Gold', None)
+		t.hyphenated = d.get('Hyphenated', False)
 		kbest = collections.defaultdict(lambda: KBestItem(''))
 		k = 1
 		while f'{k}-best' in d:
@@ -247,13 +250,14 @@ class Tokenizer(abc.ABC):
 		Tokenizer.log.debug(f'_subclasses: {Tokenizer._subclasses}')
 		return Tokenizer._subclasses[ext]
 
-	def __init__(self, language):
+	def __init__(self, language, dehyphenate):
 		"""
 
 		:type language: :class:`pycountry.Language`
 		:param language: The language to use for tokenization (for example, the `.txt` tokenizer internally uses nltk whose tokenizers function best with a language parameter).
 		"""
 		self.language = language
+		self.dehyphenate = dehyphenate
 		self.tokens = []
 
 	@abc.abstractmethod
@@ -271,38 +275,3 @@ class Tokenizer(abc.ABC):
 	@abc.abstractmethod
 	def apply(original: Path, tokens: TokenList, corrected: Path):
 		pass
-
-
-##########################################################################################
-
-
-def dehyphenate_tokens(tokens: TokenList) -> TokenList:
-	log = logging.getLogger(f'{__name__}.dehyphenate_tokens')
-	r = regex.compile(r'\p{Dash}$') # ends in char from 'Dash' category of Unicode
-
-	dehyphenated = TokenList.new(tokens.config)
-	tokens = iter(tokens)
-	for token in tokens:
-		if r.search(token.original):
-			newtoken = DehyphenationToken(token, next(tokens))
-			log.debug(f'Dehyphenated: {newtoken}')
-			dehyphenated.append(newtoken)
-		else:
-			dehyphenated.append(token)
-
-	return dehyphenated
-
-
-class DehyphenationToken(Token):
-	def __init__(self, first: Token, second: Token):
-		self.first = first
-		self.second = second
-		super().__init__(self.original, first.docid, self.first.index)
-
-	@property
-	def original(self):
-		return f'{self.first.original[:-1]}{self.second.original}'
-
-	@property
-	def token_info(self):
-		return {'first': self.first, 'second': self.second}

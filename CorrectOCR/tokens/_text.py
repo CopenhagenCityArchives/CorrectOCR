@@ -27,10 +27,24 @@ class StringTokenizer(Tokenizer):
 	def tokenize(self, file: CorpusFile, storageconfig):
 		from .list import TokenList
 
-		tokens = TokenList.new(storageconfig, [StringToken(w, file.path.stem, i) for i, w in enumerate(tokenize_str(file.body, self.language.name))])
-		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
+		tokens = tokenize_str(file.body, self.language.name)
+		#StringTokenizer.log.debug(f'tokens: {tokens}')
+
+		if self.dehyphenate:
+			dehyphenated = []
+			t = iter(tokens)
+			for token in t:
+				if token[-1] == '-':
+					dehyphenated.append(token[:-1] + next(t))
+				else:
+					dehyphenated.append(token)
+			tokens = dehyphenated
+		#StringTokenizer.log.debug(f'tokens: {tokens}')
+
+		tokenlist = TokenList.new(storageconfig, [StringToken(w, file.path.stem, i) for i, w in enumerate(tokens)])
+		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokenlist[:10]}')
 	
-		return tokens
+		return tokenlist
 
 	@staticmethod
 	def apply(original: CorpusFile, tokens, corrected: CorpusFile):

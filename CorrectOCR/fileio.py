@@ -36,7 +36,7 @@ class FileIO(object):
 
 	@classmethod
 	def _csv_header(cls, kind: str, k: int) -> List[str]:
-		header = ['Original']
+		header = ['Original', 'Hyphenated']
 		if kind in {'.alignedTokens', '.kbestTokens', '.binnedTokens', '.correctedTokens'}:
 			header = ['Gold'] + header
 		if kind in {'.kbestTokens', '.binnedTokens', '.correctedTokens'}:

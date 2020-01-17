@@ -145,7 +145,7 @@ def setup(configfiles, args=sys.argv[1:]):
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
 	prepareparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
-	prepareparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation')
+	prepareparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation by merging multiple tokens into one (only possible for some formats)')
 	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all'], default='all', help='')
 	prepareparser.set_defaults(func=commands.do_prepare, **configuration)
 

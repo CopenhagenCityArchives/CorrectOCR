@@ -6,7 +6,7 @@ import logging
 from typing import List
 
 
-class TokenList(collections.abc.Sequence):
+class TokenList(collections.abc.MutableSequence):
 	log = logging.getLogger(f'{__name__}.TokenList')
 	_subclasses = dict()
 
@@ -40,7 +40,20 @@ class TokenList(collections.abc.Sequence):
 		self.config = config
 		self.docid = None
 		self.kind = None
+		self.tokens = []
 		TokenList.log.debug(f'init: {self.config}')
+
+	def __len__(self):
+		return len(self.tokens)
+
+	def __delitem__(self, key):
+		return self.tokens.__delitem__(key)
+	
+	def __setitem__(self, key, value):
+		return self.tokens.__setitem__(key, value)
+	
+	def insert(self, key, value):
+		return self.tokens.insert(key, value)
 
 	@staticmethod
 	def exists(config, docid: str, kind: str) -> bool:

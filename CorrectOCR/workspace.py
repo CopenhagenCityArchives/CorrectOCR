@@ -13,7 +13,7 @@ from .dictionary import Dictionary
 from .fileio import FileIO
 from .heuristics import Heuristics
 from .model import HMM
-from .tokens import Token, Tokenizer, TokenList, tokenize_str, dehyphenate_tokens
+from .tokens import Token, Tokenizer, TokenList, tokenize_str
 
 
 def _tokensaver(func):
@@ -183,14 +183,11 @@ class Workspace(object):
 		:param force: Back up existing tokens and create new ones.
 		"""
 		Workspace.log.info(f'Creating basic tokens for {docid}')
-		tokenizer = Tokenizer.for_extension(self.paths[docid].ext)(self.language)
+		tokenizer = Tokenizer.for_extension(self.paths[docid].ext)(self.language, dehyphenate)
 		tokens = tokenizer.tokenize(
 			self.paths[docid].originalFile,
 			self.storageconfig
 		)
-
-		if dehyphenate:
-			tokens = dehyphenate_tokens(tokens)
 		
 		return tokens
 
