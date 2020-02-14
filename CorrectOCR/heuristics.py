@@ -255,7 +255,7 @@ _bins: Dict[int, Bin] = OrderedDict({
 		matcher=lambda o, k, d, dcode: o != k and o in d and dcode == 'zerokd',
 	),
 	9: Bin(
-		description='k1 != original, k1 is not in dictionary but both original and a lower candidate are.',
+		description='k1 != original, k1 is not in dictionary but both original and a lower candidate are.',
 		matcher=lambda o, k, d, dcode: o != k and o in d and k not in d and dcode == 'somekd',
 	),
 	10: Bin(
