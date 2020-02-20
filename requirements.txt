@@ -4,7 +4,7 @@ Flask
 lxml
 nltk
 numpy
-opencv-contrib-python
+opencv-contrib-python-headless
 Pillow
 progressbar2
 pycountry

@@ -4,7 +4,7 @@ Flask
 lxml
 nltk
 numpy
-opencv-contrib-python
+opencv-contrib-python-headless
 Pillow
 progressbar2
 pycountry
@@ -21,4 +21,4 @@ tei-reader
 sphinx-autodoc-typehints
 sphinx_rtd_theme
 sphinxcontrib.httpdomain
-sphinxcontrib.plantuml
+sphinxcontrib-plantuml
