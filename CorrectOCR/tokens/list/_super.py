@@ -51,7 +51,22 @@ class TokenList(collections.abc.MutableSequence):
 	
 	def __setitem__(self, key, value):
 		return self.tokens.__setitem__(key, value)
-	
+
+	def __str__(self):
+		#TokenList.log.debug(f'tokens: {self.tokens}') 
+		output = ''
+		ts = iter(self)
+		for t in ts:
+			#TokenList.log.debug(f't: {t}')
+			output += t.gold or t.original
+			#TokenList.log.debug(f'output: {output}')
+			if t.is_hyphenated:
+				n = next(ts)
+				#TokenList.log.debug(f'n: {n}')
+				output = output[:-1] + (n.gold or n.original)
+				#TokenList.log.debug(f'output: {output}')
+		return output
+
 	def insert(self, key, value):
 		return self.tokens.insert(key, value)
 
