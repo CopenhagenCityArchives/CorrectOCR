@@ -35,3 +35,6 @@ class FSTokenList(TokenList):
 
 	def corrected_count(self):
 		return len([t for t in self if t.gold])
+
+	def __getitem__(self, key):
+		return self.tokens[key]
