@@ -14,8 +14,8 @@ from ._super import TokenList
 class DBTokenList(TokenList):
 	log = logging.getLogger(f'{__name__}.DBTokenList')
 
-	def __init__(self, *args):
-		super().__init__(*args)
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 		self.connection = DBTokenList.get_connection(self.config)
 		self._finalize = weakref.finalize(self, DBTokenList.close_connection, self)
 

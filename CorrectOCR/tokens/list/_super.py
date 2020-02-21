@@ -23,11 +23,11 @@ class TokenList(collections.abc.MutableSequence):
 		return wrapper
 
 	@staticmethod
-	def new(config, tokens = None) -> TokenList:
+	def new(config, docid = None, kind = None, tokens = None) -> TokenList:
 		if tokens:
-			return TokenList.for_type(config.type)(config, tokens)
+			return TokenList.for_type(config.type)(config, docid=docid, kind=kind, tokens=tokens)
 		else:
-			return TokenList.for_type(config.type)(config)
+			return TokenList.for_type(config.type)(config, docid=docid, kind=kind)
 
 	@staticmethod
 	def for_type(type: str) -> TokenList.__class__:
@@ -36,24 +36,14 @@ class TokenList(collections.abc.MutableSequence):
 			raise NameError(f'Unknown storage type: {type}')
 		return TokenList._subclasses[type]
 
-	def __init__(self, config, *args):
+	def __init__(self, config, docid = None, kind = None, tokens = list()):
 		self.config = config
-		self.docid = None
-		self.kind = None
-		self.tokens = []
-		TokenList.log.debug(f'init: {self.config}')
-
-	def __len__(self):
-		return len(self.tokens)
-
-	def __delitem__(self, key):
-		return self.tokens.__delitem__(key)
-	
-	def __setitem__(self, key, value):
-		return self.tokens.__setitem__(key, value)
+		self.docid = docid
+		self.kind = kind
+		self.tokens = tokens
+		TokenList.log.debug(f'init: {self.config} {self.docid} {self.kind}')
 
 	def __str__(self):
-		#TokenList.log.debug(f'tokens: {self.tokens}') 
 		output = ''
 		ts = iter(self)
 		for t in ts:
@@ -67,8 +57,20 @@ class TokenList(collections.abc.MutableSequence):
 				#TokenList.log.debug(f'output: {output}')
 		return output
 
+	def __len__(self):
+		return len(self.tokens)
+
+	def __delitem__(self, key):
+		return self.tokens.__delitem__(key)
+	
+	def __setitem__(self, key, value):
+		return self.tokens.__setitem__(key, value)
+
 	def insert(self, key, value):
 		return self.tokens.insert(key, value)
+
+	def __getitem__(self, key):
+		return self.tokens[key]
 
 	@staticmethod
 	def exists(config, docid: str, kind: str) -> bool:

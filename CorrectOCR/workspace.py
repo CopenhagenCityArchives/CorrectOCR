@@ -353,6 +353,10 @@ class CorpusFile(object):
 		"""
 		return self.path.is_file()
 
+	@property
+	def id(self):
+		return self.path.stem
+
 
 ##########################################################################################
 

@@ -182,7 +182,7 @@ class Token(abc.ABC):
 		:param d: A dictionary of properties for the Token
 		"""
 		classname = d['Token type']
-		#Token._subclasses[classname].log.debug(f'from_dict: {d}')
+		#self.__class__.log.debug(f'from_dict: {d}')
 		t = Token._subclasses[classname](
 			json.loads(d['Token info']),
 			d.get('Doc ID', None),

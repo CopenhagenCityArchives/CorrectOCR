@@ -17,21 +17,22 @@ class PDFToken(Token):
 	def token_info(self):
 		return self.page_n, self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.original, self.block_n, self.line_n, self.word_n
 
-	def __init__(self, info, docid, index):
-		self.page_n = int(info[0])
+	def __init__(self, token_info, docid, index):
+		original = token_info[5]
+		super().__init__(original, docid, index)
+		self.page_n = int(token_info[0])
 		self.rect = fitz.Rect(
-			float(info[1]),
-			float(info[2]),
-			float(info[3]),
-			float(info[4]),
+			float(token_info[1]),
+			float(token_info[2]),
+			float(token_info[3]),
+			float(token_info[4]),
 		)
 		self.rect.normalize()
 		(self.block_n, self.line_n, self.word_n) = (
-			int(info[6]),
-			int(info[7]),
-			int(info[8]),
+			int(token_info[6]),
+			int(token_info[7]),
+			int(token_info[8]),
 		)
-		super().__init__(info[5], docid, index)
 
 	@property
 	def ordering(self):
@@ -48,7 +49,7 @@ class PDFToken(Token):
 		xscale = pix.width / pagerect.width
 		yscale = pix.height / pagerect.height
 		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)
-		#PDFTokenizer.log.debug(f'extract_image: {tokenrect} {xscale} {yscale}')
+		#PDFToken.log.debug(f'extract_image: {tokenrect} {xscale} {yscale}')
 		croprect = (
 			max(0, tokenrect.x0 - (left or 300)),
 			max(0, tokenrect.y0 - (top or 15)),
@@ -81,7 +82,7 @@ class PDFTokenizer(Tokenizer):
 
 		doc = fitz.open(str(file))
 
-		tokens = TokenList.new(storageconfig)
+		tokens = TokenList.new(storageconfig, docid=file.stem, kind='tokens')
 		for page in doc:
 			PDFTokenizer.log.info(f'Getting tokens from {file.name} page {page.number}')
 			for w in progressbar.progressbar(page.getTextWords()):
