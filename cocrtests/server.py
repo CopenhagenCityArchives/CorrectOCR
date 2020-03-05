@@ -40,3 +40,12 @@ class ServerTests(unittest.TestCase):
 		self.assertEqual(len(response.json), 4)
 		self.assertTrue(response.json[0]['is_corrected'])
 		self.assertFalse(response.json[1]['is_corrected'])
+
+	def test_tokenview(self):
+		response = self.app.get('/abc/token-0.json', follow_redirects=True)
+		self.assertEqual(response.json['original'], 'Once')
+		self.assertEqual(response.json['gold'], 'Once')
+
+		response = self.app.get('/abc/token-1.json', follow_redirects=True)
+		self.assertEqual(response.json['original'], 'upen')
+		self.assertEqual(response.json['gold'], None)
