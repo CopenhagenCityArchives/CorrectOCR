@@ -14,9 +14,9 @@ class TestHyphenation(unittest.TestCase):
 		logging.basicConfig(
 			stream=sys.stderr,
 			format='%(asctime)s - %(levelname)8s - %(name)s - %(message)s',
-			level=logging.DEBUG,
+			level=logging.INFO,
 		)
-		logging.debug('Debug logging active.')
+		logging.debug('If this text is visible, debug logging is active.')
 
 	def test_auto_dehyphenation(self):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=True)
