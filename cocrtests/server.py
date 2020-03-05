@@ -33,3 +33,10 @@ class ServerTests(unittest.TestCase):
 		self.assertEqual(response.status_code, 200)
 
 		self.assertEqual(len(response.json), len(self.workspace.docids_for_ext('.pdf')))
+
+	def test_docview(self):
+		response = self.app.get('/abc/tokens.json', follow_redirects=True)
+		
+		self.assertEqual(len(response.json), 4)
+		self.assertTrue(response.json[0]['is_corrected'])
+		self.assertFalse(response.json[1]['is_corrected'])
