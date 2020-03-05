@@ -45,6 +45,9 @@ class MockTokenList(object):
 	def corrected_count(self):
 		return len([t for t in self.tokens if t.gold])
 
+	def __getitem__(self, key):
+		return self.tokens[key]
+
 
 class MockWorkspace(object):
 	def __init__(self, root, docid, words):
