@@ -82,6 +82,7 @@ class TokenList(collections.abc.MutableSequence):
 	def save(self, kind: str = None, token: 'Token' = None):
 		pass
 
+	@property
 	@abc.abstractmethod
 	def corrected_count(self):
 		pass

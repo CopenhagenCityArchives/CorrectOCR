@@ -127,6 +127,7 @@ class DBTokenList(TokenList):
 				if token:
 					self._save_token(token)
 
+	@property
 	def corrected_count(self):
 		with self.connection.cursor() as cursor:
 			cursor.execute("""

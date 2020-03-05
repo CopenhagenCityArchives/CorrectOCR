@@ -33,6 +33,7 @@ class FSTokenList(TokenList):
 
 		return path.is_file()
 
+	@property
 	def corrected_count(self):
 		return len([t for t in self if t.gold])
 
