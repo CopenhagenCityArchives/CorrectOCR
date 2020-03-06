@@ -24,6 +24,7 @@ class MockConfig(object):
 		self.k = k
 		self.host = 'localhost'
 		self.debug = True
+		self.auth_endpoint = None
 
 
 class MockToken(object):
@@ -32,6 +33,7 @@ class MockToken(object):
 		self.index = index
 		self.original = original
 		self.gold = gold
+
 
 class MockTokenList(object):
 	def __init__(self, docid, words):
@@ -47,6 +49,9 @@ class MockTokenList(object):
 
 	def __getitem__(self, key):
 		return self.tokens[key]
+
+	def save(self, *args, **kwargs ):
+		pass
 
 
 class MockWorkspace(object):

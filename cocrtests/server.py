@@ -49,3 +49,18 @@ class ServerTests(unittest.TestCase):
 		response = self.app.get('/abc/token-1.json', follow_redirects=True)
 		self.assertEqual(response.json['original'], 'upen')
 		self.assertEqual(response.json['gold'], None)
+
+	def test_token_update(self):
+		response = self.app.get('/', follow_redirects=True)
+		self.assertEqual(response.json[0]['corrected'], 1)
+	
+		response = self.app.get('/abc/token-1.json', follow_redirects=True)
+		self.assertEqual(response.json['original'], 'upen')
+		self.assertEqual(response.json['gold'], None)
+
+		response = self.app.post('/abc/token-1.json', data={'gold': 'upon'}, follow_redirects=True)
+		self.assertEqual(response.json['original'], 'upen')
+		self.assertEqual(response.json['gold'], 'upon')
+
+		response = self.app.get('/', follow_redirects=True)
+		self.assertEqual(response.json[0]['corrected'], 2)

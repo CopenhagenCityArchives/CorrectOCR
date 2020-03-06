@@ -45,6 +45,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		} if workspace else {}
 
 	def is_authenticated(formdata) -> bool:
+		if not config.auth_endpoint:
+			return True # no authentication...
 		if config.auth_header not in formdata:
 			return False
 		r = requests.post(
