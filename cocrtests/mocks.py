@@ -31,7 +31,7 @@ class MockWorkspace(object):
 	def __init__(self, root, docid, contents):
 		self.root = root
 		self.docid = docid
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=True)
+		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=False)
 		f = MockCorpusFile(contents)
 		self.tokens = t.tokenize(f, MockConfig(type='mem'))
 		self.tokens[0].gold = self.tokens[0].original
