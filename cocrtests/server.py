@@ -23,7 +23,7 @@ class ServerTests(unittest.TestCase):
 		self.workspace = MockWorkspace(
 			root=pathlib.Path('.').resolve(),
 			docid='abc',
-			contents='Once upen a time'
+			contents='Once upen a ti- me'
 		)
 		self.config = MockConfig(k=4)
 
@@ -31,16 +31,13 @@ class ServerTests(unittest.TestCase):
 
 	def test_index(self):
 		response = self.app.get('/', follow_redirects=True)
-		self.assertEqual(response.status_code, 200)
-
 		self.assertEqual(len(response.json), len(self.workspace.docids_for_ext('.pdf')))
-		self.assertEqual(response.json[0]['count'], 4, f'Incorrect response: {response.json}')
+		self.assertEqual(response.json[0]['count'], 5, f'Incorrect response: {response.json}')
 		self.assertEqual(response.json[0]['corrected'], 1, f'Incorrect response: {response.json}')
 
 	def test_doc_view(self):
 		response = self.app.get('/abc/tokens.json', follow_redirects=True)
-		
-		self.assertEqual(len(response.json), 4)
+		self.assertEqual(len(response.json), 5, f'Incorrect response: {response.json}')
 		self.assertTrue(response.json[0]['is_corrected'], f'Incorrect response: {response.json}')
 		self.assertFalse(response.json[1]['is_corrected'], f'Incorrect response: {response.json}')
 
@@ -56,7 +53,7 @@ class ServerTests(unittest.TestCase):
 
 	def test_token_update(self):
 		response = self.app.get('/', follow_redirects=True)
-		self.assertEqual(response.json[0]['corrected'], 1)
+		self.assertEqual(response.json[0]['corrected'], 1, f'Incorrect response: {response.json}')
 	
 		response = self.app.get('/abc/token-1.json', follow_redirects=True)
 		self.assertEqual(response.json['Original'], 'upen', f'Incorrect response: {response.json}')
