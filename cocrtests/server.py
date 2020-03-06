@@ -34,39 +34,40 @@ class ServerTests(unittest.TestCase):
 		self.assertEqual(response.status_code, 200)
 
 		self.assertEqual(len(response.json), len(self.workspace.docids_for_ext('.pdf')))
-		self.assertEqual(response.json[0]['count'], 4)
-		self.assertEqual(response.json[0]['corrected'], 1)
+		self.assertEqual(response.json[0]['count'], 4, f'Incorrect response: {response.json}')
+		self.assertEqual(response.json[0]['corrected'], 1, f'Incorrect response: {response.json}')
 
 	def test_doc_view(self):
 		response = self.app.get('/abc/tokens.json', follow_redirects=True)
 		
 		self.assertEqual(len(response.json), 4)
-		self.assertTrue(response.json[0]['is_corrected'])
-		self.assertFalse(response.json[1]['is_corrected'])
+		self.assertTrue(response.json[0]['is_corrected'], f'Incorrect response: {response.json}')
+		self.assertFalse(response.json[1]['is_corrected'], f'Incorrect response: {response.json}')
 
 	def test_token_view(self):
 		response = self.app.get('/abc/token-0.json', follow_redirects=True)
-		self.assertEqual(response.json['original'], 'Once')
-		self.assertEqual(response.json['gold'], 'Once')
+		logging.debug(f'response: {response.json}')
+		self.assertEqual(response.json['Original'], 'Once', f'Incorrect response: {response.json}')
+		self.assertEqual(response.json['Gold'], 'Once', f'Incorrect response: {response.json}')
 
 		response = self.app.get('/abc/token-1.json', follow_redirects=True)
-		self.assertEqual(response.json['original'], 'upen')
-		self.assertEqual(response.json['gold'], None)
+		self.assertEqual(response.json['Original'], 'upen', f'Incorrect response: {response.json}')
+		self.assertEqual(response.json['Gold'], '', f'Incorrect response: {response.json}')
 
 	def test_token_update(self):
 		response = self.app.get('/', follow_redirects=True)
 		self.assertEqual(response.json[0]['corrected'], 1)
 	
 		response = self.app.get('/abc/token-1.json', follow_redirects=True)
-		self.assertEqual(response.json['original'], 'upen')
-		self.assertEqual(response.json['gold'], None)
+		self.assertEqual(response.json['Original'], 'upen', f'Incorrect response: {response.json}')
+		self.assertEqual(response.json['Gold'], '', f'Incorrect response: {response.json}')
 
 		response = self.app.post('/abc/token-1.json', data={'gold': 'upon'}, follow_redirects=True)
-		self.assertEqual(response.json['original'], 'upen')
-		self.assertEqual(response.json['gold'], 'upon')
+		self.assertEqual(response.json['Original'], 'upen', f'Incorrect response: {response.json}')
+		self.assertEqual(response.json['Gold'], 'upon', f'Incorrect response: {response.json}')
 
 		response = self.app.get('/', follow_redirects=True)
-		self.assertEqual(response.json[0]['corrected'], 2)
+		self.assertEqual(response.json[0]['corrected'], 2, f'Incorrect response: {response.json}')
 	
 	def test_random(self):
 		response = self.app.get('/random', follow_redirects=False)
