@@ -171,6 +171,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     "Doc ID": "7696",
 		     "Gold": "",
 		     "Heuristic": "a",
+			 "Hyphenated": false,
 		     "Index": 2676,
 		     "Original": "Jornben.",
 		     "Selection": [],
