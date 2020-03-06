@@ -23,7 +23,7 @@ class ServerTests(unittest.TestCase):
 		self.workspace = MockWorkspace(
 			root=pathlib.Path('.').resolve(),
 			docid='abc',
-			words=['Once', 'upen', 'a', 'time']
+			contents='Once upen a time'
 		)
 		self.config = MockConfig(k=4)
 

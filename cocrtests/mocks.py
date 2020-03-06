@@ -1,4 +1,4 @@
-from unittest.mock import mock_open
+from unittest.mock import Mock
 
 import pathlib
 
@@ -27,38 +27,14 @@ class MockConfig(object):
 		self.auth_endpoint = None
 
 
-class MockToken(object):
-	def __init__(self, docid, index, original, gold):
-		self.docid = docid
-		self.index = index
-		self.original = original
-		self.gold = gold
-
-
-class MockTokenList(object):
-	def __init__(self, docid, words):
-		self.docid = docid
-		self.tokens = [MockToken(docid=self.docid, index=i, original=word, gold=word if i == 0 else None) for i, word in enumerate(words, 0)]
-
-	def __len__(self):
-		return len(self.tokens)
-
-	@property
-	def corrected_count(self):
-		return len([t for t in self.tokens if t.gold])
-
-	def __getitem__(self, key):
-		return self.tokens[key]
-
-	def save(self, *args, **kwargs ):
-		pass
-
-
 class MockWorkspace(object):
-	def __init__(self, root, docid, words):
+	def __init__(self, root, docid, contents):
 		self.root = root
 		self.docid = docid
-		self.tokens = MockTokenList(docid, words)
+		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=True)
+		f = MockCorpusFile(contents)
+		self.tokens = t.tokenize(f, MockConfig(type='mem'))
+		self.tokens[0].gold = self.tokens[0].original
 
 	def docids_for_ext(self, ext):
 		return [self.docid]
