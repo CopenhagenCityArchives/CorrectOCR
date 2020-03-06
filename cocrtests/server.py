@@ -2,6 +2,7 @@ import unittest
 
 import logging
 import pathlib
+import re
 import sys
 
 from .mocks import *
@@ -66,3 +67,13 @@ class ServerTests(unittest.TestCase):
 
 		response = self.app.get('/', follow_redirects=True)
 		self.assertEqual(response.json[0]['corrected'], 2)
+	
+	def test_random(self):
+		response = self.app.get('/random', follow_redirects=False)
+		self.assertEqual(response.status_code, 302)
+		
+		location_matcher = re.compile(r'^http://localhost/([^/]+)/token-(\d+)\.json$')
+		self.assertTrue(location_matcher.match(response.location), f'{location_matcher} should match {response.location}')
+		
+		response = self.app.get(response.location, follow_redirects=False)
+		self.assertEqual(response.status_code, 200)

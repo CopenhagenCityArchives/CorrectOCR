@@ -296,7 +296,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		   HTTP/1.1 302 Found
 		   Location: /<docid>/token-<index>.json
 		"""
-		g.docs = get_g.docs()
 		docid = random.choice(list(g.docs.keys()))
 		index = random.randint(0, len(g.docs[docid]['tokens']))
 		return redirect(url_for('tokeninfo', docid=docid, index=index))
