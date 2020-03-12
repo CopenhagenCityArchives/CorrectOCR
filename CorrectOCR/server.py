@@ -232,11 +232,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			g.docs[docid]['tokens'].save(token=token)
 		if 'hyphenate' in request.form:
 			if request.form['hyphenate'] == 'left':
-				token = g.docs[docid]['tokens'][index-1]
-				token.hyphenated = True
-				g.docs[docid]['tokens'].save(token=token)
+				t = g.docs[docid]['tokens'][index-1]
+				t.is_hyphenated = True
+				g.docs[docid]['tokens'].save(token=t)
 			elif request.form['hyphenate'] == 'right':
-				token.hyphenated = True
+				token.is_hyphenated = True
 				g.docs[docid]['tokens'].save(token=token)
 			else:
 				return json.jsonify({

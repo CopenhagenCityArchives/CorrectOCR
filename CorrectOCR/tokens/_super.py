@@ -189,7 +189,7 @@ class Token(abc.ABC):
 			d.get('Index', -1)
 		)
 		t.gold = d.get('Gold', None)
-		t.hyphenated = d.get('Hyphenated', False)
+		t.is_hyphenated = d.get('Hyphenated', False)
 		kbest = collections.defaultdict(lambda: KBestItem(''))
 		k = 1
 		while f'{k}-best' in d:
