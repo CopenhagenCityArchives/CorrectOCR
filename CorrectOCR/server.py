@@ -232,6 +232,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			app.logger.debug(f'Received new gold for token: {token}')
 			g.docs[docid]['tokens'].save(token=token)
 		if 'hyphenate' in request.form:
+			app.logger.debug(f'Going to hyphenate: {request.form["hyphenate"]}')
 			if request.form['hyphenate'] == 'left':
 				t = g.docs[docid]['tokens'][index-1]
 				t.is_hyphenated = True

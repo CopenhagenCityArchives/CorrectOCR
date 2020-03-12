@@ -13,7 +13,11 @@ class MemTokenList(TokenList):
 		pass
 
 	def save(self, kind: str = None, token: 'Token' = None):
-		pass
+		self.log.debug(f'self.tokens: {self.tokens}')
+		self.log.debug(f'token: {vars(token)}')
+		if token:
+			self[token.index] = token
+		self.log.debug(f'self.tokens: {self.tokens}')
 
 	@staticmethod
 	def exists(config, docid: str, kind: str):

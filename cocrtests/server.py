@@ -65,6 +65,24 @@ class ServerTests(unittest.TestCase):
 
 		response = self.app.get('/', follow_redirects=True)
 		self.assertEqual(response.json[0]['corrected'], 2, f'Incorrect response: {response.json}')
+
+	def test_token_hyphenate_left(self):
+		response = self.app.get('/abc/token-3.json', follow_redirects=True)
+		self.assertFalse(response.json['Hyphenated'], f'Incorrect response: {response.json}')
+		response = self.app.get('/abc/token-4.json', follow_redirects=True)
+		self.assertFalse(response.json['Hyphenated'], f'Incorrect response: {response.json}')
+
+		response = self.app.post('/abc/token-4.json', data={'hyphenate': 'left'}, follow_redirects=True)
+		self.assertFalse(response.json['Hyphenated'], f'Incorrect response: {response.json}')
+		response = self.app.get('/abc/token-3.json', follow_redirects=True)
+		self.assertTrue(response.json['Hyphenated'], f'Incorrect response: {response.json}')
+
+	def test_token_hyphenate_right(self):
+		response = self.app.get('/abc/token-3.json', follow_redirects=True)
+		self.assertFalse(response.json['Hyphenated'], f'Incorrect response: {response.json}')
+
+		response = self.app.post('/abc/token-3.json', data={'hyphenate': 'right'}, follow_redirects=True)
+		self.assertTrue(response.json['Hyphenated'], f'Incorrect response: {response.json}')
 	
 	def test_random(self):
 		response = self.app.get('/random', follow_redirects=False)
@@ -75,3 +93,4 @@ class ServerTests(unittest.TestCase):
 		
 		response = self.app.get(response.location, follow_redirects=False)
 		self.assertEqual(response.status_code, 200)
+		
