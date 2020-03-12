@@ -44,18 +44,18 @@ class TokenList(collections.abc.MutableSequence):
 		TokenList.log.debug(f'init: {self.config} {self.docid} {self.kind}')
 
 	def __str__(self):
-		output = ''
+		output = []
 		ts = iter(self)
 		for t in ts:
 			#TokenList.log.debug(f't: {t}')
-			output += t.gold or t.original
+			output.append(t.gold or t.original)
 			#TokenList.log.debug(f'output: {output}')
 			if t.is_hyphenated:
 				n = next(ts)
 				#TokenList.log.debug(f'n: {n}')
-				output = output[:-1] + (n.gold or n.original)
+				output[-1] = output[-1][:-1] + (n.gold or n.original)
 				#TokenList.log.debug(f'output: {output}')
-		return output
+		return str.join(' ', output)
 
 	def __len__(self):
 		return len(self.tokens)
