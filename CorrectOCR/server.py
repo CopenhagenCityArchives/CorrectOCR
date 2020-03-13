@@ -299,7 +299,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		   Location: /<docid>/token-<index>.json
 		"""
 		docid = random.choice(list(g.docs.keys()))
-		index = random.randint(0, len(g.docs[docid]['tokens']))
+		index = random.randint(0, len(g.docs[docid]['tokens'])-1)
 		return redirect(url_for('tokeninfo', docid=docid, index=index))
 
 	# for local testing:
