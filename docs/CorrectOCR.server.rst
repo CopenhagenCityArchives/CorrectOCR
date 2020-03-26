@@ -9,6 +9,8 @@ Example Workflow
 
 .. uml:: CorrectOCR.server.api.puml
 
+Open the image in a new window to view at size.
+
 Example User Interface
 ----------------------
 
@@ -17,8 +19,8 @@ Example User Interface
 The Combo box would then contain the `k`-best suggestions from the backend,
 allowing the user to accept the desired one or enter their own correction.
 
-Showing the left and right tokens (ie. tokens with index±1) is for
-hyphenation TODO
+Showing the left and right tokens (ie. tokens with index±1) enables to user
+to decide if a token is part of a longer word that should be hyphenated.
 
 Endpoint Documentation
 ----------------------
