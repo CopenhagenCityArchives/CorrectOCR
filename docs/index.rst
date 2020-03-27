@@ -12,7 +12,13 @@ Welcome to CorrectOCR's documentation!
 
    workflow.rst
    configuration.rst
+   commands.rst
+   heuristics.rst
+   correction.cli.rst
    CorrectOCR
+
+.. include:: ../README.rst
+   :start-after: inclusion-marker-do-not-remove
 
 
 Indices and tables
