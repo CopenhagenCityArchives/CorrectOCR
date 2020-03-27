@@ -35,6 +35,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			ENV = 'development',
 			DEBUG = True,
 		)
+		logging.getLogger().setLevel(logging.DEBUG)
 
 	@app.before_request
 	def before_request():
