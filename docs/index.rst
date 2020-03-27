@@ -10,6 +10,8 @@ Welcome to CorrectOCR's documentation!
    :maxdepth: 4
    :caption: Contents:
 
+   workflow.rst
+   configuration.rst
    CorrectOCR
 
 
