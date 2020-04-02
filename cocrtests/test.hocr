@@ -1,0 +1,22 @@
+  <div class='ocr_page' id='page_1' title='image ""; bbox 0 0 167 81; ppageno 0'>
+   <div class='ocr_carea' id='block_1_1' title="bbox 127 12 154 34">
+    <p class='ocr_par' id='par_1_1' lang='dan' title="bbox 127 12 154 34">
+     <span class='ocr_line' id='line_1_1' title="bbox 127 12 154 34; baseline 0 47; x_size 13.333333; x_descenders 3.3333333; x_ascenders 3.3333335">
+      <span class='ocrx_word' id='word_1_1' title='bbox 127 12 154 34; x_wconf 95'><strong><em> </em></strong></span>
+     </span>
+    </p>
+   </div>
+   <div class='ocr_carea' id='block_1_2' title="bbox 13 16 155 57">
+    <p class='ocr_par' id='par_1_2' lang='dan' title="bbox 13 16 155 57">
+     <span class='ocr_line' id='line_1_2' title="bbox 13 16 125 34; baseline 0 -4; x_size 18; x_descenders 4; x_ascenders 4">
+      <span class='ocrx_word' id='word_1_2' title='bbox 13 16 58 30; x_wconf 92'><strong><em>Once</em></strong></span>
+      <span class='ocrx_word' id='word_1_3' title='bbox 65 20 109 34; x_wconf 92'><strong><em>upen</em></strong></span>
+      <span class='ocrx_word' id='word_1_4' title='bbox 117 20 125 30; x_wconf 86'><strong><em>a</em></strong></span>
+      <span class='ocrx_word' id='word_1_4' title='bbox 132 20 155 30; x_wconf 86'><strong><em>ti-</em></strong></span>
+     </span>
+     <span class='ocr_line' id='line_1_3' title="bbox 13 47 45 57; baseline 0 0; x_size 21.5; x_descenders 5.5; x_ascenders 5.5">
+      <span class='ocrx_word' id='word_1_5' title='bbox 13 47 45 57; x_wconf 96'><strong><em>me.</em></strong></span>
+     </span>
+    </p>
+   </div>
+  </div>
