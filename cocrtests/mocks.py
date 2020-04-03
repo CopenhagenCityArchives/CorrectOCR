@@ -27,17 +27,24 @@ class MockConfig(object):
 		self.auth_endpoint = None
 
 
+class MockDocument(object):
+	def __init__(self, docid, tokens):
+		self.docid = docid
+		self.tokens = tokens
+
+	def autocorrectedTokens(self, k):
+		return self.tokens
+
+
 class MockWorkspace(object):
 	def __init__(self, root, docid, contents):
 		self.root = root
 		self.docid = docid
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=False)
-		f = MockCorpusFile(contents)
-		self.tokens = t.tokenize(f, MockConfig(type='mem'))
-		self.tokens[0].gold = self.tokens[0].original
+		tokens = t.tokenize(MockCorpusFile(contents), MockConfig(type='mem'))
+		tokens[0].gold = tokens[0].original
+		self.doc = MockDocument(docid, tokens)
+		self.docs = {docid: self.doc}
 
 	def docids_for_ext(self, ext):
 		return [self.docid]
-	
-	def autocorrectedTokens(self, docid, k):
-		return self.tokens
