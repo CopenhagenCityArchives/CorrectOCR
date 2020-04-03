@@ -41,7 +41,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	def before_request():
 		g.docs = {
 			docid: {
-				'tokens': workspace.autocorrectedTokens(docid, k=config.k),
+				'tokens': workspace.docs[docid].autocorrectedTokens(k=config.k),
 			} for docid in workspace.docids_for_ext('.pdf')
 		} if workspace else {}
 

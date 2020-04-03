@@ -19,7 +19,7 @@ from .fileio import _open_for_reading, FileIO
 from .model import HMMBuilder
 from .server import create_app
 from .tokens import tokenize_str, Token, Tokenizer
-from .workspace import Workspace
+from .workspace import Workspace, Document
 
 
 ##########################################################################################
@@ -132,10 +132,10 @@ def build_dictionary(workspace: Workspace, config):
 
 def do_align(workspace: Workspace, config):
 	if config.docid:
-		workspace.alignments(config.docid, force=config.force)
+		workspace.docs[docid].alignments(force=config.force)
 	elif config.all:
-		for docid, pathManager in filter(lambda x: x[1].goldFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
-			workspace.alignments(docid, force=config.force)
+		for docid, doc in filter(lambda x: x[1].goldFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
+			doc.alignments(force=config.force)
 
 
 ##########################################################################################
@@ -168,20 +168,22 @@ def build_model(workspace: Workspace, config):
 
 
 def do_prepare(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.prepare')
+
 	methods = {
-		'tokenize': workspace.tokens,
-		'align': workspace.alignedTokens,
-		'kbest': workspace.kbestTokens,
-		'bin': workspace.binnedTokens,
-		'all': workspace.binnedTokens,
+		'tokenize': Document.tokens,
+		'align': Document.alignedTokens,
+		'kbest': Document.kbestTokens,
+		'bin': Document.binnedTokens,
+		'all': Document.binnedTokens,
 	}
 	method = methods[config.step]
-	Workspace.log.debug(f'Selecting {method} for {config.step}')
+	log.debug(f'Selecting {method} for {config.step}')
 	if config.docid:
-		method(docid=config.docid, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
+		method(workspace.docs[config.docid], k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 	elif config.all:
-		for docid, pathManager in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
-			method(docid=docid, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
+		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
+			method(doc, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 
 
 ##########################################################################################
@@ -217,7 +219,7 @@ def do_correct(workspace: Workspace, config):
 
 	if config.filePath:
 		docid = config.filePath.stem
-		if docid in workspace.paths:
+		if docid in workspace.docs:
 			log.error(f'Doc ID already exists: {docid}! You must rename the file first.')
 			raise SystemExit(-1)
 		workspace.add_docid(docid, config.filePath.suffix, new_original=config.filePath)
@@ -238,7 +240,7 @@ def do_correct(workspace: Workspace, config):
 		binned_tokens = workspace.binnedTokens(config.docid, k=config.k)
 
 		# get header, if any
-		#header = workspace.paths[docid].correctedFile.header
+		#header = workspace.docs[docid].correctedFile.header
 		# print info to annotator
 		#log.info(f'header: {header}')
 
@@ -260,10 +262,10 @@ def do_correct(workspace: Workspace, config):
 		raise SystemExit(-1)
 
 	log.info(f'Applying corrections to {docid}')
-	Tokenizer.for_extension(workspace.paths[docid].ext).apply(
-		workspace.paths[docid].originalFile,
+	Tokenizer.for_extension(workspace.docs[docid].ext).apply(
+		workspace.docs[docid].originalFile,
 		corrected,
-		workspace.paths[docid].correctedFile,
+		workspace.docs[docid].correctedFile,
 	)
 
 
@@ -322,10 +324,10 @@ def do_index(workspace: Workspace, config):
 					matches.append(run)
 				run = []
 
-		if config.highlight and workspace.paths[docid].ext == '.pdf':
+		if config.highlight and workspace.docs[docid].ext == '.pdf':
 			from .tokens._pdf import PDFToken
 			log.info(f'Applying highlights')
-			pdf = fitz.open(workspace.paths[docid].originalFile)
+			pdf = fitz.open(workspace.docs[docid].originalFile)
 			red = (1.0, 0.0, 0.0)
 			for run in matches:
 				for tagged_token in run:
@@ -348,7 +350,7 @@ def do_index(workspace: Workspace, config):
 		matches[config.docid] = match_terms(docid=config.docid)
 	elif config.all:
 		matches = dict()
-		for docid, pathManager in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.paths.items()):
+		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
 			matches[docid] = match_terms(docid=docid)
 	#log.debug(f'matches: {matches}')
 
