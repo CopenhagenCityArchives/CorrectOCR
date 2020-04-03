@@ -13,13 +13,6 @@ from CorrectOCR.tokens import Tokenizer
 
 class ServerTests(unittest.TestCase):
 	def setUp(self):
-		logging.basicConfig(
-			stream=sys.stderr,
-			format='%(asctime)s - %(levelname)8s - %(name)s - %(message)s',
-			level=logging.INFO,
-		)
-		logging.debug('If this text is visible, debug logging is active.')
-
 		self.workspace = MockWorkspace(
 			root=pathlib.Path('.').resolve(),
 			docid='abc',
@@ -28,7 +21,6 @@ class ServerTests(unittest.TestCase):
 		self.config = MockConfig(k=4)
 
 		self.app = create_app(self.workspace, self.config)
-		self.app.logger.setLevel(logging.getLogger().getEffectiveLevel())
 		self.client = self.app.test_client()
 
 	def test_index(self):

@@ -10,14 +10,6 @@ from CorrectOCR.tokens import Tokenizer
 
 
 class TestHyphenation(unittest.TestCase):
-	def setUp(self):
-		logging.basicConfig(
-			stream=sys.stderr,
-			format='%(asctime)s - %(levelname)8s - %(name)s - %(message)s',
-			level=logging.INFO,
-		)
-		logging.debug('If this text is visible, debug logging is active.')
-
 	def test_auto_dehyphenation(self):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=True)
 
