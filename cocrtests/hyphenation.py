@@ -32,6 +32,8 @@ class TestHyphenation(unittest.TestCase):
 		f = MockCorpusFile('Str- ing')
 		tokens = t.tokenize(f, MockConfig(type='fs'))
 
+		self.assertEqual(str(tokens), 'Str- ing', f'Resulting string should not be dehyphenated.')
+
 		tokens[0].is_hyphenated = True
 
 		self.assertEqual(str(tokens), 'String', f'Resulting string should be dehyphenated.')
