@@ -18,9 +18,7 @@ from .tokens import Token, Tokenizer, TokenList, tokenize_str
 
 class Workspace(object):
 	"""
-	The Workspace holds references to documents and resources used by the various :mod:`commands<CorrectOCR.commands>`.
-
-	Additionally, it is responsible for storing and accessing intermediate :class:`Tokens<CorrectOCR.tokens.Token>`.
+	The Workspace holds references to :class:`Documents<CorrectOCR.workspace.Document>` and resources used by the various :mod:`commands<CorrectOCR.commands>`.
 
 	:param workspaceconfig: An object with the following properties:
 
@@ -32,23 +30,20 @@ class Workspace(object):
 	   -  **correctedPath** (:class:`Path<pathlib.Path>`): Directory for saving corrected docs.
 
 	:param resourceconfig: Passed directly to :class:`ResourceManager<CorrectOCR.workspace.ResourceManager>`, see this for further info.
+	
+	:param storageconfig: TODO
 	"""
 	log = logging.getLogger(f'{__name__}.Workspace')
 
 	def __init__(self, workspaceconfig, resourceconfig, storageconfig):
 		self.config = workspaceconfig
+		self.storageconfig = storageconfig
 		self.root = self.config.rootPath.resolve()
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(self.config))} at {self.root}')
-		Workspace.log.info(f'Storage configuration:\n{pformat(vars(storageconfig))}')
-		self.storageconfig = storageconfig
+		Workspace.log.info(f'Storage configuration:\n{pformat(vars(self.storageconfig))}')
 		self.nheaderlines: int = self.config.nheaderlines
-		self.language = self.config.language
 		self.resources = ResourceManager(self.root, resourceconfig)
 		self.docs: Dict[str, Document] = dict()
-		self._originalPath = self.root.joinpath(self.config.originalPath).resolve()
-		self._goldPath = self.root.joinpath(self.config.goldPath).resolve()
-		self._trainingPath = self.root.joinpath(self.config.trainingPath).resolve()
-		self._correctedPath = self.root.joinpath(self.config.correctedPath).resolve()
 		for file in self.config.originalPath.iterdir():
 			if file.name in {'.DS_Store'}:
 				continue
@@ -59,7 +54,7 @@ class Workspace(object):
 
 	def add_docid(self, docid: str, ext: str, new_original: Path = None):
 		"""
-		Initializes a new :class:`Document` with the ``docid`` and adds it to the
+		Initializes a new :class:`Document<CorrectOCR.workspace.Document>` with a ``docid`` and adds it to the
 		workspace.
 
 		:param docid: The docid (filename without extension).
@@ -72,15 +67,18 @@ class Workspace(object):
 			self,
 			docid,
 			ext,
-			self._originalPath,
-			self._goldPath,
-			self._trainingPath,
-			self._correctedPath,
+			self.root.joinpath(self.config.originalPath).resolve(),
+			self.root.joinpath(self.config.goldPath).resolve(),
+			self.root.joinpath(self.config.trainingPath).resolve(),
+			self.root.joinpath(self.config.correctedPath).resolve(),
 			self.nheaderlines,
 		)
 		Workspace.log.debug(f'Added {docid}')
 
-	def docids_for_ext(self, ext):
+	def docids_for_ext(self, ext: str) -> List[str]:
+		"""
+		Returns a list of IDs for documents with the given extension.
+		"""
 		return [docid for docid, doc in self.docs.items() if doc.ext == ext]
 
 	def originalTokens(self) -> Iterator[Tuple[str, TokenList]]:
@@ -168,8 +166,7 @@ class Document(object):
 	log = logging.getLogger(f'{__name__}.Document')
 
 	"""
-	Helper for the Workspace that generates all the necessary paths to permanent and temporary
-	files.
+	Documents provide access to paths and :class:`Tokens<CorrectOCR.tokens.Token>`.
 	"""
 	def __init__(self, workspace: Workspace, docid: str, ext: str, original: Path, gold: Path, training: Path, corrected: Path, nheaderlines: int = 0):
 		"""
@@ -228,8 +225,8 @@ class Document(object):
 			raise SystemExit(-1)
 		
 		(fullAlignments, wordAlignments, readCounts) = Aligner().alignments(
-			tokenize_str(self.originalFile.body, self.workspace.language.name),
-			tokenize_str(self.goldFile.body, self.workspace.language.name)
+			tokenize_str(self.originalFile.body, self.workspace.config.language.name),
+			tokenize_str(self.goldFile.body, self.workspace.config.language.name)
 		)
 		
 		FileIO.save(fullAlignments, faPath)
@@ -253,7 +250,7 @@ class Document(object):
 		"""
 		
 		Document.log.info(f'Creating basic tokens for {self.docid}')
-		tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.language, dehyphenate)
+		tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.config.language, dehyphenate)
 		tokens = tokenizer.tokenize(
 			self.originalFile,
 			self.workspace.storageconfig
@@ -436,7 +433,10 @@ class ResourceManager(object):
 	def __init__(self, root: Path, config):
 		"""
 		:param root: Path to resources directory.
-		:param config: TODO
+		:param config: An object with the following properties:
+
+		   -  **correctionTrackingFile** (:class:`Path<pathlib.Path>`): Path to file containing correction tracking.
+		   -  TODO
 		"""
 		self.root = root.joinpath(config.resourceRootPath).resolve()
 		ResourceManager.log.info(f'ResourceManager configuration:\n{pformat(vars(config))} at {self.root}')
