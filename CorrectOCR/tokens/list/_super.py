@@ -70,7 +70,7 @@ class TokenList(collections.abc.MutableSequence):
 		return self.tokens.insert(key, value)
 
 	def __getitem__(self, key):
-		return self.tokens[key]
+		return self.tokens.__getitem__(key)
 
 	@staticmethod
 	def exists(config, docid: str, kind: str) -> bool:

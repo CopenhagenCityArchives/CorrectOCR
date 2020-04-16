@@ -181,6 +181,8 @@ class Token(abc.ABC):
 
 		:param d: A dictionary of properties for the Token
 		"""
+		if not type(d) == dict:
+			raise ValueError('Cannot instantiate token from None value')
 		classname = d['Token type']
 		#self.__class__.log.debug(f'from_dict: {d}')
 		t = Token._subclasses[classname](
