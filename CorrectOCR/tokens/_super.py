@@ -15,8 +15,8 @@ from .list import TokenList
 from ..heuristics import Bin
 
 
-def tokenize_str(data: str, language='English') -> List[str]:
-	return nltk.tokenize.word_tokenize(data, language)
+def tokenize_str(data: str, language='english') -> List[str]:
+	return nltk.tokenize.word_tokenize(data, language.lower())
 
 
 ##########################################################################################
