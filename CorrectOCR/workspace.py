@@ -7,6 +7,8 @@ from pathlib import Path
 from pprint import pformat
 from typing import Dict, Iterator, Tuple, Union
 
+import progressbar
+
 from ._cache import LRUCache, cached
 from .aligner import Aligner
 from .dictionary import Dictionary
@@ -149,7 +151,7 @@ def _tokensaver(func):
 			Workspace.log.info(f'Storage containing {kind} for {self.docid} exists and will be returned as a TokenList. Use --force or delete it to rerun.')
 			tl = TokenList.new(self.workspace.storageconfig)
 			tl.load(self.docid, kind)
-			Workspace.log.debug(f'Loaded {len(tl)} tokens.')
+			Workspace.log.debug(f'Loaded {len(tl)} {kind}.')
 			return tl
 
 		tokens = func(*args, **kwargs)
@@ -335,8 +337,9 @@ class Document(object):
 		:param force: Back up existing tokens and create new ones.
 		"""
 		tokens = self.binnedTokens(k, dehyphenate, force)
-		
-		for t in tokens:
+
+		Document.log.info(f'Creating autocorrected tokens for {self.docid}')
+		for t in progressbar.progressbar(tokens):
 			if t.decision in {'kbest', 'kdict'}:
 				t.gold = t.kbest[int(t.selection)].candidate
 			elif t.decision == 'original':

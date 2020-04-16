@@ -175,6 +175,7 @@ def do_prepare(workspace: Workspace, config):
 		'align': Document.alignedTokens,
 		'kbest': Document.kbestTokens,
 		'bin': Document.binnedTokens,
+		'server': Document.autocorrectedTokens,
 		'all': Document.binnedTokens,
 	}
 	method = methods[config.step]
