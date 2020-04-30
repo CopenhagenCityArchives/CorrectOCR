@@ -209,12 +209,13 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		Update a given token with a `gold` transcription and/or hyphenation info.
 		
 		.. :quickref: 3 Tokens; Update token
-		
-		:form gold: Set new correction for this Token.
-		:form hyphenate: Optionally hyphenate to the `left` or `right`.
 
 		:param string docid: The ID of the requested document.
 		:param int index: The placement of the requested Token in the document.
+		
+		:<json string gold: Set new correction for this Token.
+		:<json string hyphenate: Optionally hyphenate to the `left` or `right`.
+		
 		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
 		if docid not in g.docs:
@@ -226,24 +227,24 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
 		token = g.docs[docid]['tokens'][index]
-		if 'gold' in request.form:
-			if not is_authenticated(request.form):
+		if 'gold' in request.json:
+			if not is_authenticated(request.json):
 				return json.jsonify({'error': 'Unauthorized.'}), 401
-			token.gold = request.form['gold']
+			token.gold = request.json['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
 			g.docs[docid]['tokens'].save(token=token)
-		if 'hyphenate' in request.form:
-			app.logger.debug(f'Going to hyphenate: {request.form["hyphenate"]}')
-			if request.form['hyphenate'] == 'left':
+		if 'hyphenate' in request.json:
+			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')
+			if request.json['hyphenate'] == 'left':
 				t = g.docs[docid]['tokens'][index-1]
 				t.is_hyphenated = True
 				g.docs[docid]['tokens'].save(token=t)
-			elif request.form['hyphenate'] == 'right':
+			elif request.json['hyphenate'] == 'right':
 				token.is_hyphenated = True
 				g.docs[docid]['tokens'].save(token=token)
 			else:
 				return json.jsonify({
-					'detail': f'Invalid hyphenation "{request.form["hyphenate"]}"',
+					'detail': f'Invalid hyphenation "{request.json["hyphenate"]}"',
 				}), 400
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
@@ -276,10 +277,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		token: PDFToken = g.docs[docid]['tokens'][index]
 		(docname, image) = token.extract_image(
 			workspace,
-			left=request.form.get('leftmargin'),
-			right=request.form.get('rightmargin'),
-			top=request.form.get('topmargin'),
-			bottom=request.form.get('bottommargin')
+			left=request.json.get('leftmargin'),
+			right=request.json.get('rightmargin'),
+			top=request.json.get('topmargin'),
+			bottom=request.json.get('bottommargin')
 		)
 		with io.BytesIO() as output:
 			image.save(output, format="PNG")
@@ -306,8 +307,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	# for local testing:
 	@app.route('/auth', methods=['POST'])
 	def auth():
-		log.debug(f'request.form: {request.form}')
-		authorized = request.form['auth_token'] == 'TEST'
+		log.debug(f'request.json: {request.json}')
+		authorized = request.json['auth_token'] == 'TEST'
 		return json.jsonify({
 			'authorized': authorized
 		}), 200 if authorized else 401
