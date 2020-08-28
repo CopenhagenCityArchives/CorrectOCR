@@ -24,3 +24,4 @@ docs/*.png
 *.jar
 *.log
 *.db-journal
+*.pyc
