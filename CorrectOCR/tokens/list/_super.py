@@ -37,6 +37,8 @@ class TokenList(collections.abc.MutableSequence):
 		return TokenList._subclasses[type]
 
 	def __init__(self, config, docid = None, kind = None, tokens = list()):
+		if type(self) is TokenList:
+			raise TypeError("Token base class cannot not be directly instantiated")
 		self.config = config
 		self.docid = docid
 		self.kind = kind

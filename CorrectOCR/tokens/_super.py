@@ -56,6 +56,8 @@ class Token(abc.ABC):
 		:param original: Original spelling of the token.
 		:param docid: The doc with which the Token is associated.
 		"""
+		if type(self) is Token:
+			raise TypeError("Token base class cannot not be directly instantiated")
 		m = Token._punctuation_splitter.search(original)
 		(self._punct_prefix, self.normalized, self._punct_suffix) = m.groups('')
 		self.docid = docid  #: The doc with which the Token is associated.
