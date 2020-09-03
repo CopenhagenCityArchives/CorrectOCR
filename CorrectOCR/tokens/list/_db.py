@@ -106,22 +106,62 @@ class DBTokenList(TokenList):
 				json.dumps(token.token_info)
 			)
 			if len(token.kbest) > 0:
-				cursor.execute(
-					"DELETE FROM kbest WHERE doc_id = ? AND doc_index = ?",
-					token.docid,
-					token.index
-				)
 				for k, item in token.kbest.items():
-					cursor.execute("""
-						INSERT INTO kbest (doc_id, doc_index, k, candidate, probability)
-						VALUES (?, ?, ?, ?, ?)
-						""",
-						token.docid,
-						token.index,
-						k,
-						item.candidate,
-						item.probability
-					)
+					kbestdata.append([
+					token.docid,
+					token.index,
+					k,
+					item.candidate,
+					item.probability
+				])
+				cursor.executemany("""
+					REPLACE INTO kbest (doc_id, doc_index, k, candidate, probability)
+					VALUES (?, ?, ?, ?, ?) 
+					""",
+					kbestdata
+				)
+		self.connection.commit()
+
+	def _save_all_tokens(self):
+		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
+		tokendata = []
+		kbestdata = []
+		for token in self.tokens:
+			tokendata.append([
+				self.kind,
+				token.docid,
+				token.index,
+				token.original,
+				token.gold,
+				token.bin.number if token.bin else -1,
+				token.bin.heuristic if token.bin else '',
+				token.decision,
+				json.dumps(token.selection),
+				token.__class__.__name__,
+				json.dumps(token.token_info)
+			])
+			for k, item in token.kbest.items():
+				kbestdata.append([
+				token.docid,
+				token.index,
+				k,
+				item.candidate,
+				item.probability
+			])
+		with self.connection.cursor() as cursor:
+			cursor.executemany("""
+				REPLACE INTO token (kind, doc_id, doc_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				""",
+				tokendata
+			)
+			if len(kbestdata) > 0:
+				cursor.executemany("""
+					REPLACE INTO kbest (doc_id, doc_index, k, candidate, probability)
+					VALUES (?, ?, ?, ?, ?) 
+					""",
+					kbestdata
+				)
 		self.connection.commit()
 
 	def save(self, kind: str = None, token: 'Token' = None):
@@ -131,9 +171,7 @@ class DBTokenList(TokenList):
 		if token:
 			self._save_token(token)
 		else:
-			for token in progressbar.progressbar(self.tokens):
-				if token:
-					self._save_token(token)
+			self._save_all_tokens()
 
 	@property
 	def corrected_count(self):
