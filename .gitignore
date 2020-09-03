@@ -7,7 +7,7 @@ training
 *.ini
 .idea
 test
-__COCRcache__
+__COCR*
 docs/_build
 docs/_sources
 docs/_static
@@ -19,9 +19,10 @@ apidoc
 names.*.txt
 index*.csv
 *.db
+*.db-journal
 *.zip
 docs/*.png
 *.jar
 *.log
-*.db-journal
 *.pyc
+
