@@ -9,6 +9,19 @@ import pyodbc
 
 from ._super import TokenList
 
+def close_connection(connection):
+	logging.getLogger(f'{__name__}.close_connection').debug(f'Closing connection {connection}')
+	connection.close()
+
+def get_connection(config):
+	if not hasattr(config, 'connection'):
+		con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
+		logging.getLogger(f'{__name__}.get_connection').debug(f'Connection string: {con_str}')
+		setattr(config, 'connection', pyodbc.connect(con_str))
+		setattr(config, '_finalize', weakref.finalize(config, close_connection, config.connection))
+		logging.getLogger(f'{__name__}.get_connection').debug(f'config: {config} -- {vars(config)}')
+	return config.connection
+
 
 @TokenList.register('db')
 class DBTokenList(TokenList):
@@ -16,12 +29,7 @@ class DBTokenList(TokenList):
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.connection = DBTokenList.get_connection(self.config)
-		self._finalize = weakref.finalize(self, DBTokenList.close_connection, self)
-
-	def close_connection(self):
-		DBTokenList.log.debug(f'Closing connection {self.connection}')
-		self.connection.close()
+		self.connection = get_connection(self.config)
 
 	def load(self, docid: str, kind: str):
 		self.docid = docid
@@ -145,7 +153,7 @@ class DBTokenList(TokenList):
 	@staticmethod
 	def exists(config, docid: str, kind: str):
 		DBTokenList.log.debug(f'Checking if {kind} for {docid} exist')
-		with DBTokenList.get_connection(config).cursor() as cursor:
+		with get_connection(config).cursor() as cursor:
 			cursor.execute(
 				"SELECT * FROM token WHERE doc_id = ? AND kind = ? LIMIT 1",
 				docid,
@@ -154,14 +162,6 @@ class DBTokenList(TokenList):
 			res = cursor.fetchone()
 			DBTokenList.log.debug(f'res: {res}')
 			return res is not None
-
-	@staticmethod
-	def get_connection(config):
-		# TODO global?
-		con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
-		DBTokenList.log.debug(f'Connection string: {con_str}')
-		connection = pyodbc.connect(con_str)
-		return connection
 
 
 # for testing:
