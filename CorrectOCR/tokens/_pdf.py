@@ -94,18 +94,21 @@ class PDFTokenizer(Tokenizer):
 		return tokens
 
 	@staticmethod
-	def apply(original, tokens: List[PDFToken], corrected):
+	def apply(original, tokens: List[PDFToken], corrected, highlight=False):
 		pdf_original = fitz.open(str(original))
 		pdf_corrected = fitz.open()
 
 		PDFTokenizer.log.info('Copying images from original to corrected PDF')
 		for page in pdf_original:
 			PDFTokenizer.log.debug(f'(page {page.number})')
-			newpage = pdf_corrected.newPage(-1)
+			newpage = pdf_corrected.newPage(-1, page.rect.width, page.rect.height)
 			for image_info in page.getImageList():
 				xref = image_info[0]
 				stream = pdf_original.extractImage(xref)['image']
 				newpage.insertImage(page.rect, stream=stream)
+
+		blue = fitz.utils.getColor('blue')
+		red = fitz.utils.getColor('red')
 
 		PDFTokenizer.log.info('Inserting tokens in corrected PDF')
 		for token in sorted(tokens, key=lambda x: x.ordering):
@@ -128,6 +131,10 @@ class PDFTokenizer(Tokenizer):
 					f' -- calc.width: {textwidth} rect.width: {rect.width}\n'
 					f' -- rect.height: {rect.height} result: {res}\n'
 				)
+				if highlight:
+					page.drawRect(rect, color=red)
+			elif highlight:
+				page.drawRect(rect, color=blue)
 
 		PDFTokenizer.log.info(f'Saving corrected PDF to {corrected}')
 		pdf_corrected.save(str(corrected))#, garbage=4, deflate=True)

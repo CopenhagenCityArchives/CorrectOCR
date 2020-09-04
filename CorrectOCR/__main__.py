@@ -163,6 +163,7 @@ def setup(configfiles, args=sys.argv[1:]):
 	group2.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
 	group2.add_argument('--apply', type=Path, help='Apply externally corrected token CSV to original document')
 	group2.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
+	correctparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
 	correctparser.set_defaults(func=commands.do_correct, **configuration)
 
 	indexparser = subparsers.add_parser('index', parents=[commonparser], help='Generate index data')

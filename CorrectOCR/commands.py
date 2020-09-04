@@ -267,6 +267,7 @@ def do_correct(workspace: Workspace, config):
 		workspace.docs[docid].originalFile,
 		corrected,
 		workspace.docs[docid].correctedFile,
+		highlight=config.highlight
 	)
 
 
