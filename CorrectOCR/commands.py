@@ -179,7 +179,7 @@ def do_prepare(workspace: Workspace, config):
 		'all': Document.binnedTokens,
 	}
 	method = methods[config.step]
-	log.debug(f'Selecting {method} for {config.step}')
+	log.debug(f'Selecting {method} for step {config.step}')
 	if config.docid:
 		method(workspace.docs[config.docid], k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 	elif config.all:
@@ -229,7 +229,7 @@ def do_correct(workspace: Workspace, config):
 	
 	if config.autocorrect:
 		log.info(f'Getting autocorrected tokens')
-		corrected = workspace.autocorrectedTokens(config.docid, k=config.k)
+		corrected = workspace.docs[config.docid].autocorrectedTokens(k=config.k)
 	elif config.apply:
 		log.info(f'Getting corrections from {config.apply}')
 		if not config.apply.is_file():
@@ -297,11 +297,11 @@ def do_index(workspace: Workspace, config):
 		if config.autocorrect:
 			log.info(f'Getting autocorrected tokens')
 
-			tokens = workspace.autocorrectedTokens(docid, k=config.k)
+			tokens = workspace.docs[docid].autocorrectedTokens(k=config.k)
 		else:
 			log.info(f'Getting unprepared tokens')
 
-			tokens = workspace.tokens(docid)
+			tokens = workspace.docs[docid].tokens()
 
 		log.info(f'Searching for terms')
 		matches = []
