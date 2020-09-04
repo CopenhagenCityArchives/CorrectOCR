@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import abc
+import collections
 import json
 import logging
 import weakref
@@ -19,7 +21,7 @@ def get_connection(config):
 		logging.getLogger(f'{__name__}.get_connection').debug(f'Connection string: {con_str}')
 		setattr(config, 'connection', pyodbc.connect(con_str))
 		setattr(config, '_finalize', weakref.finalize(config, close_connection, config.connection))
-		logging.getLogger(f'{__name__}.get_connection').debug(f'config: {config} -- {vars(config)}')
+		logging.getLogger(f'{__name__}.get_connection').debug(f'config.connection: {config.connection}')
 	return config.connection
 
 
@@ -48,54 +50,63 @@ class DBTokenList(TokenList):
 			self.tokens = [None] * result[0]
 
 	def __getitem__(self, key):
-		from .. import Token
-		DBTokenList.log.debug(f'Getting token at index {key} in {len(self.tokens)} tokens')
+		#DBTokenList.log.debug(f'Getting token at index {key} in {len(self.tokens)} tokens')
 		if self.tokens[key] is None:
-			with self.connection.cursor() as cursor:
-				cursor.execute("""
-					SELECT *
-					FROM token
-					LEFT JOIN kbest
-					ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
-					WHERE token.doc_id = ? AND token.kind = ? AND token.doc_index = ?
-					ORDER BY kbest.k
-					""",
-					self.docid,
-					self.kind,
-					key
-				)
-				token_dict = None
-				for result in cursor:
-					# init token with first row
-					if not token_dict:
-						token_dict = {
-							'Token type': result.token_type,
-							'Token info': result.token_info,
-							'Doc ID': result.doc_id,
-							'Index': result.doc_index,
-							'Gold': result.gold,
-							'Bin': result.bin,
-							'Heuristic': result.heuristic,
-							'Selection': json.loads(result.selection),
-							'Decision': result.decision,
-							'K': result.k,
-							'Hyphenated': result.hyphenated,
-							'Discarded': result.discarded,
-						}
-					# then set k-best from all rows
-					token_dict[f"{result.k}-best"] = result.candidate
-					token_dict[f"{result.k}-best prob."] = result.probability
-				self.tokens[key] = Token.from_dict(token_dict)
+			self.tokens[key] = DBTokenList._get_token(self.config, self.docid, self.kind, key)
 		return self.tokens[key]
 
-	def _save_token(self, token: 'Token'):
+	@staticmethod
+	def _get_token(config, docid, kind, index):
+		from .. import Token
+		with get_connection(config).cursor() as cursor:
+			cursor.execute("""
+				SELECT *
+				FROM token
+				LEFT JOIN kbest
+				ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
+				WHERE token.doc_id = ? AND token.kind = ? AND token.doc_index = ?
+				ORDER BY kbest.k
+				""",
+				docid,
+				kind,
+				index
+			)
+			token_dict = None
+			for result in cursor:
+				# init token with first row
+				if not token_dict:
+					token_dict = {
+						'Token type': result.token_type,
+						'Token info': result.token_info,
+						'Doc ID': result.doc_id,
+						'Index': result.doc_index,
+						'Gold': result.gold,
+						'Bin': result.bin,
+						'Heuristic': result.heuristic,
+						'Selection': json.loads(result.selection),
+						'Decision': result.decision,
+						'K': result.k,
+						'Hyphenated': result.hyphenated,
+						'Discarded': result.discarded,
+					}
+				# then set k-best from all rows
+				token_dict[f"{result.k}-best"] = result.candidate
+				token_dict[f"{result.k}-best prob."] = result.probability
+			#DBTokenList.log.debug(f'token_dict: {token_dict}')
+			if token_dict:
+				return Token.from_dict(token_dict)
+			else:
+				return None
+
+	@staticmethod
+	def _save_token(config, kind, token: 'Token'):
 		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
-		with self.connection.cursor() as cursor:
+		with get_connection(config).cursor() as cursor:
 			cursor.execute("""
 				REPLACE INTO token (kind, doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info) 
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
-				self.kind,
+				kind,
 				token.docid,
 				token.index,
 				token.original,
@@ -124,15 +135,14 @@ class DBTokenList(TokenList):
 					""",
 					kbestdata
 				)
-		self.connection.commit()
 
-	def _save_all_tokens(self):
-		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
+	@staticmethod
+	def _save_all_tokens(config, kind, tokens):
 		tokendata = []
 		kbestdata = []
-		for token in self.tokens:
+		for token in tokens:
 			tokendata.append([
-				self.kind,
+				kind,
 				token.docid,
 				token.index,
 				token.original,
@@ -155,7 +165,7 @@ class DBTokenList(TokenList):
 				item.probability
 			])
 		DBTokenList.log.debug(f'tokendata: {len(tokendata)} kbestdata: {len(kbestdata)}')
-		with self.connection.cursor() as cursor:
+		with get_connection(config).cursor() as cursor:
 			cursor.executemany("""
 				REPLACE INTO token (kind, doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info) 
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
@@ -169,16 +179,15 @@ class DBTokenList(TokenList):
 					""",
 					kbestdata
 				)
-		self.connection.commit()
 
 	def save(self, kind: str = None, token: 'Token' = None):
 		DBTokenList.log.info(f'Saving {kind}')
 		if kind:
 			self.kind = kind
 		if token:
-			self._save_token(token)
+			DBTokenList._save_token(self.config, self.kind, token)
 		else:
-			self._save_all_tokens()
+			DBTokenList._save_all_tokens(self.config, self.kind, self.tokens)
 
 	@property
 	def corrected_count(self):
@@ -195,6 +204,60 @@ class DBTokenList(TokenList):
 			result = cursor.fetchone()
 			return result[0]
 
+	@property
+	def discarded_count(self):
+		with self.connection.cursor() as cursor:
+			cursor.execute("""
+				SELECT COUNT(*)
+				FROM token
+				WHERE token.doc_id = ? AND token.kind = ?
+				AND token.discarded = True
+				""",
+				self.docid,
+				self.kind
+			)
+			result = cursor.fetchone()
+			return result[0]
+
+	def random_token_index(self, has_gold=False, is_discarded=False):
+		with self.connection.cursor() as cursor:
+			if has_gold:
+				cursor.execute("""
+					SELECT doc_index
+					FROM token
+					WHERE token.doc_id = ? AND token.kind = ?
+					AND token.discarded = ?
+					AND token.gold IS NOT NONE AND token.gold != ''
+					ORDER BY RAND()
+					LIMIT 1
+					""",
+					self.docid,
+					self.kind,
+					is_discarded
+				)
+			else:
+				cursor.execute("""
+					SELECT doc_index
+					FROM token
+					WHERE token.doc_id = ? AND token.kind = ?
+					AND token.discarded = ?
+					ORDER BY RAND()
+					LIMIT 1
+					""",
+					self.docid,
+					self.kind,
+					is_discarded,
+				)
+			result = cursor.fetchone()
+			self.log.debug(f'Result: {result}')
+			if len(result) == 0 or result[0] is None:
+				return None
+			else:
+				return self[result[0]]
+
+	def random_token(self, has_gold=False, is_discarded=False):
+		return self[self.random_token_index(has_gold, is_discarded)]
+
 	@staticmethod
 	def exists(config, docid: str, kind: str):
 		DBTokenList.log.debug(f'Checking if {kind} for {docid} exist')
@@ -207,6 +270,29 @@ class DBTokenList(TokenList):
 			res = cursor.fetchone()
 			DBTokenList.log.debug(f'res: {res}')
 			return res is not None
+
+	@staticmethod
+	def _get_count(config, docid):
+		with get_connection(config).cursor() as cursor:
+			cursor.execute(
+				"SELECT MAX(doc_index) FROM token WHERE doc_id = ?",
+				docid
+			)
+			count = int(cursor.fetchone()[0])
+			DBTokenList.log.debug(f'_get_count: {count}')
+			return count
+
+	@staticmethod
+	def all_tokens(config, docid):
+		DBTokenList.log.debug(f'Getting all tokens for {docid} (may take a while)')
+		all_tokens = collections.defaultdict(list)
+		max_index = DBTokenList._get_count(config, docid)
+		for kind in 'tokens', 'kbestTokens', 'binnedTokens', 'autocorrectedTokens':
+			for index in range(0, max_index):
+				t = DBTokenList._get_token(config, docid, kind, index)
+				if t:
+					all_tokens[kind].append(t)
+		return all_tokens
 
 
 # for testing:

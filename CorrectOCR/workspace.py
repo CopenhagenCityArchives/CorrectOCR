@@ -157,7 +157,7 @@ def _tokensaver(func):
 		tokens = func(*args, **kwargs)
 
 		if len(tokens) > 0:
-			Workspace.log.info(f'Writing {kind} for {self.docid}')
+			Workspace.log.info(f'Writing {len(tokens)} {kind} for {self.docid}')
 			tokens.save(kind)
 
 		return tokens
@@ -347,6 +347,11 @@ class Document(object):
 
 		return tokens
 
+	def crop_tokens(self):
+		all_tokens = TokenList.for_type(self.workspace.storageconfig.type).all_tokens(self.workspace.storageconfig, self.docid)
+		for kind, tokens in all_tokens.items():
+			Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, tokens)
+			TokenList.for_type(self.workspace.storageconfig.type)._save_all_tokens(self.workspace.storageconfig, kind, tokens)
 
 
 class CorpusFile(object):

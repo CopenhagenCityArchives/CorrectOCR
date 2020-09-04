@@ -190,6 +190,20 @@ def do_prepare(workspace: Workspace, config):
 ##########################################################################################
 
 
+def do_crop(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.crop')
+	
+	if config.docid:
+		workspace.docs[config.docid].crop_tokens()
+	elif config.all:
+		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
+			doc.crop_tokens()
+			
+
+
+##########################################################################################
+
+
 def do_stats(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_stats')
 

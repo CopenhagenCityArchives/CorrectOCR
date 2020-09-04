@@ -22,7 +22,3 @@ class MemTokenList(TokenList):
 	@staticmethod
 	def exists(config, docid: str, kind: str):
 		return False
-
-	@property
-	def corrected_count(self):
-		return len([t for t in self if t.gold])

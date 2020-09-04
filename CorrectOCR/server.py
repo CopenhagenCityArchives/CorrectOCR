@@ -44,6 +44,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				'tokens': workspace.docs[docid].autocorrectedTokens(k=config.k),
 			} for docid in workspace.docids_for_ext('.pdf')
 		} if workspace else {}
+		g.discard_filter = lambda t: not t.is_discarded
 
 	def is_authenticated(formdata) -> bool:
 		if not config.auth_endpoint:
@@ -91,6 +92,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'url': url_for('tokens', docid=docid),
 			'count': len(doc['tokens']),
 			'corrected': doc['tokens'].corrected_count,
+			'discarded': doc['tokens'].discarded_count
 		} for docid, doc in g.docs.items()]
 		return json.jsonify(docindex)
 
@@ -139,7 +141,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'image_url': url_for('tokenimage', docid=docid, index=n),
 			'string': (token.gold or token.original),
 			'is_corrected': (token.gold is not None and token.gold.strip() != ''),
-		} for n, token in enumerate(g.docs[docid]['tokens'])]
+			'is_discarded': token.is_discarded,
+		} for n, token in enumerate(filter(g.discard_filter, g.docs[docid]['tokens']))]
 		return json.jsonify(tokenindex)
 
 	@app.route('/<string:docid>/token-<int:index>.json')
@@ -173,6 +176,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     "Gold": "",
 		     "Heuristic": "a",
 			 "Hyphenated": false,
+			 "Discarded": false,
 		     "Index": 2676,
 		     "Original": "Jornben.",
 		     "Selection": [],
@@ -246,6 +250,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				return json.jsonify({
 					'detail': f'Invalid hyphenation "{request.json["hyphenate"]}"',
 				}), 400
+		if 'discard' in request.json:
+			app.logger.debug(f'Going to discard token.')
+			token.is_discarded = True
+			g.docs[docid]['tokens'].save(token=token)
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
@@ -301,7 +309,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		   Location: /<docid>/token-<index>.json
 		"""
 		docid = random.choice(list(g.docs.keys()))
-		index = random.randint(0, len(g.docs[docid]['tokens'])-1)
+		index = g.docs[docid]['tokens'].random_token_index(has_gold=False, is_discarded=False)
 		return redirect(url_for('tokeninfo', docid=docid, index=index))
 
 	# for local testing:

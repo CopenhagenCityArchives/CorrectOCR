@@ -207,7 +207,7 @@ class Token(abc.ABC):
 			kbest[k] = KBestItem(candidate, float(probability))
 			k += 1
 		t.kbest = kbest
-		if 'Bin' in d and d['Bin'] != '':
+		if 'Bin' in d and d['Bin'] not in ('', '-1', -1):
 			from ..heuristics import Heuristics
 			t.bin = Heuristics.bin(int(d['Bin']))
 			t.bin.heuristic = d['Heuristic']
@@ -281,4 +281,8 @@ class Tokenizer(abc.ABC):
 	@staticmethod
 	@abc.abstractmethod
 	def apply(original: Path, tokens: TokenList, corrected: Path):
+		pass
+
+	@staticmethod
+	def crop_token(config):
 		pass

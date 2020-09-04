@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import collections
 import logging
+import random
 from typing import List
 
 
@@ -87,8 +88,29 @@ class TokenList(collections.abc.MutableSequence):
 		pass
 
 	@property
-	@abc.abstractmethod
 	def corrected_count(self):
+		return len([t for t in self if t.gold and t.gold != ''])
+
+	@property
+	def discarded_count(self):
+		return len([t for t in self if not t.is_discarded])
+	
+	def random_token_index(self, has_gold=False, is_discarded=False):
+		return self.random_token(has_gold, is_discarded).index
+
+	def random_token(self, has_gold=False, is_discarded=False):
+		filtered_tokens = filter(lambda t: t.is_discarded == is_discarded, self.tokens)
+		if has_gold:
+			filtered_tokens = filter(lambda t: t.gold and t.gold != '', filtered_tokens)
+		filtered_tokens = list(filtered_tokens)
+		if len(filtered_tokens) == 0:
+			return None
+		else:
+			return random.choice(filtered_tokens)
+
+	@staticmethod
+	@abc.abstractmethod
+	def all_tokens(config, docid):
 		pass
 
 ##########################################################################################

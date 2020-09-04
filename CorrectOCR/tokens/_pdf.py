@@ -3,7 +3,9 @@ from pathlib import Path
 from typing import List
 
 import fitz
+import numpy
 import progressbar
+import plotille
 from PIL import Image, ImageDraw
 
 from ._super import Token, Tokenizer
@@ -138,3 +140,61 @@ class PDFTokenizer(Tokenizer):
 
 		PDFTokenizer.log.info(f'Saving corrected PDF to {corrected}')
 		pdf_corrected.save(str(corrected))#, garbage=4, deflate=True)
+
+	@staticmethod
+	def crop_tokens(original, config, tokens):
+		pdf_original = fitz.open(str(original))
+		pdf_corrected = fitz.open()
+
+		page_filter = lambda t: t.token_info[0] == page.number
+
+		PDFTokenizer.log.info(f'Going to crop {len(tokens)} tokens.')
+		for page in pdf_original:
+			page_width = page.rect.x1
+			filtered_tokens = filter(page_filter, tokens)
+			page_tokens = list(filtered_tokens)
+			edge_left, edge_right = PDFTokenizer.calculate_crop_area(page_tokens, page_width)
+			PDFTokenizer.crop_tokens_to_edges(page_tokens, edge_left, edge_right)
+			
+	@staticmethod
+	def crop_tokens_to_edges(tokens, edge_left, edge_right):
+		PDFTokenizer.log.info(f'Marking tokens outside edges as discarded: {edge_left} -- {edge_right}')	
+		discard_count = 0
+		for t in tokens:
+			if not (t.rect.x1 >= edge_left and t.rect.x0 <= edge_right):
+				PDFTokenizer.log.debug(f'Marking token as discarded: {t}')	
+				t.is_discarded = True
+				discard_count += 1
+		PDFTokenizer.log.info(f'Total tokens marked as discarded: {discard_count}')
+
+	@staticmethod
+	def calculate_crop_area(tokens, width, tolerance=.1, edge_percentage=20, show_histogram=False):
+		PDFTokenizer.log.info(f'Going to calculate crop area for {len(tokens)} tokens')
+		x_values = []
+		for token in tokens:
+			#PDFTokenizer.log.info(f'token.rect: {token.rect}')
+			for i in range(int(token.rect.x0), int(token.rect.x1)):
+				x_values.append(i)
+		
+		#PDFTokenizer.log.debug(f'min(x_values): {min(x_values)}')
+		#PDFTokenizer.log.debug(f'max(x_values): {max(x_values)}')
+		counts, bin_edges = numpy.histogram(x_values, bins=100)
+		#PDFTokenizer.log.debug(f'counts: {counts}')
+		#PDFTokenizer.log.debug(f'bin_edges: {bin_edges}')
+		if show_histogram:
+			print(plotille.histogram(x_values, bins=int(max(x_values))))
+		
+		cutoff = max(counts)*tolerance
+		PDFTokenizer.log.info(f'Cutoff set to {max(counts)} * {tolerance} = {cutoff}')
+
+		edge_left, edge_right = 0, max(x_values)+1
+		for i, c in enumerate(counts[:edge_percentage]):
+			#PDFTokenizer.log.debug(f'{i}: {c} < {cutoff} ? => {edge_left}')
+			if c < cutoff:
+				edge_left = (width*i)/100
+		for i, c in enumerate(counts[-edge_percentage:]):
+			#PDFTokenizer.log.debug(f'{i}: {c} < {cutoff} ? => {edge_right}')
+			if c < cutoff:
+				edge_right = (width*(100-i))/100
+
+		return edge_left, edge_right
