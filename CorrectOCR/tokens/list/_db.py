@@ -49,7 +49,7 @@ class DBTokenList(TokenList):
 
 	def __getitem__(self, key):
 		from .. import Token
-		#DBTokenList.log.debug(f'Getting token at index {key}')
+		DBTokenList.log.debug(f'Getting token at index {key} in {len(self.tokens)} tokens')
 		if self.tokens[key] is None:
 			with self.connection.cursor() as cursor:
 				cursor.execute("""
@@ -79,6 +79,8 @@ class DBTokenList(TokenList):
 							'Selection': json.loads(result.selection),
 							'Decision': result.decision,
 							'K': result.k,
+							'Hyphenated': result.hyphenated,
+							'Discarded': result.discarded,
 						}
 					# then set k-best from all rows
 					token_dict[f"{result.k}-best"] = result.candidate
@@ -90,13 +92,15 @@ class DBTokenList(TokenList):
 		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
 		with self.connection.cursor() as cursor:
 			cursor.execute("""
-				REPLACE INTO token (kind, doc_id, doc_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				REPLACE INTO token (kind, doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				self.kind,
 				token.docid,
 				token.index,
 				token.original,
+				token.is_hyphenated,
+				token.is_discarded,
 				token.gold,
 				token.bin.number if token.bin else -1,
 				token.bin.heuristic if token.bin else '',
@@ -132,6 +136,8 @@ class DBTokenList(TokenList):
 				token.docid,
 				token.index,
 				token.original,
+				token.is_hyphenated,
+				token.is_discarded,
 				token.gold,
 				token.bin.number if token.bin else -1,
 				token.bin.heuristic if token.bin else '',
@@ -148,10 +154,11 @@ class DBTokenList(TokenList):
 				item.candidate,
 				item.probability
 			])
+		DBTokenList.log.debug(f'tokendata: {len(tokendata)} kbestdata: {len(kbestdata)}')
 		with self.connection.cursor() as cursor:
 			cursor.executemany("""
-				REPLACE INTO token (kind, doc_id, doc_index, original, gold, bin, heuristic, decision, selection, token_type, token_info) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				REPLACE INTO token (kind, doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				tokendata
 			)

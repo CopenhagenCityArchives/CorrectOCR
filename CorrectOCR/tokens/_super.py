@@ -73,6 +73,7 @@ class Token(abc.ABC):
 		self.decision: Optional[str] = None #: The decision that was made when :attr:`gold` was set automatically.
 		self.selection: Any = None #: The selected automatic correction for the :attr:`decision`.
 		self.is_hyphenated = False #: Whether the token is hyphenated to the following token.
+		self.is_discarded = False #: Whether the token has been discarded (marked irrelevant by code or annotator).
 
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
@@ -162,6 +163,7 @@ class Token(abc.ABC):
 			'Doc ID': self.docid,
 			'Index': self.index,
 			'Hyphenated': self.is_hyphenated,
+			'Discarded': self.is_discarded,
 		}
 		for k, item in self.kbest.items():
 			output[f'{k}-best'] = item.candidate
@@ -194,6 +196,7 @@ class Token(abc.ABC):
 		)
 		t.gold = d.get('Gold', None)
 		t.is_hyphenated = d.get('Hyphenated', False)
+		t.is_discarded = d.get('Discarded', False)
 		kbest = collections.defaultdict(lambda: KBestItem(''))
 		k = 1
 		while f'{k}-best' in d:
