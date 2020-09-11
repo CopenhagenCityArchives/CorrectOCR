@@ -26,3 +26,4 @@ docs/*.png
 *.log
 *.pyc
 
+*.bak
