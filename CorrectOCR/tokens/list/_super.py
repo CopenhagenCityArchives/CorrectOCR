@@ -37,13 +37,16 @@ class TokenList(collections.abc.MutableSequence):
 			raise NameError(f'Unknown storage type: {type}')
 		return TokenList._subclasses[type]
 
-	def __init__(self, config, docid = None, kind = None, tokens = list()):
+	def __init__(self, config, docid = None, kind = None, tokens = None):
 		if type(self) is TokenList:
 			raise TypeError("Token base class cannot not be directly instantiated")
 		self.config = config
 		self.docid = docid
 		self.kind = kind
-		self.tokens = tokens
+		if tokens:
+			self.tokens = tokens
+		else:
+			self.tokens = list()
 		TokenList.log.debug(f'init: {self.config} {self.docid} {self.kind}')
 
 	def __str__(self):
