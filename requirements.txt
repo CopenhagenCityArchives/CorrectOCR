@@ -6,6 +6,7 @@ nltk
 numpy
 opencv-contrib-python-headless
 Pillow
+plotille
 progressbar2
 pycountry
 PyMuPDF>=1.14.10
