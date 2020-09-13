@@ -22,3 +22,7 @@ class MemTokenList(TokenList):
 	@staticmethod
 	def exists(config, docid: str, kind: str):
 		return False
+
+	@staticmethod
+	def all_tokens(config, docid):
+		return self.tokens

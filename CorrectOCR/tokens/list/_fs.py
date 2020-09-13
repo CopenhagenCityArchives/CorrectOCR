@@ -32,3 +32,7 @@ class FSTokenList(TokenList):
 		path = config.trainingPath.joinpath(f'{docid}.{kind}.csv')
 
 		return path.is_file()
+
+	@staticmethod
+	def all_tokens(config, docid):
+		return self.tokens
