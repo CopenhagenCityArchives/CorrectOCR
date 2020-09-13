@@ -8,6 +8,7 @@ import weakref
 
 import progressbar
 import pyodbc
+import random
 
 from ._super import TokenList
 
@@ -223,13 +224,11 @@ class DBTokenList(TokenList):
 		with self.connection.cursor() as cursor:
 			if has_gold:
 				cursor.execute("""
-					SELECT doc_index
+					SELECT MAX(doc_index)
 					FROM token
 					WHERE token.doc_id = ? AND token.kind = ?
 					AND token.discarded = ?
 					AND token.gold IS NOT NONE AND token.gold != ''
-					ORDER BY RAND()
-					LIMIT 1
 					""",
 					self.docid,
 					self.kind,
@@ -237,12 +236,10 @@ class DBTokenList(TokenList):
 				)
 			else:
 				cursor.execute("""
-					SELECT doc_index
+					SELECT MAX(doc_index)
 					FROM token
 					WHERE token.doc_id = ? AND token.kind = ?
 					AND token.discarded = ?
-					ORDER BY RAND()
-					LIMIT 1
 					""",
 					self.docid,
 					self.kind,
@@ -253,7 +250,7 @@ class DBTokenList(TokenList):
 			if len(result) == 0 or result[0] is None:
 				return None
 			else:
-				return self[result[0]]
+				return random.uniform(0, result[0])
 
 	def random_token(self, has_gold=False, is_discarded=False):
 		return self[self.random_token_index(has_gold, is_discarded)]
