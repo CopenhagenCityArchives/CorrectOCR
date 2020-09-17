@@ -275,7 +275,8 @@ class DBTokenList(TokenList):
 				"SELECT MAX(doc_index) FROM token WHERE doc_id = ?",
 				docid
 			)
-			count = int(cursor.fetchone()[0])
+			res = cursor.fetchone()[0]
+			count = int(res or 0)
 			DBTokenList.log.debug(f'_get_count: {count}')
 			return count
 
