@@ -149,12 +149,12 @@ def setup(configfiles, args=sys.argv[1:]):
 	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
 	prepareparser.set_defaults(func=commands.do_prepare, **configuration)
 
-	cropparser = subparsers.add_parser('crop', parents=[commonparser], help='TODO')
+	cropparser = subparsers.add_parser('crop', parents=[commonparser], help='Crop (mark as disabled) tokens by removing bands near the edges. If neither --edge_left nor --edge_right are provided, an attempt will be made to calculate them automatically.')
 	group = cropparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
-	cropparser.add_argument('--auto', action='store_true', help='Attempt automatic cropping of tokens (by removing narrow bands near the edges)')
-	#cropparser.add_argument('--edges', , help='TODO')
+	cropparser.add_argument('--edge_left', type=int, help='Set left cropping edge (in pixels)')
+	cropparser.add_argument('--edge_right', type=int, help='Set right cropping edge (in pixels)')
 	cropparser.set_defaults(func=commands.do_crop, **configuration)
 
 	statsparser = subparsers.add_parser('stats', parents=[commonparser], help='Calculate stats for correction decisions')

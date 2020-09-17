@@ -194,10 +194,10 @@ def do_crop(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.crop')
 	
 	if config.docid:
-		workspace.docs[config.docid].crop_tokens()
+		workspace.docs[config.docid].crop_tokens(config.edge_left, config.edge_right)
 	elif config.all:
 		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
-			doc.crop_tokens()
+			doc.crop_tokens(config.edge_left, config.edge_right)
 			
 
 

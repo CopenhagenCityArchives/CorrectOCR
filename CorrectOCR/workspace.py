@@ -347,11 +347,11 @@ class Document(object):
 
 		return tokens
 
-	def crop_tokens(self):
+	def crop_tokens(self, edge_left = None, edge_right = None):
 		all_tokens = TokenList.for_type(self.workspace.storageconfig.type).all_tokens(self.workspace.storageconfig, self.docid)
 		for kind, tokens in all_tokens.items():
 			Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, tokens)
-			TokenList.for_type(self.workspace.storageconfig.type)._save_all_tokens(self.workspace.storageconfig, kind, tokens)
+			TokenList.for_type(self.workspace.storageconfig.type)._save_all_tokens(self.workspace.storageconfig, kind, tokens, edge_left, edge_right)
 
 
 class CorpusFile(object):

@@ -284,5 +284,6 @@ class Tokenizer(abc.ABC):
 		pass
 
 	@staticmethod
-	def crop_token(config):
+	@abc.abstractmethod
+	def crop_tokens(original, config, tokens, edge_left = None, edge_right = None):
 		pass

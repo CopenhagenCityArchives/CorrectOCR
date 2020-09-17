@@ -54,3 +54,8 @@ class StringTokenizer(Tokenizer):
 		corrected.header = original.header.replace(u'Corrected: No', u'Corrected: Yes') 
 		corrected.body = despaced
 		corrected.save()
+
+	@staticmethod
+	def crop_tokens(original, config, tokens, edge_left = None, edge_right = None):
+		StringTokenizer.log.debug(f'Cropping unavailable in {__name__}.')
+		pass 
