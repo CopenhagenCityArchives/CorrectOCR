@@ -59,6 +59,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		)
 		return r.status_code == 200
 
+	@app.route('/health')
+	def health():
+		return 'OK', 200
+
 	@app.route('/')
 	def indexpage():
 		"""
