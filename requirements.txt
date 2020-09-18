@@ -1,6 +1,7 @@
 beautifulsoup4
 cachetools
 Flask
+flask-cors
 lxml
 nltk
 numpy
