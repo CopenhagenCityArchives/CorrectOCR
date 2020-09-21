@@ -287,13 +287,17 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
 		token: PDFToken = g.docs[docid]['tokens'][index]
-		(docname, image) = token.extract_image(
-			workspace,
-			left=request.json.get('leftmargin'),
-			right=request.json.get('rightmargin'),
-			top=request.json.get('topmargin'),
-			bottom=request.json.get('bottommargin')
-		)
+		if request.json:
+			(docname, image) = token.extract_image(
+				workspace,
+				left=request.json.get('leftmargin'),
+				right=request.json.get('rightmargin'),
+				top=request.json.get('topmargin'),
+				bottom=request.json.get('bottommargin')
+			)
+		else:
+			(docname, image) = token.extract_image(workspace)
+
 		with io.BytesIO() as output:
 			image.save(output, format="PNG")
 			return Response(output.getvalue(), mimetype='image/png')
