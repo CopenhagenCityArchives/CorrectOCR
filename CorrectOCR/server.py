@@ -4,6 +4,7 @@ import random
 from typing import Any
 
 from flask import Flask, Response, g, json, redirect, request, url_for
+from flask_cors import CORS
 import requests
 
 from . import progname
@@ -24,6 +25,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	app = Flask(progname,
 		instance_path = workspace.root if workspace else None,
 	)
+	CORS(app)
+
 	app.config.from_mapping(
 		host = config.host if config else None,
 		threaded = True,

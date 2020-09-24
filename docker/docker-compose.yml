@@ -1,0 +1,37 @@
+version: "2"
+services:
+  backend:
+    container_name: backend
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5000:5000"
+      - "1000:1000"
+    volumes:
+      - "./workspace:/workspace"
+      - "./__COCRcache__:/__COCRcache__"
+    environment:
+      - CORRECTOCR_STORAGE_TYPE=db
+      - CORRECTOCR_STORAGE_DB_DRIVER=MySQL ODBC 8.0 Unicode Driver
+      - CORRECTOCR_STORAGE_DB_HOST=db
+      - CORRECTOCR_STORAGE_DB_USER=correctocr
+      - CORRECTOCR_STORAGE_DB_PASS=123abc
+      - CORRECTOCR_STORAGE_DB_NAME=correctocr
+      - CORRECTOCR_WORKSPACE_ROOTPATH=./workspace/
+  db:
+    container_name: db
+    image: mysql:latest
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment: 
+      MYSQL_ROOT_PASSWORD: 123456   
+      MYSQL_USER: correctocr   
+      MYSQL_PASSWORD: 123abc
+      MYSQL_DATABASE: correctocr
+    volumes:
+      - "./initdb.d:/docker-entrypoint-initdb.d"
+    ports:
+      - "3306:3306"
+networks:
+  default:
