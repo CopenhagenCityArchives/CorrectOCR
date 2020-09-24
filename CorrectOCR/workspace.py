@@ -46,7 +46,7 @@ class Workspace(object):
 		self.nheaderlines: int = self.config.nheaderlines
 		self.resources = ResourceManager(self.root, resourceconfig)
 		self.docs: Dict[str, Document] = dict()
-		for file in self.config.originalPath.iterdir():
+		for file in self.root.joinpath(self.config.originalPath).iterdir():
 			if file.name in {'.DS_Store'}:
 				continue
 			self.add_docid(file.stem, file.suffix)

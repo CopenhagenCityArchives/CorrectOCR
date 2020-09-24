@@ -52,6 +52,27 @@ auth_endpoint = http://127.0.0.1/auth
 auth_header = auth_token
 """
 
+
+class EnvOverride(configparser.BasicInterpolation):
+	"""
+	This class overrides the .ini file with environment variables if they exist.
+	
+	They are checked according to this format: CORRECTOCR_<section>_<key>, all upper case.
+	
+	Thus, to override the storage:db_server setting, set the CORRECTOCR_STORAGE_DB_SERVER variable.
+	"""
+
+	def before_get(self, parser, section, option, value, defaults):
+		print([parser, section, option, value, defaults])
+		env_var_name = f'CORRECTOCR_{section}_{option}'.upper()
+		print(env_var_name)
+		env_var_value = os.path.expandvars(env_var_name)
+		if env_var_value in os.environ:
+			return os.environ[env_var_value]
+		else:
+			return super().before_get(parser, section, option, value, defaults)
+
+
 def setup(configfiles, args=sys.argv[1:]):
 	loglevels = dict(logging._nameToLevel)
 	del loglevels['NOTSET']
@@ -64,7 +85,7 @@ def setup(configfiles, args=sys.argv[1:]):
 
 	progressbar.streams.wrap_stderr()
 
-	config = configparser.RawConfigParser()
+	config = configparser.RawConfigParser(interpolation=EnvOverride())
 	config.optionxform = lambda option: option
 	config.read_string(defaults)
 	config.read(configfiles, encoding='utf-8')
