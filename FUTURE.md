@@ -1,6 +1,6 @@
 Ideas for future features
 =========================
-
+ 
 tokenizer
 ---------
 Option for squishing abbreviations into single tokens?
