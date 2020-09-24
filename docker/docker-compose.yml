@@ -11,6 +11,14 @@ services:
     volumes:
       - "./workspace:/workspace"
       - "./__COCRcache__:/__COCRcache__"
+    environment:
+      - CORRECTOCR_STORAGE_TYPE=db
+      - CORRECTOCR_STORAGE_DB_DRIVER=MySQL ODBC 8.0 Unicode Driver
+      - CORRECTOCR_STORAGE_DB_HOST=db
+      - CORRECTOCR_STORAGE_DB_USER=correctocr
+      - CORRECTOCR_STORAGE_DB_PASS=123abc
+      - CORRECTOCR_STORAGE_DB_NAME=correctocr
+      - CORRECTOCR_WORKSPACE_ROOTPATH=./workspace/
   db:
     container_name: db
     image: mysql:latest
