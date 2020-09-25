@@ -1,21 +1,24 @@
 beautifulsoup4
 cachetools
 Flask
+flask-cors
 lxml
 nltk
 numpy
 opencv-contrib-python-headless
 Pillow
+plotille
 progressbar2
 pycountry
 PyMuPDF>=1.14.10
+# pyodbc
 regex
 requests
 tei-reader
-
-# these cannot be installed on RTD (C dependencies), so they're mocked in conf.py:
-# pyodbc
 # tesserocr
+uwsgi
+
+# those commented out above cannot be installed on RTD (C dependencies), so they're mocked in conf.py
 
 # documentation packages:
 sphinx-autodoc-typehints
