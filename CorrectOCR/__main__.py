@@ -166,6 +166,7 @@ def setup(configfiles, args=sys.argv[1:]):
 	group.add_argument('document', type=Path, nargs='?', help='Single file/URL to copy/download and make available for prepare')
 	group.add_argument('--documentsFile', type=Path, help='File containing list of files/URLS to copy/download and make available for prepare')
 	addparser.add_argument('--prepare_step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], help='Automatically prepare documents to step')
+	addparser.add_argument('--max_count', type=int, help='Maximum number of files to add from --documentsFile.')
 	addparser.set_defaults(func=commands.do_add, **configuration)
 
 	prepareparser = subparsers.add_parser('prepare', parents=[commonparser], help='Prepare text for correction')

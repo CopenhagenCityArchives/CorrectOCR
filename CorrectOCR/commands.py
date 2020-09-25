@@ -186,6 +186,8 @@ def do_add(workspace: Workspace, config):
 				else:
 					files.append(Path(line))
 
+	count = 0
+
 	if config.prepare_step:
 		method = _get_prep_step(config.prepare_step)
 		
@@ -194,6 +196,9 @@ def do_add(workspace: Workspace, config):
 		doc_id = workspace.add_doc(file)
 		if config.prepare_step:
 			method(workspace.docs[doc_id], k=config.k)
+		count += 1
+		if config.max_count and config.max_count > count:
+			break
 
 
 ##########################################################################################
