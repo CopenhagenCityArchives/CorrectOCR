@@ -203,6 +203,9 @@ def setup(configfiles, args=sys.argv[1:]):
 	correctparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
 	correctparser.set_defaults(func=commands.do_correct, **configuration)
 
+	goldparser = subparsers.add_parser('make_gold', parents=[commonparser], help='Make gold documents from all ready (fully annotated)')
+	goldparser.set_defaults(func=commands.make_gold, **configuration)
+
 	indexparser = subparsers.add_parser('index', parents=[commonparser], help='Generate index data')
 	group = indexparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')

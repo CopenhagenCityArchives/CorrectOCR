@@ -332,6 +332,31 @@ def do_correct(workspace: Workspace, config):
 ##########################################################################################
 
 
+def make_gold(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.make_gold')
+
+	for doc_id, doc in workspace.docs:
+		log.info(f'Getting tokens for {doc_id}')
+		corrected = workspace.docs[config.docid].autocorrectedTokens(k=config.k)
+
+		missing_gold_count = 0
+		for token in corrected:
+			if not gold:
+				missing_gold_count += 1
+		log.info(f'Document {doc_id} has {missing_gold_count} tokens without gold')
+
+		if missing_gold_count == 0:
+			log.info(f'Document {docid} is fully corrected! Applying corrections in new gold file.')
+			Tokenizer.for_extension(workspace.docs[docid].ext).apply(
+				workspace.docs[docid].originalFile,
+				corrected,
+				workspace.docs[docid].goldFile
+			)
+
+
+##########################################################################################
+
+
 def do_index(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_index')
 
