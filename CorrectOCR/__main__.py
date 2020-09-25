@@ -161,6 +161,13 @@ def setup(configfiles, args=sys.argv[1:]):
 	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM (default: 0.0001)')
 	modelparser.set_defaults(func=commands.build_model, **configuration)
 
+	addparser = subparsers.add_parser('add', parents=[commonparser], help='Add documents for processing')
+	group = addparser.add_mutually_exclusive_group(required=True)
+	group.add_argument('document', type=Path, nargs='?', help='Single file/URL to copy/download and make available for prepare')
+	group.add_argument('--documentsFile', type=Path, help='File containing list of files/URLS to copy/download and make available for prepare')
+	addparser.add_argument('--prepare_step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], help='Automatically prepare documents to step')
+	addparser.set_defaults(func=commands.do_add, **configuration)
+
 	prepareparser = subparsers.add_parser('prepare', parents=[commonparser], help='Prepare text for correction')
 	group = prepareparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')

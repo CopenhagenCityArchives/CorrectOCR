@@ -167,10 +167,42 @@ def build_model(workspace: Workspace, config):
 ##########################################################################################
 
 
-def do_prepare(workspace: Workspace, config):
-	log = logging.getLogger(f'{__name__}.prepare')
+def do_add(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.do_add')
 
-	methods = {
+	if config.document:
+		files = [config.document]
+	else:
+		files = []
+		for line in _open_for_reading(config.documentsFile).readlines():
+			line = line.strip()
+			if len(line) == 0:
+				pass
+			elif line[0] == '#':
+				log.info(line)
+			else:
+				if line[:4] == 'http':
+					files.append(line) # TODO urllib.parse?
+				else:
+					files.append(Path(line))
+
+	if config.prepare_step:
+		method = _get_prep_step(config.prepare_step)
+		
+	for file in files:
+		log.info(f'Adding {file}')
+		doc_id = workspace.add_doc(file)
+		if config.prepare_step:
+			method(workspace.docs[doc_id], k=config.k)
+
+
+##########################################################################################
+
+
+def _get_prep_step(step):
+	log = logging.getLogger(f'{__name__}._get_prep_step')
+
+	prep_methods = {
 		'tokenize': Document.tokens,
 		'align': Document.alignedTokens,
 		'kbest': Document.kbestTokens,
@@ -178,14 +210,21 @@ def do_prepare(workspace: Workspace, config):
 		'server': Document.autocorrectedTokens,
 		'all': Document.binnedTokens,
 	}
-	method = methods[config.step]
-	log.debug(f'Selecting {method} for step {config.step}')
+	method = prep_methods[step]
+	log.debug(f'Selecting {method} for step {step}')
+	return method
+
+
+def do_prepare(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.prepare')
+	
+	method = _get_prep_step(config.step)
+
 	if config.docid:
 		method(workspace.docs[config.docid], k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 	elif config.all:
 		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
 			method(doc, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
-
 
 ##########################################################################################
 

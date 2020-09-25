@@ -36,6 +36,16 @@ The following commands are available:
 
    -  The ``--smoothingParameter`` option can be adjusted as needed.
 
+-  ``add`` copies or downloads files to the workspace. One may provide about
+   a single file directly, or use the option to provide a list of files.
+
+   -  The ``--documents`` option specifies a file containing paths and
+      URLs.
+   -  The ``--max_count`` option specifies the maximum number of files
+      to add.
+   -  The ``--prepare_step`` option allows the automatic preparation of
+      the files as they are added. See below.
+
 -  ``prepare`` tokenizes and prepare texts for corrections.
 
    -  The ``--fileid`` option specifies which file to tokenize.
