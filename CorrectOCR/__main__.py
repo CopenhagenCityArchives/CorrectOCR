@@ -63,9 +63,9 @@ class EnvOverride(configparser.BasicInterpolation):
 	"""
 
 	def before_get(self, parser, section, option, value, defaults):
-		print([parser, section, option, value, defaults])
+		#print([parser, section, option, value, defaults])
 		env_var_name = f'CORRECTOCR_{section}_{option}'.upper()
-		print(env_var_name)
+		#print(env_var_name)
 		env_var_value = os.path.expandvars(env_var_name)
 		if env_var_value in os.environ:
 			return os.environ[env_var_value]
