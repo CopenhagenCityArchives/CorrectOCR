@@ -3,7 +3,9 @@ from __future__ import annotations
 import functools
 import logging
 import re
-from pathlib import Path
+import requests
+import urllib
+from pathlib import Path, PurePath
 from pprint import pformat
 from typing import Dict, Iterator, Tuple, Union
 
@@ -41,41 +43,60 @@ class Workspace(object):
 		self.config = workspaceconfig
 		self.storageconfig = storageconfig
 		self.root = self.config.rootPath.resolve()
+		self._originalPath = self.root.joinpath(self.config.originalPath)
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(self.config))} at {self.root}')
 		Workspace.log.info(f'Storage configuration:\n{pformat(vars(self.storageconfig))}')
 		self.nheaderlines: int = self.config.nheaderlines
 		self.resources = ResourceManager(self.root, resourceconfig)
 		self.docs: Dict[str, Document] = dict()
-		for file in self.root.joinpath(self.config.originalPath).iterdir():
+		Workspace.log.info(f'Adding documents from: {self._originalPath}')
+		for file in self._originalPath.iterdir():
 			if file.name in {'.DS_Store'}:
 				continue
-			self.add_docid(file.stem, file.suffix)
+			self.add_doc(file)
 		Workspace.log.debug(f'docs: {self.docs}')
 		self.cache = LRUCache(maxsize=1000)
 		self.cachePath = FileIO.cachePath
 
-	def add_docid(self, docid: str, ext: str, new_original: Path = None):
+	def add_doc(self, doc: Any) -> str:
 		"""
 		Initializes a new :class:`Document<CorrectOCR.workspace.Document>` with a ``docid`` and adds it to the
 		workspace.
 
-		:param docid: The docid (filename without extension).
-		:param ext: The extension, including leading period.
+		:param doc: The docid (filename without extension).
 		:param new_original: Path to a new file that should be copied to the generated `originalPath`.
 		"""
-		if new_original:
-			FileIO.copy(new_original, self._originalPath)
-		self.docs[docid] = Document(
+		if isinstance(doc, PurePath):
+			if doc.parent != self._originalPath:
+				FileIO.copy(doc, self._originalPath)
+		elif isinstance(doc, str) and doc[:4] == 'http':
+			url = urllib.parse.urlparse(doc)
+			new_doc_file = self._originalPath.joinpath(Path(url.path).name)
+			r = requests.get(url.geturl())
+			if r.status_code == 200:
+				new_doc_file = new_doc_file.with_suffix('.pdf') # TODO mimetype => suffix
+				with open(new_doc_file, 'wb') as f:
+					f.write(r.content)
+			else:
+				log.error(f'Unable to save file: {r}')
+			doc = new_doc_file
+		else:
+			raise ValueError(f'Cannot add doc from reference of unknown type: {type(doc)} {doc}')
+
+		doc_id = doc.stem
+
+		self.docs[doc_id] = Document(
 			self,
-			docid,
-			ext,
+			doc,
 			self.root.joinpath(self.config.originalPath).resolve(),
 			self.root.joinpath(self.config.goldPath).resolve(),
 			self.root.joinpath(self.config.trainingPath).resolve(),
 			self.root.joinpath(self.config.correctedPath).resolve(),
 			self.nheaderlines,
 		)
-		Workspace.log.debug(f'Added {docid}')
+		Workspace.log.debug(f'Added {doc}')
+		
+		return doc_id
 
 	def docids_for_ext(self, ext: str) -> List[str]:
 		"""
@@ -170,7 +191,7 @@ class Document(object):
 	"""
 	Documents provide access to paths and :class:`Tokens<CorrectOCR.tokens.Token>`.
 	"""
-	def __init__(self, workspace: Workspace, docid: str, ext: str, original: Path, gold: Path, training: Path, corrected: Path, nheaderlines: int = 0):
+	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, training: Path, corrected: Path, nheaderlines: int = 0):
 		"""
 		:param docid: Base filename (ie. without extension).
 		:param ext: The extension (including leading period).
@@ -181,24 +202,26 @@ class Document(object):
 		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)
 		"""
 		self.workspace = workspace
-		self.docid = docid
-		self.ext = ext
+		self.docid = doc.stem
+		self.ext = doc.suffix
 		if self.ext == '.txt':
-			self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(f'{docid}{ext}'), nheaderlines)
-			self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(f'{docid}{ext}'), nheaderlines)
-			self.correctedFile: Union[CorpusFile, Path] = CorpusFile(corrected.joinpath(f'{docid}{ext}'), nheaderlines)
+			self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(doc.name), nheaderlines)
+			self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(doc.name), nheaderlines)
+			self.correctedFile: Union[CorpusFile, Path] = CorpusFile(corrected.joinpath(doc.name), nheaderlines)
 		else:
-			self.originalFile: Union[CorpusFile, Path] = original.joinpath(f'{docid}{ext}')
-			self.goldFile: Union[CorpusFile, Path] = gold.joinpath(f'{docid}{ext}')
-			self.correctedFile: Union[CorpusFile, Path] = corrected.joinpath(f'{docid}{ext}')
-		self.originalTokenFile = training.joinpath(f'{docid}.tokens.csv')  #: Path to original token file (CSV format).
-		self.alignedTokenFile = training.joinpath(f'{docid}.alignedTokens.csv')  #: Path to aligned token file (CSV format).
-		self.kbestTokenFile = training.joinpath(f'{docid}.kbestTokens.csv')  #: Path to token file with *k*-best suggestions (CSV format).
-		self.binnedTokenFile = training.joinpath(f'{docid}.binnedTokens.csv')  #: Path to token file with bins applied (CSV format).
-		self.correctedTokenFile = training.joinpath(f'{docid}.correctedTokens.csv')  #: Path to token file with autocorrections applied (CSV format).
-		self.fullAlignmentsFile = training.joinpath(f'{docid}.fullAlignments.json')  #: Path to full letter-by-letter alignments (JSON format).
-		self.wordAlignmentsFile = training.joinpath(f'{docid}.wordAlignments.json')  #: Path to word-by-word alignments (JSON format).
-		self.readCountsFile = training.joinpath(f'{docid}.readCounts.json')  #: Path to letter read counts (JSON format).
+			self.originalFile: Union[CorpusFile, Path] = original.joinpath(doc.name)
+			self.goldFile: Union[CorpusFile, Path] = gold.joinpath(doc.name)
+			self.correctedFile: Union[CorpusFile, Path] = corrected.joinpath(doc.name)
+		if not self.originalFile.exists():
+			raise ValueError(f'Cannot create Document with non-existing original file: {self.originalFile}')
+		self.originalTokenFile = training.joinpath(f'{self.docid}.tokens.csv')  #: Path to original token file (CSV format).
+		self.alignedTokenFile = training.joinpath(f'{self.docid}.alignedTokens.csv')  #: Path to aligned token file (CSV format).
+		self.kbestTokenFile = training.joinpath(f'{self.docid}.kbestTokens.csv')  #: Path to token file with *k*-best suggestions (CSV format).
+		self.binnedTokenFile = training.joinpath(f'{self.docid}.binnedTokens.csv')  #: Path to token file with bins applied (CSV format).
+		self.correctedTokenFile = training.joinpath(f'{self.docid}.correctedTokens.csv')  #: Path to token file with autocorrections applied (CSV format).
+		self.fullAlignmentsFile = training.joinpath(f'{self.docid}.fullAlignments.json')  #: Path to full letter-by-letter alignments (JSON format).
+		self.wordAlignmentsFile = training.joinpath(f'{self.docid}.wordAlignments.json')  #: Path to word-by-word alignments (JSON format).
+		self.readCountsFile = training.joinpath(f'{self.docid}.readCounts.json')  #: Path to letter read counts (JSON format).
 
 	def alignments(self, force=False) -> Tuple[list, dict, list]:
 		"""
