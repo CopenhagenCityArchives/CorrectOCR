@@ -320,6 +320,8 @@ def do_correct(workspace: Workspace, config):
 		log.critical('This shouldn''t happen!')
 		raise SystemExit(-1)
 
+	corrected = [t for t in corrected if not t.is_discarded]
+
 	log.info(f'Applying corrections to {docid}')
 	Tokenizer.for_extension(workspace.docs[docid].ext).apply(
 		workspace.docs[docid].originalFile,
@@ -338,6 +340,8 @@ def make_gold(workspace: Workspace, config):
 	for doc_id, doc in workspace.docs:
 		log.info(f'Getting tokens for {doc_id}')
 		corrected = workspace.docs[config.docid].autocorrectedTokens(k=config.k)
+
+		corrected = [t for t in corrected if not t.is_discarded]
 
 		missing_gold_count = 0
 		for token in corrected:
