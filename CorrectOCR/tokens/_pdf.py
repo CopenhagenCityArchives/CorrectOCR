@@ -84,7 +84,7 @@ class PDFTokenizer(Tokenizer):
 
 		doc = fitz.open(str(file))
 
-		tokens = TokenList.new(storageconfig, docid=file.stem, kind='tokens')
+		tokens = TokenList.new(storageconfig, docid=file.stem)
 		for page in doc:
 			PDFTokenizer.log.info(f'Getting tokens from {file.name} page {page.number}')
 			for w in progressbar.progressbar(page.getTextWords()):

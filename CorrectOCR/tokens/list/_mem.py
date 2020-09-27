@@ -9,10 +9,10 @@ class MemTokenList(TokenList):
 	"""
 	log = logging.getLogger(f'{__name__}.MemTokenList')
 
-	def load(self, docid: str, kind: str):
+	def load(self, docid: str):
 		pass
 
-	def save(self, kind: str = None, token: 'Token' = None):
+	def save(self, token: 'Token' = None):
 		self.log.debug(f'self.tokens: {self.tokens}')
 		self.log.debug(f'token: {vars(token)}')
 		if token:
@@ -20,9 +20,5 @@ class MemTokenList(TokenList):
 		self.log.debug(f'self.tokens: {self.tokens}')
 
 	@staticmethod
-	def exists(config, docid: str, kind: str):
+	def exists(config, docid: str):
 		return False
-
-	@staticmethod
-	def all_tokens(config, docid):
-		return self.tokens

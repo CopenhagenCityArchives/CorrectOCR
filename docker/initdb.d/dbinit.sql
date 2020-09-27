@@ -1,5 +1,4 @@
 CREATE TABLE token (
-	kind VARCHAR(255) NOT NULL,
 	doc_id VARCHAR(255) NOT NULL,
 	doc_index INT NOT NULL,
 	original VARCHAR(255) NOT NULL,
@@ -12,7 +11,7 @@ CREATE TABLE token (
 	selection VARCHAR(255),
 	token_type VARCHAR(255),
 	token_info TEXT,
-	PRIMARY KEY (doc_id, doc_index, kind)
+	PRIMARY KEY (doc_id, doc_index)
 );
 
 CREATE TABLE kbest (
@@ -26,9 +25,6 @@ CREATE TABLE kbest (
 
 CREATE INDEX idx_token_doc_id_doc_index
 	ON token(doc_id, doc_index);
-
-CREATE INDEX idx_token_doc_id_kind
-	ON token(doc_id, kind);
 
 CREATE INDEX idx_kbest_doc_id_doc_index
 	ON kbest(doc_id, doc_index);

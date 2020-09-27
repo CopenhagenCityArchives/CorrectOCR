@@ -114,11 +114,11 @@ def build_dictionary(workspace: Workspace, config):
 			# above didn't work. Instead insert extra space, see issue
 			# https://github.com/UUDigitalHumanitieslab/tei_reader/issues/6
 			text = corpora.tostring(lambda e, t: f'{t} ')
-			for word in tokenize_str(text, workspace.language.name):
+			for word in tokenize_str(text, workspace.config.language.name):
 				workspace.resources.dictionary.add(word)
 		elif file.suffix == '.txt':
 			with _open_for_reading(file) as f:
-				for word in tokenize_str(f.read(), workspace.language.name):
+				for word in tokenize_str(f.read(), workspace.config.language.name):
 					workspace.resources.dictionary.add(word)
 		else:
 			log.error(f'Unrecognized filetype:{file}')
@@ -132,7 +132,7 @@ def build_dictionary(workspace: Workspace, config):
 
 def do_align(workspace: Workspace, config):
 	if config.docid:
-		workspace.docs[docid].alignments(force=config.force)
+		workspace.docs[config.docid].alignments(force=config.force)
 	elif config.all:
 		for docid, doc in filter(lambda x: x[1].goldFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
 			doc.alignments(force=config.force)
@@ -150,7 +150,7 @@ def build_model(workspace: Workspace, config):
 	# Select the gold docs which correspond to the read count files.
 	readCounts = collections.defaultdict(collections.Counter)
 	gold_words = []
-	for docid, tokens in workspace.goldTokens():
+	for docid, tokens in workspace.gold_tokens():
 		(_, _, counts) = workspace.alignments(docid)
 		readCounts.update(counts)
 		gold_words.extend([t.gold for t in tokens])
@@ -188,14 +188,11 @@ def do_add(workspace: Workspace, config):
 
 	count = 0
 
-	if config.prepare_step:
-		method = _get_prep_step(config.prepare_step)
-		
 	for file in files:
 		log.info(f'Adding {file}')
 		doc_id = workspace.add_doc(file)
 		if config.prepare_step:
-			method(workspace.docs[doc_id], k=config.k)
+			workspace.docs[doc_id].prepare(config.prepare_step, k=config.k)
 		count += 1
 		if config.max_count and config.max_count > count:
 			break
@@ -204,32 +201,15 @@ def do_add(workspace: Workspace, config):
 ##########################################################################################
 
 
-def _get_prep_step(step):
-	log = logging.getLogger(f'{__name__}._get_prep_step')
-
-	prep_methods = {
-		'tokenize': Document.tokens,
-		'align': Document.alignedTokens,
-		'kbest': Document.kbestTokens,
-		'bin': Document.binnedTokens,
-		'server': Document.autocorrectedTokens,
-		'all': Document.binnedTokens,
-	}
-	method = prep_methods[step]
-	log.debug(f'Selecting {method} for step {step}')
-	return method
-
-
 def do_prepare(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.prepare')
 	
-	method = _get_prep_step(config.step)
-
 	if config.docid:
-		method(workspace.docs[config.docid], k=config.k, dehyphenate=config.dehyphenate, force=config.force)
+		workspace.docs[config.docid].prepare(config.step, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 	elif config.all:
 		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
-			method(doc, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
+			log.info(f'{docid}: {doc}')
+			doc.prepare(config.step, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 
 ##########################################################################################
 
@@ -252,9 +232,9 @@ def do_stats(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_stats')
 
 	if config.make_report:
-		for docid, goldTokens in workspace.goldTokens():
+		for docid, tokens in workspace.gold_tokens():
 			log.info(f'Collecting stats from {docid}')
-			for t in goldTokens:
+			for t in tokens:
 				workspace.resources.heuristics.add_to_report(t)
 
 		log.info(f'Saving report to {workspace.resources.reportFile}')
@@ -277,17 +257,16 @@ def do_correct(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_correct')
 
 	if config.filePath:
-		docid = config.filePath.stem
-		if docid in workspace.docs:
-			log.error(f'Doc ID already exists: {docid}! You must rename the file first.')
-			raise SystemExit(-1)
-		workspace.add_doc(config.filePath)
+		docid = workspace.add_doc(config.filePath)
 	else:
 		docid = config.docid
-	
+
+	doc = workspace.docs[config.docid]
+
 	if config.autocorrect:
 		log.info(f'Getting autocorrected tokens')
-		corrected = workspace.docs[config.docid].autocorrectedTokens(k=config.k)
+		doc.prepare('autocorrect', k=config.k)
+		corrected = doc.tokens
 	elif config.apply:
 		log.info(f'Getting corrections from {config.apply}')
 		if not config.apply.is_file():
@@ -296,15 +275,15 @@ def do_correct(workspace: Workspace, config):
 		corrected = [Token.from_dict(row) for row in FileIO.load(config.apply)]
 	elif config.interactive:
 		log.info(f'Getting corrections from interactive session')
-		binned_tokens = workspace.binnedTokens(config.docid, k=config.k)
+		workspace.docs[config.docid].prepare('bin', k=config.k)
 
 		# get header, if any
 		#header = workspace.docs[docid].correctedFile.header
 		# print info to annotator
 		#log.info(f'header: {header}')
 
-		metrics = CorrectionShell.start(binned_tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
-		corrected = binned_tokens
+		metrics = CorrectionShell.start(doc.tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
+		corrected = workspace.docs[config.docid].tokens
 		log.debug(metrics['newWords'])
 		log.debug(metrics['correctionTracking'])
 
@@ -323,10 +302,10 @@ def do_correct(workspace: Workspace, config):
 	corrected = [t for t in corrected if not t.is_discarded]
 
 	log.info(f'Applying corrections to {docid}')
-	Tokenizer.for_extension(workspace.docs[docid].ext).apply(
-		workspace.docs[docid].originalFile,
+	Tokenizer.for_extension(doc.ext).apply(
+		doc.originalFile,
 		corrected,
-		workspace.docs[docid].correctedFile,
+		doc.correctedFile,
 		highlight=config.highlight
 	)
 
@@ -337,24 +316,22 @@ def do_correct(workspace: Workspace, config):
 def make_gold(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.make_gold')
 
-	for doc_id, doc in workspace.docs:
-		log.info(f'Getting tokens for {doc_id}')
-		corrected = workspace.docs[config.docid].autocorrectedTokens(k=config.k)
-
-		corrected = [t for t in corrected if not t.is_discarded]
+	for docid, doc in workspace.docs:
+		log.info(f'Getting tokens for {docid}')
+		doc.prepare('autocorrect', k=config.k)
 
 		missing_gold_count = 0
-		for token in corrected:
-			if not gold:
+		for token in doc.tokens:
+			if not token.gold:
 				missing_gold_count += 1
-		log.info(f'Document {doc_id} has {missing_gold_count} tokens without gold')
+		log.info(f'Document {docid} has {missing_gold_count} tokens without gold')
 
 		if missing_gold_count == 0:
 			log.info(f'Document {docid} is fully corrected! Applying corrections in new gold file.')
 			Tokenizer.for_extension(workspace.docs[docid].ext).apply(
-				workspace.docs[docid].originalFile,
-				corrected,
-				workspace.docs[docid].goldFile
+				doc.originalFile,
+				doc.tokens,
+				doc.goldFile
 			)
 
 
@@ -379,22 +356,17 @@ def do_index(workspace: Workspace, config):
 		token: Token
 		tags: List[str]
 
-	def match_terms(docid: str) -> List[List[TaggedToken]]:
+	def match_terms(doc) -> List[List[TaggedToken]]:
 		log.info(f'Finding matching terms for {docid}')
 
 		if config.autocorrect:
-			log.info(f'Getting autocorrected tokens')
-
-			tokens = workspace.docs[docid].autocorrectedTokens(k=config.k)
-		else:
-			log.info(f'Getting unprepared tokens')
-
-			tokens = workspace.docs[docid].tokens()
+			log.info(f'Autocorrecting tokens')
+			doc.prepare('autocorrect', k=config.k)
 
 		log.info(f'Searching for terms')
 		matches = []
 		run = []
-		for token in progressbar.progressbar(tokens):
+		for token in progressbar.progressbar(doc.tokens):
 			tt = TaggedToken(token, [])
 			matched = False
 			for tag, terms in taggedTerms.items():
@@ -436,11 +408,11 @@ def do_index(workspace: Workspace, config):
 	
 	matches = dict()
 	if config.docid:
-		matches[config.docid] = match_terms(docid=config.docid)
+		matches[config.docid] = match_terms(workspace.docs[config.docid])
 	elif config.all:
 		matches = dict()
 		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
-			matches[docid] = match_terms(docid=docid)
+			matches[docid] = match_terms(doc)
 	#log.debug(f'matches: {matches}')
 
 	rows = []
@@ -472,7 +444,11 @@ def do_cleanup(workspace: Workspace, config):
 def do_extract(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_extract')
 
-	tokens = [t for t in workspace.binnedTokens(config.docid, k=config.k) if t.decision == 'annotator']
+	doc = workspace.docs[config.docid]
+	doc.prepare('bin', k=config.k)
+
+
+	tokens = [t for t in doc.tokens if t.decision == 'annotator']
 
 	for token in progressbar.progressbar(tokens):
 		_, _ = token.extract_image(workspace)

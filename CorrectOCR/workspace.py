@@ -54,18 +54,22 @@ class Workspace(object):
 			if file.name in {'.DS_Store'}:
 				continue
 			self.add_doc(file)
-		Workspace.log.debug(f'docs: {self.docs}')
+		Workspace.log.info(f'Workspace documents: {self.docs}')
 		self.cache = LRUCache(maxsize=1000)
 		self.cachePath = FileIO.cachePath
 
 	def add_doc(self, doc: Any) -> str:
 		"""
-		Initializes a new :class:`Document<CorrectOCR.workspace.Document>` with a ``docid`` and adds it to the
+		Initializes a new :class:`Document<CorrectOCR.workspace.Document>` and adds it to the
 		workspace.
 
-		:param doc: The docid (filename without extension).
-		:param new_original: Path to a new file that should be copied to the generated `originalPath`.
+		The doc_id of the document will be determined by its filename.
+
+		If the file is not in the originalPath, it will be copied or downloaded there.
+
+		:param doc: A path or URL.
 		"""
+		self.log.debug(f'Preparing to add {doc}')
 		if isinstance(doc, PurePath):
 			if doc.parent != self._originalPath:
 				FileIO.copy(doc, self._originalPath)
@@ -78,7 +82,7 @@ class Workspace(object):
 				with open(new_doc_file, 'wb') as f:
 					f.write(r.content)
 			else:
-				log.error(f'Unable to save file: {r}')
+				self.log.error(f'Unable to save file: {r}')
 			doc = new_doc_file
 		else:
 			raise ValueError(f'Cannot add doc from reference of unknown type: {type(doc)} {doc}')
@@ -104,23 +108,23 @@ class Workspace(object):
 		"""
 		return [docid for docid, doc in self.docs.items() if doc.ext == ext]
 
-	def originalTokens(self) -> Iterator[Tuple[str, TokenList]]:
+	def original_tokens(self) -> Iterator[Tuple[str, TokenList]]:
 		"""
 		Yields an iterator of (docid, list of tokens).
 		"""
 		for docid, doc in self.docs.items():
-			if doc.originalTokenFile.is_file():
-				Workspace.log.debug(f'Getting original tokens from {docid}')
-				yield docid, [Token.from_dict(row) for row in FileIO.load(doc.originalTokenFile)]
+			Workspace.log.debug(f'Getting original tokens from {docid}')
+			yield docid, doc.tokens
 
-	def goldTokens(self) -> Iterator[Tuple[str, TokenList]]:
+	def gold_tokens(self) -> Iterator[Tuple[str, TokenList]]:
 		"""
 		Yields an iterator of (docid, list of gold-aligned tokens).
 		"""
 		for docid, doc in self.docs.items():
-			if doc.alignedTokenFile.is_file():
+			if doc.goldFile.is_file():
+				doc.prepare('align', self.config.k)
 				Workspace.log.debug(f'Getting gold tokens from {docid}')
-				yield docid, [Token.from_dict(row) for row in FileIO.load(doc.alignedTokenFile)]
+				yield docid, [t for t in doc.tokens if t.gold is not None]
 
 	def cleanup(self, dryrun=True, full=False):
 		"""
@@ -155,36 +159,6 @@ class Workspace(object):
 ##########################################################################################
 
 
-def _tokensaver(func):
-	@functools.wraps(func)
-	def wrapper(*args, **kwargs):
-		Document.log.debug(f'args: {args}, kwargs: {kwargs}')
-		def arg(name, index):
-			if kwargs and name in kwargs:
-				return kwargs[name]
-			if len(args) > index:
-				return args[index]
-			return None
-		self = args[0]
-		force = arg('force', 3)
-		kind = func.__name__
-		if not force and TokenList.exists(self.workspace.storageconfig, self.docid, kind):
-			Workspace.log.info(f'Storage containing {kind} for {self.docid} exists and will be returned as a TokenList. Use --force or delete it to rerun.')
-			tl = TokenList.new(self.workspace.storageconfig)
-			tl.load(self.docid, kind)
-			Workspace.log.debug(f'Loaded {len(tl)} {kind}.')
-			return tl
-
-		tokens = func(*args, **kwargs)
-
-		if len(tokens) > 0:
-			Workspace.log.info(f'Writing {len(tokens)} {kind} for {self.docid}')
-			tokens.save(kind)
-
-		return tokens
-	return wrapper
-
-
 class Document(object):
 	log = logging.getLogger(f'{__name__}.Document')
 
@@ -193,8 +167,7 @@ class Document(object):
 	"""
 	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, training: Path, corrected: Path, nheaderlines: int = 0):
 		"""
-		:param docid: Base filename (ie. without extension).
-		:param ext: The extension (including leading period).
+		:param doc: A path to a file.
 		:param original: Directory for original uncorrected files.
 		:param gold: Directory for known correct "gold" files (if any).
 		:param training: Directory for storing intermediate files.
@@ -214,14 +187,15 @@ class Document(object):
 			self.correctedFile: Union[CorpusFile, Path] = corrected.joinpath(doc.name)
 		if not self.originalFile.exists():
 			raise ValueError(f'Cannot create Document with non-existing original file: {self.originalFile}')
-		self.originalTokenFile = training.joinpath(f'{self.docid}.tokens.csv')  #: Path to original token file (CSV format).
-		self.alignedTokenFile = training.joinpath(f'{self.docid}.alignedTokens.csv')  #: Path to aligned token file (CSV format).
-		self.kbestTokenFile = training.joinpath(f'{self.docid}.kbestTokens.csv')  #: Path to token file with *k*-best suggestions (CSV format).
-		self.binnedTokenFile = training.joinpath(f'{self.docid}.binnedTokens.csv')  #: Path to token file with bins applied (CSV format).
-		self.correctedTokenFile = training.joinpath(f'{self.docid}.correctedTokens.csv')  #: Path to token file with autocorrections applied (CSV format).
+		self.tokenFile = training.joinpath(f'{self.docid}.csv')  #: Path to token file (CSV format).
 		self.fullAlignmentsFile = training.joinpath(f'{self.docid}.fullAlignments.json')  #: Path to full letter-by-letter alignments (JSON format).
 		self.wordAlignmentsFile = training.joinpath(f'{self.docid}.wordAlignments.json')  #: Path to word-by-word alignments (JSON format).
 		self.readCountsFile = training.joinpath(f'{self.docid}.readCounts.json')  #: Path to letter read counts (JSON format).
+		
+		self.tokens = TokenList.new(self.workspace.storageconfig)
+		if TokenList.exists(self.workspace.storageconfig, self.docid):
+			self.tokens.load(self.docid)
+			Workspace.log.debug(f'Loaded {len(self.tokens)} tokens.')
 
 	def alignments(self, force=False) -> Tuple[list, dict, list]:
 		"""
@@ -262,119 +236,63 @@ class Document(object):
 		
 		return fullAlignments, wordAlignments, readCounts
 
-	@_tokensaver
-	def tokens(self, k: int, dehyphenate=False, force=False) -> TokenList:
+	def prepare(self, step: str, k: int, dehyphenate=False, force=False):
 		"""
-		Generate :class:`Tokens<CorrectOCR.tokens.Token>` for the given doc.
+		Prepares the :class:`Tokens<CorrectOCR.tokens.Token>` for the given doc.
 
-		Caches its results in the ``trainingPath``.
-
-		:param k: Unused in this method, but may be used by internal call to :meth:`kbestTokens()<CorrectOCR.workspace.Document.kbestTokens>`.
+		:param k: How many `k`-best suggestions to calculate, if necessary.
 		:param dehyphenate: Whether to attempt dehyphenization of tokens.
 		:param force: Back up existing tokens and create new ones.
 		"""
+		log = logging.getLogger(f'{__name__}._get_prep_step')
+
+		prep_methods = {
+			'server': 'autocorrect',
+			'all': 'autocorrect',
+		}
+		step = prep_methods.get(step, step)
+		Document.log.info(f'Creating {step} tokens for {self.docid}')
+
+		if step == 'tokenize':
+			if force or len(self.tokens) == 0:
+				tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.config.language, dehyphenate)
+				self.tokens = tokenizer.tokenize(
+					self.originalFile,
+					self.workspace.storageconfig
+				)
+		elif step == 'align':
+			self.prepare('tokenize', k, dehyphenate, force)
+			if self.goldFile.is_file():
+				(_, wordAlignments, _) = self.alignments()
+				for i, token in enumerate(self.tokens): # TODO force
+					if not token.gold and token.original in wordAlignments:
+						wa = wordAlignments[token].items()
+						closest = sorted(wa, key=lambda x: abs(x[0]-i))
+						#Document.log.debug(f'{wa} {i} {token.original} {closest}')
+						token.gold = closest[0][1]
+		elif step == 'kbest':
+			if self.goldFile.is_file():
+				self.prepare('align', k, dehyphenate, force)
+			else:
+				self.prepare('tokenize', k, dehyphenate, force)
+			self.workspace.resources.hmm.generate_kbest(self.tokens, k, force)
+		elif step == 'bin':
+			self.prepare('kbest', k, dehyphenate, force)
+			self.workspace.resources.heuristics.bin_tokens(self.tokens, force)
+		elif step == 'autocorrect':
+			self.prepare('bin', k, dehyphenate, force)
+			for t in progressbar.progressbar(self.tokens):
+				if force or not t.gold:
+					if t.decision in {'kbest', 'kdict'}:
+						t.gold = t.kbest[int(t.selection)].candidate
+					elif t.decision == 'original':
+						t.gold = t.original
 		
-		Document.log.info(f'Creating basic tokens for {self.docid}')
-		tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.config.language, dehyphenate)
-		tokens = tokenizer.tokenize(
-			self.originalFile,
-			self.workspace.storageconfig
-		)
-		
-		return tokens
-
-	@_tokensaver
-	def alignedTokens(self, k: int, dehyphenate=False, force=False) -> TokenList:
-		"""
-		If possible, uses the ``alignments`` to add gold alignments to the generated tokens.
-
-		Caches its results in the ``trainingPath``.
-
-		:param k: Unused in this method, but may be used by internal call to :meth:`kbestTokens()<CorrectOCR.workspace.Document.kbestTokens>`.
-		:param dehyphenate: Whether to attempt dehyphenization of tokens.
-		:param force: Back up existing tokens and create new ones.
-		"""
-		tokens = self.tokens(k, dehyphenate, force)
-
-		Document.log.info(f'Creating aligned tokens for {self.docid}')
-		if self.goldFile.is_file():
-			(_, wordAlignments, _) = self.alignments()
-			for i, token in enumerate(tokens):
-				if not token.gold and token.original in wordAlignments:
-					wa = wordAlignments[token].items()
-					closest = sorted(wa, key=lambda x: abs(x[0]-i))
-					#Document.log.debug(f'{wa} {i} {token.original} {closest}')
-					token.gold = closest[0][1]
-
-			return tokens
-		return TokenList.new(self.storageconfig)
-
-	@_tokensaver
-	def kbestTokens(self, k: int, dehyphenate=False, force=False) -> TokenList:
-		"""
-		Uses the :class:`HMM<CorrectOCR.model.HMM>` to add *k*-best suggestions to the generated tokens.
-
-		Caches its results in the ``trainingPath``.
-
-		:param k: How many `k` to calculate.
-		:param dehyphenate: Whether to attempt dehyphenization of tokens.
-		:param force: Back up existing tokens and create new ones.
-		"""
-		if self.goldFile.is_file():
-			tokens = self.alignedTokens(k, dehyphenate, force)
-		else:
-			tokens = self.tokens(k, dehyphenate, force)
-
-		Document.log.info(f'Creating k-best tokens for {self.docid}')
-		self.workspace.resources.hmm.generate_kbest(tokens, k)
-
-		return tokens
-
-	@_tokensaver
-	def binnedTokens(self, k: int, dehyphenate=False, force=False) -> TokenList:
-		"""
-		Uses the :class:`Heuristics<CorrectOCR.heuristics.Heuristics>` to decide whether human or
-		automatic corrections are appropriate for the generated tokens.
-
-		Caches its results in the ``trainingPath``.
-
-		:param k: Unused in this method, but may be used by internal call to :meth:`kbestTokens()<CorrectOCR.workspace.Document.kbestTokens>`.
-		:param dehyphenate: Whether to attempt dehyphenization of tokens.
-		:param force: Back up existing tokens and create new ones.
-		"""
-		tokens = self.kbestTokens(k, dehyphenate, force)
-
-		Document.log.info(f'Creating binned tokens for {self.docid}')
-		self.workspace.resources.heuristics.bin_tokens(tokens)
-
-		return tokens
-
-	@_tokensaver
-	def autocorrectedTokens(self, k: int, dehyphenate=False, force=False) -> TokenList:
-		"""
-		Applies the suggested corrections and leaves those marked 'annotator'
-		for human annotation.
-
-		:param k: Unused in this method, but may be used by internal call to :meth:`kbestTokens()<CorrectOCR.workspace.Document.kbestTokens>`.
-		:param dehyphenate: Whether to attempt dehyphenization of tokens.
-		:param force: Back up existing tokens and create new ones.
-		"""
-		tokens = self.binnedTokens(k, dehyphenate, force)
-
-		Document.log.info(f'Creating autocorrected tokens for {self.docid}')
-		for t in progressbar.progressbar(tokens):
-			if t.decision in {'kbest', 'kdict'}:
-				t.gold = t.kbest[int(t.selection)].candidate
-			elif t.decision == 'original':
-				t.gold = t.original
-
-		return tokens
+		self.tokens.save()
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
-		all_tokens = TokenList.for_type(self.workspace.storageconfig.type).all_tokens(self.workspace.storageconfig, self.docid)
-		for kind, tokens in all_tokens.items():
-			Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, tokens)
-			TokenList.for_type(self.workspace.storageconfig.type)._save_all_tokens(self.workspace.storageconfig, kind, tokens, edge_left, edge_right)
+		Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens)
+		self.tokens.save()
 
 
 class CorpusFile(object):

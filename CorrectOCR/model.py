@@ -226,7 +226,7 @@ class HMM(object):
 
 		return variant_words
 
-	def generate_kbest(self, tokens: TokenList, k: int = 4):
+	def generate_kbest(self, tokens: TokenList, k: int = 4, force = False):
 		"""
 		Generates *k*-best correction candidates for a list of Tokens and adds them
 		to each token.
@@ -240,7 +240,8 @@ class HMM(object):
 
 		HMM.log.info(f'Generating {k}-best suggestions for each token')
 		for i, token in enumerate(progressbar.progressbar(tokens)):
-			token.kbest = self.kbest_for_word(token.normalized, k)
+			if force or not token.kbest:
+				token.kbest = self.kbest_for_word(token.normalized, k)
 			#HMM.log.debug(vars(token))
 
 		HMM.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')

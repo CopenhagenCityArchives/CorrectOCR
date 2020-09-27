@@ -24,11 +24,11 @@ class TokenList(collections.abc.MutableSequence):
 		return wrapper
 
 	@staticmethod
-	def new(config, docid = None, kind = None, tokens = None) -> TokenList:
+	def new(config, docid = None, tokens = None) -> TokenList:
 		if tokens:
-			return TokenList.for_type(config.type)(config, docid=docid, kind=kind, tokens=tokens)
+			return TokenList.for_type(config.type)(config, docid=docid, tokens=tokens)
 		else:
-			return TokenList.for_type(config.type)(config, docid=docid, kind=kind)
+			return TokenList.for_type(config.type)(config, docid=docid)
 
 	@staticmethod
 	def for_type(type: str) -> TokenList.__class__:
@@ -37,17 +37,16 @@ class TokenList(collections.abc.MutableSequence):
 			raise NameError(f'Unknown storage type: {type}')
 		return TokenList._subclasses[type]
 
-	def __init__(self, config, docid = None, kind = None, tokens = None):
+	def __init__(self, config, docid = None, tokens = None):
 		if type(self) is TokenList:
 			raise TypeError("Token base class cannot not be directly instantiated")
 		self.config = config
 		self.docid = docid
-		self.kind = kind
 		if tokens:
 			self.tokens = tokens
 		else:
 			self.tokens = list()
-		TokenList.log.debug(f'init: {self.config} {self.docid} {self.kind}')
+		TokenList.log.debug(f'init: {self.config} {self.docid}')
 
 	def __str__(self):
 		output = []
@@ -79,15 +78,15 @@ class TokenList(collections.abc.MutableSequence):
 		return self.tokens.__getitem__(key)
 
 	@staticmethod
-	def exists(config, docid: str, kind: str) -> bool:
-		return TokenList.for_type(config.type).exists(config, docid, kind)
+	def exists(config, docid: str) -> bool:
+		return TokenList.for_type(config.type).exists(config, docid)
 
 	@abc.abstractmethod
-	def load(self, docid: str, kind: str):
+	def load(self, docid: str):
 		pass
 
 	@abc.abstractmethod
-	def save(self, kind: str = None, token: 'Token' = None):
+	def save(self, token: 'Token' = None):
 		pass
 
 	@property
@@ -110,11 +109,6 @@ class TokenList(collections.abc.MutableSequence):
 			return None
 		else:
 			return random.choice(filtered_tokens)
-
-	@staticmethod
-	@abc.abstractmethod
-	def all_tokens(config, docid):
-		pass
 
 ##########################################################################################
 

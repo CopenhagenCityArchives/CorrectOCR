@@ -41,7 +41,7 @@ class StringTokenizer(Tokenizer):
 			tokens = dehyphenated
 		#StringTokenizer.log.debug(f'tokens: {tokens}')
 
-		tokenlist = TokenList.new(storageconfig, docid=file.id, kind='tokens', tokens=[StringToken(w, file.path.stem, i) for i, w in enumerate(tokens)])
+		tokenlist = TokenList.new(storageconfig, docid=file.id, tokens=[StringToken(w, file.path.stem, i) for i, w in enumerate(tokens)])
 		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokenlist[:10]}')
 	
 		return tokenlist

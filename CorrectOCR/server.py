@@ -44,7 +44,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	def before_request():
 		g.docs = {
 			docid: {
-				'tokens': workspace.docs[docid].autocorrectedTokens(k=config.k),
+				'tokens': workspace.docs[docid].tokens,
 			} for docid in workspace.docids_for_ext('.pdf')
 		} if workspace else {}
 		g.discard_filter = lambda t: not t.is_discarded

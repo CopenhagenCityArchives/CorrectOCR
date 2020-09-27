@@ -35,17 +35,13 @@ class FileIO(object):
 		return path
 
 	@classmethod
-	def _csv_header(cls, kind: str, k: int) -> List[str]:
-		header = ['Original', 'Hyphenated', 'Discarded']
-		if kind in {'.alignedTokens', '.kbestTokens', '.binnedTokens', '.correctedTokens'}:
-			header = ['Gold'] + header
-		if kind in {'.kbestTokens', '.binnedTokens', '.correctedTokens'}:
-			for n in range(1, k+1):
-				header += [f'{n}-best', f'{n}-best prob.']
-		if kind in {'.binnedTokens', '.correctedTokens'}:
-			header += ['Bin', 'Heuristic', 'Decision', 'Selection']
+	def _csv_header(cls, k: int) -> List[str]:
+		header = ['Gold', 'Original', 'Hyphenated', 'Discarded']
+		for n in range(1, k+1):
+			header += [f'{n}-best', f'{n}-best prob.']
+		header += ['Bin', 'Heuristic', 'Decision', 'Selection']
 		header += ['Token type', 'Token info', 'Doc ID', 'Index']
-		cls.log.debug(f'header for {kind} k={k}: {header}')
+		cls.log.debug(f'header for k={k}: {header}')
 		return header
 
 	@classmethod
@@ -146,7 +142,7 @@ class FileIO(object):
 				json.dump(data, f, cls=COCRJSONCodec)
 			elif path.suffix == '.csv':
 				if isinstance(data, TokenList):
-					header = cls._csv_header(path.suffixes[0], data[0].k)
+					header = cls._csv_header(data[0].k)
 					rows = [vars(x) for x in data]
 				else:
 					header = data[0].keys()
