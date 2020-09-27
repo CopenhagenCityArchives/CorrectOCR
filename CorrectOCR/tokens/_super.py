@@ -86,7 +86,7 @@ class Token(abc.ABC):
 
 		:return:
 		"""
-		pass
+		return None
 
 	@property
 	def original(self) -> str:

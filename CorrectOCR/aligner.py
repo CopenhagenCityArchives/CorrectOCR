@@ -35,7 +35,7 @@ class Aligner(object):
 		remove = set()
 
 		for i, left in enumerate(left, index):
-			matcher = SequenceMatcher(None, None, left, autojunk=None)
+			matcher = SequenceMatcher(None, None, left, autojunk=False)
 			(best, bestRatio) = (None, 0.0)
 			for right in right:
 				matcher.set_seq1(right)

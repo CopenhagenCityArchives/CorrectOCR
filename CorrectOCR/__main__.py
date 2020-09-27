@@ -73,7 +73,7 @@ class EnvOverride(configparser.BasicInterpolation):
 			return super().before_get(parser, section, option, value, defaults)
 
 
-def setup(configfiles, args=sys.argv[1:]):
+def setup(configfiles, args):
 	loglevels = dict(logging._nameToLevel)
 	del loglevels['NOTSET']
 	del loglevels['WARN']
@@ -250,7 +250,7 @@ def setup(configfiles, args=sys.argv[1:]):
 ##########################################################################################
 
 if __name__ == "__main__":
-	ws, a = setup(['CorrectOCR.ini'])
+	ws, a = setup(['CorrectOCR.ini'], sys.argv[1:])
 
 	a.func(ws, a)
 
