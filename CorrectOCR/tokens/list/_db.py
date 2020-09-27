@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import abc
-import collections
 import json
 import logging
+import traceback
 import weakref
 
-import progressbar
 import pyodbc
 import random
 

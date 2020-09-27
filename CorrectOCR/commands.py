@@ -19,7 +19,7 @@ from .fileio import _open_for_reading, FileIO
 from .model import HMMBuilder
 from .server import create_app
 from .tokens import tokenize_str, Token, Tokenizer
-from .workspace import Workspace, Document
+from .workspace import Workspace
 
 
 ##########################################################################################

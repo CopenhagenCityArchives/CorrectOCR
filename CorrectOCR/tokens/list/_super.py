@@ -4,7 +4,6 @@ import abc
 import collections
 import logging
 import random
-from typing import List
 
 
 class TokenList(collections.abc.MutableSequence):

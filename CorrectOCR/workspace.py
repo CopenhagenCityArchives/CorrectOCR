@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import functools
 import logging
 import re
 import requests
 import urllib
 from pathlib import Path, PurePath
 from pprint import pformat
-from typing import Dict, Iterator, Tuple, Union
+from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import progressbar
 
@@ -17,7 +16,7 @@ from .dictionary import Dictionary
 from .fileio import FileIO
 from .heuristics import Heuristics
 from .model import HMM
-from .tokens import Token, Tokenizer, TokenList, tokenize_str
+from .tokens import Tokenizer, TokenList, tokenize_str
 
 
 class Workspace(object):
