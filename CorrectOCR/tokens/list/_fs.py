@@ -27,4 +27,7 @@ class FSTokenList(TokenList):
 	def exists(config, docid: str):
 		path = config.trainingPath.joinpath(f'{docid}.csv')
 
+		self.server_ready = all(t.decision is not None for t in self.tokens)
+		FSTokenList.log.debug(f'doc {docid} ready for server: {self.server_ready}')
+
 		return path.is_file()

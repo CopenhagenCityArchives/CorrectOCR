@@ -41,6 +41,7 @@ class TokenList(collections.abc.MutableSequence):
 			raise TypeError("Token base class cannot not be directly instantiated")
 		self.config = config
 		self.docid = docid
+		self.server_ready = False
 		if tokens:
 			self.tokens = tokens
 		else:

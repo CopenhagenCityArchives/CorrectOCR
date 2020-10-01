@@ -45,7 +45,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		g.docs = {
 			docid: {
 				'tokens': workspace.docs[docid].tokens,
-			} for docid in workspace.docids_for_ext('.pdf')
+			} for docid in workspace.docids_for_ext('.pdf', server_ready=True)
 		} if workspace else {}
 		g.discard_filter = lambda t: not t.is_discarded
 

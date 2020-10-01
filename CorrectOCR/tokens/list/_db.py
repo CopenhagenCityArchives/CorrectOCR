@@ -58,6 +58,16 @@ class DBTokenList(TokenList):
 			)
 			result = cursor.fetchone()
 			self.tokens = [None] * result[0]
+			cursor.execute("""
+				SELECT COUNT(*)
+				FROM token
+				WHERE doc_id = ?
+				AND decision IS NULL
+				""",
+				docid,
+			)
+			self.server_ready = cursor.fetchone()[0] == 0
+			DBTokenList.log.debug(f'doc {docid} ready for server: {self.server_ready}')
 
 	def __getitem__(self, key):
 		#DBTokenList.log.debug(f'Getting token at index {key} in {len(self.tokens)} tokens')

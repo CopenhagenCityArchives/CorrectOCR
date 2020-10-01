@@ -101,11 +101,14 @@ class Workspace(object):
 		
 		return doc_id
 
-	def docids_for_ext(self, ext: str) -> List[str]:
+	def docids_for_ext(self, ext: str, server_ready=False) -> List[str]:
 		"""
 		Returns a list of IDs for documents with the given extension.
+		
+		:param: ext Only include docs with this extension.
+		:param: server_ready Only include documents that are ready (prepared).
 		"""
-		return [docid for docid, doc in self.docs.items() if doc.ext == ext]
+		return [docid for docid, doc in self.docs.items() if doc.ext == ext and not (server_ready and not doc.tokens.server_ready)]
 
 	def original_tokens(self) -> Iterator[Tuple[str, TokenList]]:
 		"""
