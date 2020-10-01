@@ -39,9 +39,9 @@ docs/*.png
 docker
 docs
 
+.git
 .travis.yml
 docker-compose.yml
-Dockerfile
 Dockerrun.aws.json
 FUTURE.md
 license.txt
