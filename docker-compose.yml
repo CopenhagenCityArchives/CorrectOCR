@@ -6,18 +6,24 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - "./resources:/resources"
-      - "./original:/original"
-      - "./gold:/gold"
-      - "./training:/training"
-      - "./__COCRcache__:/__COCRcache__"
+      - "./docker/workspace/resources:/resources"
+      - "./docker/workspace/original:/original"
+      - "./docker/workspace/gold:/gold"
+      - "./docker/workspace/training:/training"
+      - "./docker/workspace/__COCRcache__:/__COCRcache__"
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=testserver
+      - MYSQL_USER=dev
+      - MYSQL_PASSWORD=123456
+  
   db:
     container_name: db
     image: mysql:latest
     command: --default-authentication-plugin=mysql_native_password
     restart: always
-    env_file:
-      - "./mysql.env"
+    #env_file:
+    #  - "./mysql.env"
     volumes:
       - "./initdb.d:/docker-entrypoint-initdb.d"
     ports:
