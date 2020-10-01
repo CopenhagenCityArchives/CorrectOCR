@@ -289,6 +289,8 @@ class Document(object):
 						t.gold = t.kbest[int(t.selection)].candidate
 					elif t.decision == 'original':
 						t.gold = t.original
+			Document.log.info(f'Marking {self.docid} ready for server')
+			self.tokens.server_ready = True
 		
 		self.tokens.save()
 

@@ -1,6 +1,7 @@
 import io
 import logging
 import random
+from threading import Thread
 from typing import Any
 
 from flask import Flask, Response, g, json, redirect, request, url_for
@@ -10,7 +11,6 @@ import requests
 from . import progname
 from .tokens._pdf import PDFToken
 from .workspace import Workspace
-
 
 def create_app(workspace: Workspace = None, config: Any = None):
 	"""
@@ -336,6 +336,38 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		return json.jsonify({
 			'authorized': authorized
 		}), 200 if authorized else 401
+
+	def add_and_prepare(uris):
+		for uri in uris:
+			log.info(f'Adding {uri}')
+			doc_id = workspace.add_doc(uri)
+			log.info(f'Preparing {doc_id}')
+			workspace.docs[doc_id].prepare('server', k=config.k)
+
+	@app.route('/add_docs', methods=['POST'])
+	def add_docs():
+		"""
+		Adds a number of documents to the backend.
+		
+		Each URL will be downloaded and tokens will prepared in a background thread. Once they are prepared, they will become available in the other endpoints.
+		
+		.. :quickref: 2 Documents; Add more documents
+
+		:<json list urls: A list of URLS to documents.
+		"""
+		#log.debug(f'request.data: {request.data}')
+		#log.debug(f'request.json: {request.json}')
+		#log.debug(f'request.form: {request.form}')
+		if request.json and 'urls' in request.json:
+			thread = Thread(target=add_and_prepare, args=(request.json['urls'], ))
+			thread.start()
+			return json.jsonify({
+				'detail': f'Adding and preparing documents from list of URLs. They will become available once prepared.',
+			}), 200
+		else:
+			return json.jsonify({
+				'detail': f'No document URLs specified.',
+			}), 400
 
 	@app.route('/test')
 	def test():
