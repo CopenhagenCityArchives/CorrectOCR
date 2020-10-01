@@ -42,7 +42,7 @@ docs
 .git
 .travis.yml
 docker-compose.yml
-Dockerrun.aws.json
+Dockerfile
 FUTURE.md
 license.txt
 README.rst
