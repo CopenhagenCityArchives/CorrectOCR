@@ -27,6 +27,7 @@ originalPath = original/
 trainingPath = training/
 nheaderlines = 0
 language = Danish
+docInfoBaseURL = 
 
 [resources]
 resourceRootPath = ./resources/
@@ -98,6 +99,7 @@ def setup(configfiles, args):
 	workspaceparser.add_argument('--goldPath', metavar='PATH', type=Path, help='Path to directory of known correct "gold" docs')
 	workspaceparser.add_argument('--trainingPath', metavar='PATH', type=Path, help='Path for generated training files')
 	workspaceparser.add_argument('--correctedPath', metavar='PATH', type=Path, help='Directory to output corrected docs')
+	workspaceparser.add_argument('--docInfoBaseURL', metavar='URL', type=str, help='Base URL that serves info about documents')
 	workspaceparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus headers (default: 0)')
 	workspaceparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
 	workspaceparser.set_defaults(**dict(config.items('workspace')))
