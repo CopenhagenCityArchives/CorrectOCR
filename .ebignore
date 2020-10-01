@@ -35,3 +35,15 @@ docs/*.png
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+docker
+docs
+
+.travis.yml
+docker-compose.yml
+Dockerfile
+Dockerrun.aws.json
+FUTURE.md
+license.txt
+README.rst
+TODO.md
