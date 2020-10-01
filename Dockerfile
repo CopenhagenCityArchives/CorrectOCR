@@ -6,7 +6,7 @@ RUN apt install -y tesseract-ocr libtesseract-dev libleptonica-dev mupdf unixodb
 COPY . .
 RUN pip3 install -r requirements.txt
 
-RUN python -m CorrectOCR prepare --all --step server --loglevel DEBUG
+#RUN python -m CorrectOCR prepare --all --step server --loglevel DEBUG
 
 EXPOSE 5000
 
