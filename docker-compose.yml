@@ -11,17 +11,16 @@ services:
       - "./docker/workspace/gold:/gold"
       - "./docker/workspace/training:/training"
       - "./docker/workspace/__COCRcache__:/__COCRcache__"
-    environment:
-      - MYSQL_ROOT_PASSWORD=123456
-      - MYSQL_DATABASE=testserver
-      - MYSQL_USER=dev
-      - MYSQL_PASSWORD=123456
   
   db:
     container_name: db
     image: mysql:latest
     command: --default-authentication-plugin=mysql_native_password
-    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=testserver
+      - MYSQL_USER=dev
+      - MYSQL_PASSWORD=123456
     #env_file:
     #  - "./mysql.env"
     volumes:
