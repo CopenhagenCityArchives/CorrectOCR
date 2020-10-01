@@ -54,7 +54,7 @@ class DBTokenList(TokenList):
 				FROM token
 				WHERE token.doc_id = ?
 				""",
-				self.docid
+				self.docid,
 			)
 			result = cursor.fetchone()
 			self.tokens = [None] * result[0]
@@ -97,6 +97,7 @@ class DBTokenList(TokenList):
 					token_dict = {
 						'Token type': result.token_type,
 						'Token info': result.token_info,
+						'Annotation info': result.annotation_info,
 						'Doc ID': result.doc_id,
 						'Index': result.doc_index,
 						'Gold': result.gold,
@@ -122,8 +123,8 @@ class DBTokenList(TokenList):
 		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
 		with get_connection(config).cursor() as cursor:
 			cursor.execute("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				token.docid,
 				token.index,
@@ -136,7 +137,8 @@ class DBTokenList(TokenList):
 				token.decision,
 				json.dumps(token.selection),
 				token.__class__.__name__,
-				json.dumps(token.token_info)
+				json.dumps(token.token_info),
+				json.dumps(token.annotation_info),
 			)
 			if len(token.kbest) > 0:
 				kbestdata = []
@@ -146,13 +148,13 @@ class DBTokenList(TokenList):
 					token.index,
 					k,
 					item.candidate,
-					item.probability
+					item.probability,
 				])
 				cursor.executemany("""
 					REPLACE INTO kbest (doc_id, doc_index, k, candidate, probability)
 					VALUES (?, ?, ?, ?, ?) 
 					""",
-					kbestdata
+					kbestdata,
 				)
 
 	@staticmethod
@@ -172,7 +174,8 @@ class DBTokenList(TokenList):
 				token.decision,
 				json.dumps(token.selection),
 				token.__class__.__name__,
-				json.dumps(token.token_info)
+				json.dumps(token.token_info),
+				json.dumps(token.annotation_info),
 			])
 			for k, item in token.kbest.items():
 				kbestdata.append([
@@ -180,22 +183,22 @@ class DBTokenList(TokenList):
 				token.index,
 				k,
 				item.candidate,
-				item.probability
+				item.probability,
 			])
 		DBTokenList.log.debug(f'tokendata: {len(tokendata)} kbestdata: {len(kbestdata)}')
 		with get_connection(config).cursor() as cursor:
 			cursor.executemany("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
-				tokendata
+				tokendata,
 			)
 			if len(kbestdata) > 0:
 				cursor.executemany("""
 					REPLACE INTO kbest (doc_id, doc_index, k, candidate, probability)
 					VALUES (?, ?, ?, ?, ?) 
 					""",
-					kbestdata
+					kbestdata,
 				)
 
 	def save(self, token: 'Token' = None):
@@ -214,7 +217,7 @@ class DBTokenList(TokenList):
 				WHERE token.doc_id = ?
 				AND token.gold IS NOT NULL AND token.gold != ''
 				""",
-				self.docid
+				self.docid,
 			)
 			result = cursor.fetchone()
 			return result[0]
@@ -228,7 +231,7 @@ class DBTokenList(TokenList):
 				WHERE token.doc_id = ?
 				AND token.discarded = True
 				""",
-				self.docid
+				self.docid,
 			)
 			result = cursor.fetchone()
 			return result[0]
@@ -244,7 +247,7 @@ class DBTokenList(TokenList):
 					AND token.gold IS NOT NONE AND token.gold != ''
 					""",
 					self.docid,
-					is_discarded
+					is_discarded,
 				)
 			else:
 				cursor.execute("""
@@ -272,7 +275,7 @@ class DBTokenList(TokenList):
 		with get_connection(config).cursor() as cursor:
 			cursor.execute(
 				"SELECT * FROM token WHERE doc_id = ? LIMIT 1",
-				docid
+				docid,
 			)
 			res = cursor.fetchone()
 			DBTokenList.log.debug(f'res: {res}')
@@ -283,7 +286,7 @@ class DBTokenList(TokenList):
 		with get_connection(config).cursor() as cursor:
 			cursor.execute(
 				"SELECT MAX(doc_index) FROM token WHERE doc_id = ?",
-				docid
+				docid,
 			)
 			res = cursor.fetchone()[0]
 			count = int(res or 0)

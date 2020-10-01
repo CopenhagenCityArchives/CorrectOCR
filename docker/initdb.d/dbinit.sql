@@ -11,6 +11,7 @@ CREATE TABLE token (
 	selection VARCHAR(255),
 	token_type VARCHAR(255),
 	token_info TEXT,
+	annotation_info TEXT,
 	PRIMARY KEY (doc_id, doc_index)
 );
 

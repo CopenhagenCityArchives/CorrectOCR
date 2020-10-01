@@ -189,13 +189,14 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     "Selection": [],
 		     "Token info": "...",
 		     "Token type": "PDFToken",
+		     "Annotation info": "...",
 		     "image_url": "/7696/token-2676.png"
 		   }
 		
 		:param string docid: The ID of the requested document.
 		:param int index: The placement of the requested Token in the document.
 		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`.
-		    Relevant keys for frontend display are
+		    Relevant keys for frontend display include
 		    `original` (uncorrected OCR result),
 		    `gold` (corrected version, if available),
 		    TODO
@@ -225,6 +226,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:param int index: The placement of the requested Token in the document.
 		
 		:<json string gold: Set new correction for this Token.
+		:<json string annotation info: Save some metadata about this correction (eg. username, date). Will only be saved if there is a gold correction.
 		:<json string hyphenate: Optionally hyphenate to the `left` or `right`.
 		
 		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`.
@@ -243,6 +245,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				return json.jsonify({'error': 'Unauthorized.'}), 401
 			token.gold = request.json['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
+			if 'annotation_info' in request.json:
+				app.logger.debug(f'Received annotation_info: {annontation_info}')	
+				token.annotation_info = request.json['annotation_info']
 			g.docs[docid]['tokens'].save(token=token)
 		if 'hyphenate' in request.json:
 			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')

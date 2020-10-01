@@ -75,6 +75,8 @@ class Token(abc.ABC):
 		self.is_hyphenated = False #: Whether the token is hyphenated to the following token.
 		self.is_discarded = False #: Whether the token has been discarded (marked irrelevant by code or annotator).
 
+		self.annotation_info = {}
+
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
 			self._gold = self.normalized
@@ -175,6 +177,7 @@ class Token(abc.ABC):
 			output['Selection'] = self.selection
 		output['Token type'] = self.__class__.__name__
 		output['Token info'] = json.dumps(self.token_info)
+		output['Annotation info'] = json.dumps(self.annotation_info)
 
 		return output
 
@@ -197,6 +200,7 @@ class Token(abc.ABC):
 		t.gold = d.get('Gold', None)
 		t.is_hyphenated = d.get('Hyphenated', False)
 		t.is_discarded = d.get('Discarded', False)
+		t.annotation_info = json.loads(d['Annotation info']),
 		kbest = collections.defaultdict(lambda: KBestItem(''))
 		k = 1
 		while f'{k}-best' in d:
