@@ -45,6 +45,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		g.docs = {
 			docid: {
 				'tokens': workspace.docs[docid].tokens,
+				'info_url': workspace.docs[docid].info_url,
 			} for docid in workspace.docids_for_ext('.pdf', server_ready=True)
 		} if workspace else {}
 		g.discard_filter = lambda t: not t.is_discarded
@@ -84,6 +85,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     {
 		       "docid": "<docid>",
 		       "url": "/<docid>/tokens.json",
+		       "info_url": "...",
 		       "count": 100,
 		       "corrected": 87
 		     }
@@ -91,12 +93,15 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		
 		:>jsonarr string docid: ID for the document.
 		:>jsonarr string url: URL to list of Tokens in doc.
+		:>jsonarr string info_url: URL that provides more info about the document. See
+		  workspace.docInfoBaseURL
 		:>jsonarr int count: Total number of Tokens.
 		:>jsonarr int corrected: Number of corrected Tokens.
 		"""
 		docindex = [{
 			'docid': docid,
 			'url': url_for('tokens', docid=docid),
+			'info_url': doc['info_url'],
 			'count': len(doc['tokens']),
 			'corrected': doc['tokens'].corrected_count,
 			'discarded': doc['tokens'].discarded_count

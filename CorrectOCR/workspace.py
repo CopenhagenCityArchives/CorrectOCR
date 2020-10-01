@@ -31,6 +31,7 @@ class Workspace(object):
 	   -  **goldPath** (:class:`Path<pathlib.Path>`): Directory containing the gold (if any) docs.
 	   -  **trainingPath** (:class:`Path<pathlib.Path>`): Directory for storing intermediate docs.
 	   -  **correctedPath** (:class:`Path<pathlib.Path>`): Directory for saving corrected docs.
+	   -  **docInfoBaseURL** (:class:`str`): Base URL that when appended with a doc_id provides information about documents.
 
 	:param resourceconfig: Passed directly to :class:`ResourceManager<CorrectOCR.workspace.ResourceManager>`, see this for further info.
 	
@@ -46,6 +47,7 @@ class Workspace(object):
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(self.config))} at {self.root}')
 		Workspace.log.info(f'Storage configuration:\n{pformat(vars(self.storageconfig))}')
 		self.nheaderlines: int = self.config.nheaderlines
+		self.docInfoBaseURL: int = self.config.docInfoBaseURL
 		self.resources = ResourceManager(self.root, resourceconfig)
 		self.docs: Dict[str, Document] = dict()
 		Workspace.log.info(f'Adding documents from: {self._originalPath}')
@@ -179,6 +181,10 @@ class Document(object):
 		self.workspace = workspace
 		self.docid = doc.stem
 		self.ext = doc.suffix
+		self.info_url = None #: URL that provides information about the document
+		if self.workspace.docInfoBaseURL:
+			self.info_url = self.workspace.docInfoBaseURL + self.docid
+		Document.log.info(f'Document {self.docid} has info_url: {self.info_url}')
 		if self.ext == '.txt':
 			self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(doc.name), nheaderlines)
 			self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(doc.name), nheaderlines)
