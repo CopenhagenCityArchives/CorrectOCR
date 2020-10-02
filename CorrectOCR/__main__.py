@@ -147,7 +147,7 @@ def setup(configfiles, args):
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command', required=True)
 
 	dictparser = subparsers.add_parser('build_dictionary', parents=[commonparser], help='Build dictionary')
-	dictparser.add_argument('--corpusPath', type=Path, default='__COCRcache__/dictionary/', help='Directory of files to split into words and add to dictionary (TXT or PDF format)')
+	dictparser.add_argument('--corpusPath', type=Path, default='dictionary/', help='Directory of files to split into words and add to dictionary (TXT or PDF format)')
 	dictparser.add_argument('--corpusFile', type=Path, help='File containing list URLs to download and use as corpus (TXT format)')
 	dictparser.add_argument('--clear', action='store_true', default=False, help='Clear the dictionary before adding words')
 	dictparser.set_defaults(func=commands.build_dictionary, **configuration)

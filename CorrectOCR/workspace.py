@@ -57,7 +57,6 @@ class Workspace(object):
 			self.add_doc(file)
 		Workspace.log.info(f'Workspace documents: {self.docs}')
 		self.cache = LRUCache(maxsize=1000)
-		self.cachePath = FileIO.cachePath
 
 	def add_doc(self, doc: Any) -> str:
 		"""

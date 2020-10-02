@@ -9,6 +9,7 @@ import plotille
 from PIL import Image, ImageDraw
 
 from ._super import Token, Tokenizer
+from ..fileio import FileIO
 
 
 @Token.register
@@ -41,7 +42,7 @@ class PDFToken(Token):
 		return self.page_n, self.block_n, self.line_n, self.word_n
 
 	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15):
-		imagefile = workspace.cachePath('pdf/').joinpath(
+		imagefile = FileIO.cachePath('pdf').joinpath(
 			f'{self.docid}-{self.page_n}-{self.block_n}-{self.line_n}-{self.word_n}-{self.normalized}.png'
 		)
 		if imagefile.is_file():
