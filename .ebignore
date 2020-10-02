@@ -43,6 +43,7 @@ docs
 .travis.yml
 docker-compose.yml
 Dockerfile
+Dockerfile-dev
 FUTURE.md
 license.txt
 README.rst

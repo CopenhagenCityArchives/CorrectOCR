@@ -10,8 +10,8 @@ COPY ./requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 COPY ./CorrectOCR ./CorrectOCR
 COPY ./docker/workspace ./workspace
-COPY ./docker/CorrectOCR.ini .
-COPY ./uwsgi.py .
+COPY ./docker/CorrectOCR.ini ./
+COPY ./uwsgi.py ./
 
 EXPOSE 5000
 
