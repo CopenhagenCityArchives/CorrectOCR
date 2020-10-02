@@ -15,4 +15,4 @@ COPY ./uwsgi.py .
 
 EXPOSE 5000
 
-ENTRYPOINT wait-for-it $CORRECTOCR_STORAGE_DB_HOST:3306 -t 60 -- uwsgi --socket /tmp/correctocr.sock --http :5000 --wsgi-file uwsgi.py --callable app --processes 4 --threads 2
+ENTRYPOINT uwsgi --socket /tmp/correctocr.sock --http :5000 --wsgi-file uwsgi.py --callable app --processes 4 --threads 2
