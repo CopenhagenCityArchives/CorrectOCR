@@ -63,11 +63,10 @@ class HMM(object):
 		self.dictionary = dictionary
 		self.path = path
 
-		if self.path:
+		(self.init, self.tran, self.emis) = (dict(), dict(), dict())
+		if self.path.is_file():
 			HMM.log.info(f'Loading HMM parameters from {path}')
 			(self.init, self.tran, self.emis) = FileIO.load(path)
-		else:
-			(self.init, self.tran, self.emis) = (None, None, None)
 
 		self.states = self.init.keys()
 		#HMM.log.debug(f'init: {self.init}')
