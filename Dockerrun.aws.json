@@ -2,7 +2,6 @@
     "AWSEBDockerrunVersion": "1",
     "name": "correct-ocr-backend",
     "image": "282251075226.dkr.ecr.eu-west-1.amazonaws.com/correct-ocr-backend:latest",
-    "essential": true,
     "portMappings": [
         {
             "hostPort": 80,
