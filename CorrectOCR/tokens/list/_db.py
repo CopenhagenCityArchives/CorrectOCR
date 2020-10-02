@@ -162,6 +162,8 @@ class DBTokenList(TokenList):
 		tokendata = []
 		kbestdata = []
 		for token in tokens:
+			if token is None:
+				continue # no need to save tokens that were never loaded.
 			tokendata.append([
 				token.docid,
 				token.index,
@@ -186,6 +188,9 @@ class DBTokenList(TokenList):
 				item.probability,
 			])
 		DBTokenList.log.debug(f'tokendata: {len(tokendata)} kbestdata: {len(kbestdata)}')
+		if len(tokendata) == 0:
+			DBTokenList.log.debug(f'No tokens to save.')
+			return
 		with get_connection(config).cursor() as cursor:
 			cursor.executemany("""
 				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info) 
