@@ -1,3 +1,6 @@
+# Dockerfile for development.0
+# In order to use it ./workspace, ./CorrectOCR and ./CorrectOCR.ini must be mounted manually or by using docker-compose 
+
 FROM python:3.7
 
 RUN apt update
@@ -7,11 +10,11 @@ RUN cp /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/lib/libmyodbc8*
 RUN /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/bin/myodbc-installer -d -a -n "MySQL ODBC 8.0 ANSI Driver" -t "DRIVER=/usr/lib/x86_64-linux-gnu/odbc/libmyodbc8a.so;"
 RUN /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/bin/myodbc-installer -d -a -n "MySQL ODBC 8.0 Unicode Driver" -t "DRIVER=/usr/lib/x86_64-linux-gnu/odbc/libmyodbc8w.so;"
 
+WORKDIR /app
+
 COPY ./requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
 COPY ./uwsgi.py uwsgi.py
-
-ENTRYPOINT [ "uwsgi", "--socket", "/tmp/correctocr.sock", "--http", ":5000", "--wsgi-file", "uwsgi.py", "--callable", "app", "--processes", "4", "--threads", "2" ]
 
 EXPOSE 5000
