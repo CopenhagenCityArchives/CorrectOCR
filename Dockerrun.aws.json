@@ -9,5 +9,11 @@
             "hostPort": 80,
             "containerPort": 5000
         }
-    ]
+    ],
+    "Volumes": [
+        {
+          "HostDirectory": "/workspace",
+          "ContainerDirectory": "/app/workspace"
+        }
+      ]
 }
