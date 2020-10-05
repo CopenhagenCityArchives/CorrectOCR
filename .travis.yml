@@ -37,10 +37,10 @@ deploy:
     access_key_id: ${AWS_ACCESS_KEY_ID}
     secret_access_key: ${AWS_SECRET_ACCESS_KEY}
     region: eu-west-1
-    app: correct-ocr-backend
-    env: correct-ocr-backend-development
+    app: CorrectOCR
+    env: correctocr-prod-5
     bucket: elasticbeanstalk-eu-west-1-282251075226
     edge: true
     on:
       all_branches: true
-      condition: $TRAVIS_BRANCH =~ ^(development)$
+      condition: $TRAVIS_BRANCH =~ ^(master)$
