@@ -6,11 +6,15 @@ RUN cp /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/lib/libmyodbc8*
 RUN /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/bin/myodbc-installer -d -a -n "MySQL ODBC 8.0 ANSI Driver" -t "DRIVER=/usr/lib/x86_64-linux-gnu/odbc/libmyodbc8a.so;"
 RUN /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/bin/myodbc-installer -d -a -n "MySQL ODBC 8.0 Unicode Driver" -t "DRIVER=/usr/lib/x86_64-linux-gnu/odbc/libmyodbc8w.so;"
 
+WORKDIR /app
+
+# Install requirements
 COPY ./requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
+
+# Copy code and its config
 COPY ./CorrectOCR ./CorrectOCR
-COPY ./docker/workspace ./workspace
-COPY ./docker/CorrectOCR.ini ./
+COPY ./CorrectOCR.ini ./
 COPY ./uwsgi.py ./
 
 EXPOSE 5000
