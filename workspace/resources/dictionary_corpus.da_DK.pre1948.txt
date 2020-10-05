@@ -1,0 +1,32 @@
+### Herman Bang ###
+# Stuk (1881)
+# http://adl.dk/solr_documents/bang07val-workid54099
+http://adl.dk/solr_documents/bang07val-workid54099.pdf
+# Tine (1889)
+# http://adl.dk/solr_documents/bang08val-workid54101
+http://adl.dk/solr_documents/bang08val-workid54101.pdf
+# Ludvigsbakke (1896)
+# http://adl.dk/solr_documents/bang09val-workid54102
+http://adl.dk/solr_documents/bang09val-workid54102.pdf
+
+### Alexei Petrovich Krapotkin (oversat af Emmy Drachmann) ###
+# En Anarkists Erindringer (1900)
+# https://rex.kb.dk/primo-explore/fulldisplay?docid=KGL01008508218&context=L&vid=NUI&lang=da_DK
+http://www.kb.dk/e-mat/dod/130019428509.pdf
+
+### Corpora from CLARIN-DK ###
+# Johannes V. Jensen and Iversen, Stefan, 2011, Johannes V. Jensen Corpus, CLARIN-DK-UCPH Centre Repository
+# http://hdl.handle.net/20.500.12115/20
+https://repository.clarin.dk/repository/xmlui/handle/20.500.12115/20/allzip	jvjensen.zip
+
+# Ravn, Kim Steen, 2018, Grundtvig's Works Corpus, v. 1.12, April 2018, CLARIN-DK-UCPH Centre Repository
+# http://hdl.handle.net/20.500.12115/31
+https://repository.clarin.dk/repository/xmlui/handle/20.500.12115/31/allzip	grundtvig.zip
+
+# Bjerring-Hansen, Jens, 2019, Georg Brandes: Main Currents (1872-90), CLARIN-DK-UCPH Centre Repository
+# http://hdl.handle.net/20.500.12115/37
+https://repository.clarin.dk/repository/xmlui/handle/20.500.12115/37/allzip	brandes.zip
+
+### Gold standard files ###
+# contents of paths ending in a slash are copied to the corpus directory
+gold/
