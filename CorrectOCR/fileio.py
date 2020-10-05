@@ -30,7 +30,7 @@ class FileIO(object):
 
 	@classmethod
 	def cachePath(cls, name: str = ''):
-		path = Path('./__COCRcache__/').joinpath(name)
+		path = Path('./workspace/__COCRcache__/').joinpath(name)
 		cls.ensure_directories(path)
 		return path
 
