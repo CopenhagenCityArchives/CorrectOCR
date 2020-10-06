@@ -23,9 +23,9 @@ script:
   - aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 282251075226.dkr.ecr.eu-west-1.amazonaws.com #needs AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY envvars
   
   # Run tests
-  - docker-compose up -d
-  - sleep 30
-  - docker-compose exec python3 -m unittest -v cocrtests
+  #- docker-compose up -d
+  #- sleep 30
+  #- docker-compose exec backend python -m unittest -v cocrtests
 
   # build and push correct-ocr-backend image
   - docker build -t correct-ocr-backend .
