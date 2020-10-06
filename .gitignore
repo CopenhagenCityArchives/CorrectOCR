@@ -3,7 +3,6 @@ __pycache__
 corrected
 gold
 training
-*.ini
 .idea
 test
 __COCR*
