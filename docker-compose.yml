@@ -15,6 +15,7 @@ services:
     volumes:
       - "./workspace:/app/workspace"
       - "./CorrectOCR:/app/CorrectOCR"
+      - "./cocrtests:/app/cocrtests"
       - "./CorrectOCR.ini:/app/CorrectOCR.ini"
     environment:
       - CORRECTOCR_STORAGE_TYPE=db
