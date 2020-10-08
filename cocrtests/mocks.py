@@ -31,6 +31,7 @@ class MockDocument(object):
 	def __init__(self, docid, tokens):
 		self.docid = docid
 		self.tokens = tokens
+		self.info_url = None
 
 	def autocorrectedTokens(self, k):
 		return self.tokens
@@ -46,5 +47,5 @@ class MockWorkspace(object):
 		self.doc = MockDocument(docid, tokens)
 		self.docs = {docid: self.doc}
 
-	def docids_for_ext(self, ext):
+	def docids_for_ext(self, ext, server_ready=None):
 		return [self.docid]
