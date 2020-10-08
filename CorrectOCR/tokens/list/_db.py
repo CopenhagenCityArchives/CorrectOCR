@@ -43,12 +43,10 @@ class DBTokenList(TokenList):
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.connection = get_connection(self.config)
 
 	def load(self, docid: str):
 		self.docid = docid
-		
-		with self.connection.cursor() as cursor:
+		with get_connection(self.config).cursor() as cursor:
 			cursor.execute("""
 				SELECT COUNT(*)
 				FROM token
@@ -58,16 +56,22 @@ class DBTokenList(TokenList):
 			)
 			result = cursor.fetchone()
 			self.tokens = [None] * result[0]
+
+	@property
+	def server_ready(self):
+		with get_connection(self.config).cursor() as cursor:
 			cursor.execute("""
 				SELECT COUNT(*)
 				FROM token
 				WHERE doc_id = ?
 				AND decision IS NULL
 				""",
-				docid,
+				self.docid,
 			)
-			self.server_ready = cursor.fetchone()[0] == 0
-			DBTokenList.log.debug(f'doc {docid} ready for server: {self.server_ready}')
+			server_ready = cursor.fetchone()[0] == 0
+			DBTokenList.log.debug(f'doc {self.docid} ready for server: {server_ready}')
+			return server_ready
+
 
 	def __getitem__(self, key):
 		#DBTokenList.log.debug(f'Getting token at index {key} in {len(self.tokens)} tokens')

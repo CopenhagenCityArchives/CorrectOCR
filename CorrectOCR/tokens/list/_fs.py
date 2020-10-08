@@ -14,7 +14,6 @@ class FSTokenList(TokenList):
 		self.log.debug(f'Load from {path}')
 		for row in FileIO.load(path):
 			self.tokens.append(Token.from_dict(row))
-		self.server_ready = all(t.decision is not None for t in self.tokens)
 		FSTokenList.log.debug(f'doc {docid} ready for server: {self.server_ready}')
 
 	def save(self, token: 'Token' = None):

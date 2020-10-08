@@ -38,10 +38,9 @@ class TokenList(collections.abc.MutableSequence):
 
 	def __init__(self, config, docid = None, tokens = None):
 		if type(self) is TokenList:
-			raise TypeError("Token base class cannot not be directly instantiated")
+			raise TypeError('Token base class cannot not be directly instantiated')
 		self.config = config
 		self.docid = docid
-		self.server_ready = False
 		if tokens:
 			self.tokens = tokens
 		else:
@@ -96,6 +95,13 @@ class TokenList(collections.abc.MutableSequence):
 	@property
 	def discarded_count(self):
 		return len([t for t in self if not t.is_discarded])
+
+	@property
+	def server_ready(self):
+		return all(t.decision is not None for t in self.tokens)
+
+	def save(self, token: 'Token' = None):
+		pass
 	
 	def random_token_index(self, has_gold=False, is_discarded=False):
 		return self.random_token(has_gold, is_discarded).index

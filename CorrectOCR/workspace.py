@@ -87,9 +87,7 @@ class Workspace(object):
 		else:
 			raise ValueError(f'Cannot add doc from reference of unknown type: {type(doc)} {doc}')
 
-		doc_id = doc.stem
-
-		self.docs[doc_id] = Document(
+		document = Document(
 			self,
 			doc,
 			self.root.joinpath(self.config.originalPath).resolve(),
@@ -98,9 +96,10 @@ class Workspace(object):
 			self.root.joinpath(self.config.correctedPath).resolve(),
 			self.nheaderlines,
 		)
-		Workspace.log.debug(f'Added {doc}')
+		self.docs[document.docid] = document
+		Workspace.log.debug(f'Added {document.docid}: {document}')
 		
-		return doc_id
+		return document.docid
 
 	def docids_for_ext(self, ext: str, server_ready=False) -> List[str]:
 		"""
@@ -180,6 +179,8 @@ class Document(object):
 		self.workspace = workspace
 		self.docid = doc.stem
 		self.ext = doc.suffix
+		if self.docid is None:
+			raise ValueError(f'Cannot get docid from {doc}')
 		self.info_url = None #: URL that provides information about the document
 		if self.workspace.docInfoBaseURL:
 			self.info_url = self.workspace.docInfoBaseURL + self.docid
@@ -202,7 +203,7 @@ class Document(object):
 		self.tokens = TokenList.new(self.workspace.storageconfig)
 		if TokenList.exists(self.workspace.storageconfig, self.docid):
 			self.tokens.load(self.docid)
-			Workspace.log.debug(f'Loaded {len(self.tokens)} tokens.')
+			Document.log.debug(f'Loaded {len(self.tokens)} tokens.')
 
 	def alignments(self, force=False) -> Tuple[list, dict, list]:
 		"""
@@ -239,7 +240,7 @@ class Document(object):
 		FileIO.save(wordAlignments, waPath)
 		FileIO.save(readCounts, mcPath)
 
-		#Workspace.log.debug(f'wordAlignments: {wordAlignments}')
+		#Document.log.debug(f'wordAlignments: {wordAlignments}')
 		
 		return fullAlignments, wordAlignments, readCounts
 
@@ -295,7 +296,6 @@ class Document(object):
 					elif t.decision == 'original':
 						t.gold = t.original
 			Document.log.info(f'Marking {self.docid} ready for server')
-			self.tokens.server_ready = True
 		
 		self.tokens.save()
 
