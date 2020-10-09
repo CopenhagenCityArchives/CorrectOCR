@@ -253,7 +253,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			token.gold = request.json['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
 			if 'annotation_info' in request.json:
-				app.logger.debug(f'Received annotation_info: {annontation_info}')	
+				app.logger.debug(f"Received annotation_info: {request.json['annotation_info']}")	
 				token.annotation_info = request.json['annotation_info']
 			g.docs[docid]['tokens'].save(token=token)
 		if 'hyphenate' in request.json:
