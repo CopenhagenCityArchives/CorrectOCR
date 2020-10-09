@@ -51,7 +51,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		g.discard_filter = lambda t: not t.is_discarded
 
 	def is_authenticated(formdata) -> bool:
-		if not config.auth_endpoint:
+		#app.logger.debug(f'config.auth_endpoint: {config.auth_endpoint}')
+		if not config.auth_endpoint or config.auth_endpoint == '':
 			return True # no authentication...
 		if config.auth_header not in formdata:
 			return False
@@ -236,6 +237,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		
 		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
+		#app.logger.debug(f'request: {request} request.data: {request.data} request.json: {request.json}')
 		if docid not in g.docs:
 			return json.jsonify({
 				'detail': f'Document "{docid}" not found.',

@@ -49,8 +49,8 @@ db_name =
 
 [server]
 host = 127.0.0.1
-auth_endpoint = http://127.0.0.1/auth
-auth_header = auth_token
+auth_endpoint = 
+auth_header = 
 """
 
 
