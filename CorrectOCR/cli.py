@@ -1,0 +1,161 @@
+import argparse
+import logging
+
+from pathlib import Path
+
+from pycountry import languages
+
+from . import progname
+from . import commands
+
+loglevels = dict(logging._nameToLevel)
+del loglevels['NOTSET']
+del loglevels['WARN']
+
+
+def get_workspace_argparser():
+	workspaceparser = argparse.ArgumentParser()
+	
+	workspaceparser.add_argument('--rootPath', metavar='PATH', type=Path, help='Path to root of workspace')
+	workspaceparser.add_argument('--originalPath', metavar='PATH', type=Path, help='Path to directory of original, uncorrected docs')
+	workspaceparser.add_argument('--goldPath', metavar='PATH', type=Path, help='Path to directory of known correct "gold" docs')
+	workspaceparser.add_argument('--trainingPath', metavar='PATH', type=Path, help='Path for generated training files')
+	workspaceparser.add_argument('--correctedPath', metavar='PATH', type=Path, help='Directory to output corrected docs')
+	workspaceparser.add_argument('--docInfoBaseURL', metavar='URL', type=str, help='Base URL that serves info about documents')
+	workspaceparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus headers (default: 0)')
+	workspaceparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
+
+	return workspaceparser
+
+def get_resource_argparser():
+	resourceparser = argparse.ArgumentParser()
+	
+	resourceparser.add_argument('--resourceRootPath', metavar='PATH', type=Path, help='Path to root of resources')
+	resourceparser.add_argument('--hmmParamsFile', metavar='FILE', type=Path, help='Path to HMM parameters (generated from alignment docs via build_model command)')
+	resourceparser.add_argument('--reportFile', metavar='FILE', type=Path, help='Path to output heuristics report (TXT file)')
+	resourceparser.add_argument('--heuristicSettingsFile', metavar='FILE', type=Path, help='Path to heuristics settings (generated via make_settings command)')
+	resourceparser.add_argument('--multiCharacterErrorFile', metavar='FILE', type=Path, help='Path to output multi-character error file (JSON format)')
+	resourceparser.add_argument('--memoizedCorrectionsFile', metavar='FILE', type=Path, help='Path to memoizations of corrections.')
+	resourceparser.add_argument('--correctionTrackingFile', metavar='FILE', type=Path, help='Path to correction tracking.')
+	resourceparser.add_argument('--dictionaryFile', metavar='FILE', type=Path, help='Path to dictionary file')
+	resourceparser.add_argument('--ignoreCase', action='store_true', default=False, help='Use case insensitive dictionary comparisons')
+
+	return resourceparser
+
+def get_storage_argparser():
+	storageparser = argparse.ArgumentParser()
+
+	storageparser.add_argument('--type', type=str, choices=['db', 'fs'], help='Storage type')
+	storageparser.add_argument('--db_driver', type=str, help='Database hostname')
+	storageparser.add_argument('--db_host', type=str, help='Database hostname')
+	storageparser.add_argument('--db_user', type=str, help='Database username')
+	storageparser.add_argument('--db_password', type=str, help='Database user password')
+	storageparser.add_argument('--db', type=str, help='Database name')
+
+	return storageparser
+
+def get_root_argparser(defaults = None, serverdefaults = None):
+	if defaults is None:
+		defaults = dict()
+	if serverdefaults is None:
+		serverdefaults = dict()
+
+	rootparser = argparse.ArgumentParser(prog=progname, description='Correct OCR')
+
+	commonparser = argparse.ArgumentParser(add_help=False)
+	commonparser.add_argument('-k', type=int, default=4, help='Number of k-best candidates to use for tokens (default: 4)')
+	commonparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
+	commonparser.add_argument('--loglevel', type=str, help='Log level', choices=loglevels.keys(), default='INFO')
+
+	subparsers = rootparser.add_subparsers(dest='command', help='Choose command', required=True)
+
+	dictparser = subparsers.add_parser('build_dictionary', parents=[commonparser], help='Build dictionary')
+	dictparser.add_argument('--corpusPath', type=Path, default='dictionary/', help='Directory of files to split into words and add to dictionary (TXT or PDF format)')
+	dictparser.add_argument('--corpusFile', type=Path, help='File containing list URLs to download and use as corpus (TXT format)')
+	dictparser.add_argument('--clear', action='store_true', default=False, help='Clear the dictionary before adding words')
+	dictparser.set_defaults(func=commands.build_dictionary, **defaults)
+
+	alignparser = subparsers.add_parser('align', parents=[commonparser], help='Create alignments')
+	group = alignparser.add_mutually_exclusive_group(required=True)
+	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
+	group.add_argument('--all', action='store_true', help='Align all original/gold pairs')
+	alignparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
+	alignparser.set_defaults(func=commands.do_align, **defaults)
+
+	modelparser = subparsers.add_parser('build_model', parents=[commonparser], help='Build model')
+	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM (default: 0.0001)')
+	modelparser.set_defaults(func=commands.build_model, **defaults)
+
+	addparser = subparsers.add_parser('add', parents=[commonparser], help='Add documents for processing')
+	group = addparser.add_mutually_exclusive_group(required=True)
+	group.add_argument('document', type=Path, nargs='?', help='Single file/URL to copy/download and make available for prepare')
+	group.add_argument('--documentsFile', type=Path, help='File containing list of files/URLS to copy/download and make available for prepare')
+	addparser.add_argument('--prepare_step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], help='Automatically prepare documents to step')
+	addparser.add_argument('--max_count', type=int, help='Maximum number of files to add from --documentsFile.')
+	addparser.set_defaults(func=commands.do_add, **defaults)
+
+	prepareparser = subparsers.add_parser('prepare', parents=[commonparser], help='Prepare text for correction')
+	group = prepareparser.add_mutually_exclusive_group(required=True)
+	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
+	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
+	prepareparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
+	prepareparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation by merging multiple tokens into one (only possible for some formats)')
+	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
+	prepareparser.set_defaults(func=commands.do_prepare, **defaults)
+
+	cropparser = subparsers.add_parser('crop', parents=[commonparser], help='Crop (mark as disabled) tokens by removing bands near the edges. If neither --edge_left nor --edge_right are provided, an attempt will be made to calculate them automatically.')
+	group = cropparser.add_mutually_exclusive_group(required=True)
+	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
+	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
+	cropparser.add_argument('--edge_left', type=int, help='Set left cropping edge (in pixels)')
+	cropparser.add_argument('--edge_right', type=int, help='Set right cropping edge (in pixels)')
+	cropparser.set_defaults(func=commands.do_crop, **defaults)
+
+	statsparser = subparsers.add_parser('stats', parents=[commonparser], help='Calculate stats for correction decisions')
+	group = statsparser.add_mutually_exclusive_group(required=True)
+	group.add_argument('--make_report', action='store_true', help='Make heuristics statistics report from tokens')
+	group.add_argument('--make_settings', action='store_true', help='Make heuristics settings from report')
+	statsparser.set_defaults(func=commands.do_stats, **defaults)
+
+	correctparser = subparsers.add_parser('correct', parents=[commonparser], help='Apply corrections')
+	group1 = correctparser.add_mutually_exclusive_group(required=True)
+	group1.add_argument('--docid', help='Input document ID (filename without path or extension)')
+	group1.add_argument('--filePath', type=Path, help='Input file path (will be copied to originalPath directory)')
+	group2 = correctparser.add_mutually_exclusive_group(required=True)
+	group2.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
+	group2.add_argument('--apply', type=Path, help='Apply externally corrected token CSV to original document')
+	group2.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
+	correctparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
+	correctparser.set_defaults(func=commands.do_correct, **defaults)
+
+	goldparser = subparsers.add_parser('make_gold', parents=[commonparser], help='Make gold documents from all ready (fully annotated)')
+	goldparser.set_defaults(func=commands.make_gold, **defaults)
+
+	indexparser = subparsers.add_parser('index', parents=[commonparser], help='Generate index data')
+	group = indexparser.add_mutually_exclusive_group(required=True)
+	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
+	group.add_argument('--filePath', type=Path, help='Input file path (will be copied to originalPath directory)')
+	indexparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
+	indexparser.add_argument('--termFile', type=Path, action='append', default=[], dest='termFiles', required=True, help='File containing a string on each line, which will be matched against the tokens')
+	indexparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
+	indexparser.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
+	indexparser.set_defaults(func=commands.do_index, **defaults)
+
+	cleanupparser = subparsers.add_parser('cleanup', parents=[commonparser], help='Clean up intermediate files')
+	cleanupparser.add_argument('--dryrun', action='store_true', help='Don''t delete files, just list them')
+	cleanupparser.add_argument('--full', action='store_true', help='Also delete the most recent files (without .nnn. in suffix)')
+	cleanupparser.set_defaults(func=commands.do_cleanup, **defaults)
+
+	extractparser = subparsers.add_parser('extract', parents=[commonparser], help='Various extraction methods')
+	extractparser.add_argument('--docid', help='Input document ID (filename without path or extension)', required=True)
+	extractparser.set_defaults(func=commands.do_extract, **defaults)
+
+	serverparser = subparsers.add_parser('server', parents=[commonparser], help='Run basic JSON-dispensing Flask server')
+	serverparser.add_argument('--host', help='The host address')
+	serverparser.add_argument('--debug', action='store_true', help='Runs the server in debug mode (see Flask docs)')
+	serverparser.add_argument('--auth_endpoint', help='Authentication endpoint')
+	serverparser.add_argument('--auth_header', help='Authentication header field')
+	serverparser.set_defaults(func=commands.run_server, **serverdefaults)
+
+	return rootparser
+
