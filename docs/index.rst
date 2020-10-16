@@ -12,7 +12,6 @@ Welcome to CorrectOCR's documentation!
 
    workflow
    commands
-   correction.cli
    CorrectOCR
 
 History

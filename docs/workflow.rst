@@ -14,7 +14,8 @@ configured based on whether a given token is found in the dictionary,
 are the candidates preferable to the original, etc.
 
 Finally, the tokens that could not be corrected based on the heuristics
-can be presented to annotators either via CLI or a HTTP server. The annotators'
+can be presented to annotators either via :py:mod:`CLI<CorrectOCR.correcter>`
+or a HTTP :py:mod:`HTTP server<CorrectOCR.server>`. The annotators'
 corrections are then incorporated in a corrected file.
 
 When a corrected file is satisfactory, it can be moved or copied to the
