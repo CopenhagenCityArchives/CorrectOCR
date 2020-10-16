@@ -1,5 +1,5 @@
-Configuration
--------------
+CorrectOCR.config module
+========================
 
 When invoked, CorrectOCR looks for a file named ``CorrectOCR.ini`` in
 the working directory. If found, it is loaded, and any entries will be
@@ -57,3 +57,16 @@ only recreate those.
 The ``Workspace`` also has a ``ResourceManager`` (accessible in code via
 ``.resources``) that handles access to the dictionary, HMM parameter
 files, etc.
+
+Environment Variables
+---------------------
+
+Environment variables follow the format ``CORRECTOCR_<section>_<name>``
+in uppercase. For example, the Workspace root path can be configured by
+setting ``CORRECTOCR_WORKSPACE_ROOTPATH``.
+
+.. automodule:: CorrectOCR.config
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

@@ -4,7 +4,7 @@ Commands
 Global Arguments
 ----------------
 
-If the global arguments are not provided on the command line, `CorrectOCR.ini` and environment variables are checked (see :doc:`configuration`).
+If the global arguments are not provided on the command line, `CorrectOCR.ini` and environment variables are checked (see :py:mod:`CorrectOCR.config`).
 
 Workspace
 ^^^^^^^^^
