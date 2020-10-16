@@ -188,7 +188,7 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
-plantuml = 'java -jar plantuml.1.2020.0.jar'
+plantuml = 'java -jar plantuml.1.2020.19.jar'
 
 autodoc_default_options = {
     'member-order': 'bysource',
