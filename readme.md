@@ -2,7 +2,7 @@
 CorrectOCR is a tool used to improve text from OCR processes on printed text in PDF documents.
 
 # Documentation
-Is available at [readthedocs](https://correctocr.readthedocs.io)
+Is available at [readthedocs](https://correctocr.readthedocs.io) ![Build Status](https://readthedocs.org/projects/correctocr/badge/?version=latest)
 
 # Development
 Local development is done using docker-compose: ``docker-compose up``
@@ -54,3 +54,27 @@ The workspace directory is mounted on the EC2 host from EFS. This ensures, that 
 CorrectOCR depends on a database. In production it connects to a RDS database.
 
 Al settings concerning mounting and database connections are set using environmental variables in Elastic Beanstalk.
+
+# History
+
+CorrectOCR is based on code created by:
+
+-  Caitlin Richter <ricca@seas.upenn.edu>
+-  Matthew Wickes <wickesm@seas.upenn.edu>
+-  Deniz Beser <dbeser@seas.upenn.edu>
+-  Mitchell Marcus <mitch@cis.upenn.edu>
+
+See their article *“Low-resource Post Processing of Noisy OCR Output for
+Historical Corpus Digitisation”* (LREC-2018) for further details, it is
+available online:
+http://www.lrec-conf.org/proceedings/lrec2018/pdf/971.pdf
+
+The original python 2.7 code (see `original`-tag in the repository)
+has been licensed under Creative Commons Attribution 4.0
+[CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/), see also
+`license.txt` in the repository).
+
+The code has subsequently been updated to Python 3 and further expanded
+by Mikkel Eide Eriksen (mikkel.eriksen@gmail.com) for the [Copenhagen
+City Archives](https://www.kbharkiv.dk/) (mainly structural changes,
+the algorithms are generally preserved as-is). Pull requests welcome!
