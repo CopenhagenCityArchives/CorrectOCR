@@ -1,6 +1,7 @@
 import configparser
 import logging
 import os
+import pathlib
 import sys
 from pprint import pformat
 
@@ -9,46 +10,6 @@ import progressbar
 from . import progname
 from .cli import loglevels, get_workspace_argparser, get_resource_argparser, get_storage_argparser, get_root_argparser
 from .workspace import Workspace
-
-#: :obj:`str` :
-#: Default configuration
-defaults = """
-[configuration]
-characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-
-[workspace]
-rootPath = ./
-correctedPath = corrected/
-goldPath = gold/
-originalPath = original/
-trainingPath = training/
-nheaderlines = 0
-language = Danish
-docInfoBaseURL = 
-
-[resources]
-resourceRootPath = ./resources/
-correctionTrackingFile = correction_tracking.json
-dictionaryFile = dictionary.txt
-hmmParamsFile = hmm_parameters.json
-memoizedCorrectionsFile = memoized_corrections.json
-multiCharacterErrorFile = multicharacter_errors.json
-reportFile = report.txt
-heuristicSettingsFile = settings.json
-
-[storage]
-type = fs
-db_driver = 
-db_host =
-db_user =
-db_pass =
-db_name =
-
-[server]
-host = 127.0.0.1
-auth_endpoint = 
-auth_header = 
-"""
 
 
 class EnvOverride(configparser.BasicInterpolation):
@@ -76,7 +37,7 @@ def setup(configfiles, args):
 
 	config = configparser.RawConfigParser(interpolation=EnvOverride())
 	config.optionxform = lambda option: option
-	config.read_string(defaults)
+	config.read(pathlib.Path(__file__).parent.joinpath('defaults.ini'))
 	config.read(configfiles, encoding='utf-8')
 
 	# parse global args

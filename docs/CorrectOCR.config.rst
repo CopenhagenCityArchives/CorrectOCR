@@ -3,31 +3,10 @@ CorrectOCR.config module
 
 When invoked, CorrectOCR looks for a file named ``CorrectOCR.ini`` in
 the working directory. If found, it is loaded, and any entries will be
-considered defaults to their corresponding option. For example:
+considered defaults to their corresponding option. These are the defaults:
 
-.. code:: ini
-
-   [configuration]
-   characterSet = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-
-   [workspace]
-   correctedPath = corrected/
-   goldPath = gold/
-   originalPath = original/
-   trainingPath = training/
-   nheaderlines = 0
-
-   [resources]
-   correctionTrackingFile = resources/correction_tracking.json
-   dictionaryFile = resources/dictionary.txt
-   hmmParamsFile = resources/hmm_parameters.json
-   memoizedCorrectionsFile = resources/memoized_corrections.json
-   multiCharacterErrorFile = resources/multicharacter_errors.json
-   reportFile = resources/report.txt
-   heuristicSettingsFile = resources/settings.json
-
-   [storage]
-   type = fs
+.. literalinclude:: ../CorrectOCR/defaults.ini
+   :language: ini
 
 By default, CorrectOCR requires 4 subdirectories in the working
 directory, which will be used as the current ``Workspace``:
