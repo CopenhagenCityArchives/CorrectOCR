@@ -51,6 +51,7 @@ extensions = [
     'sphinxcontrib.autohttp.flask',
     'sphinxcontrib.autohttp.flaskqref',
     'sphinxcontrib.plantuml',
+	'sphinxarg.ext',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

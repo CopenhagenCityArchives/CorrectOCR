@@ -12,7 +12,6 @@ Submodules
 .. toctree::
 
    CorrectOCR.aligner
-   CorrectOCR.commands
    CorrectOCR.correcter
    CorrectOCR.dictionary
    CorrectOCR.fileio

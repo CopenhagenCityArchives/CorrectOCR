@@ -10,11 +10,9 @@ Welcome to CorrectOCR's documentation!
    :maxdepth: 4
    :caption: Contents:
 
-   workflow.rst
-   configuration.rst
-   commands.rst
-   heuristics.rst
-   correction.cli.rst
+   workflow
+   commands
+   correction.cli
    CorrectOCR
 
 History

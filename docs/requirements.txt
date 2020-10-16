@@ -25,3 +25,4 @@ sphinx-autodoc-typehints
 sphinx_rtd_theme
 sphinxcontrib.httpdomain
 sphinxcontrib-plantuml
+sphinx-argparse
