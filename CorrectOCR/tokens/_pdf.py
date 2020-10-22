@@ -20,6 +20,14 @@ class PDFToken(Token):
 	def token_info(self):
 		return self.page_n, self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.original, self.block_n, self.line_n, self.word_n
 
+	@property
+	def page(self):
+		return self.token_info[0]
+
+	@property
+	def frame(self):
+		return (self.token_info[1], self.token_info[2], self.token_info[3], self.token_info[4])
+
 	def __init__(self, token_info, docid, index):
 		original = token_info[5]
 		super().__init__(original, docid, index)

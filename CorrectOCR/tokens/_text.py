@@ -12,6 +12,14 @@ class StringToken(Token):
 	def token_info(self):
 		return self._string
 
+	@property
+	def page(self):
+		return 0
+
+	@property
+	def frame(self):
+		return (0, 0, 0, 0)
+
 	def __init__(self, original, docid, index):
 		self._string = original
 		super().__init__(original, docid, index)

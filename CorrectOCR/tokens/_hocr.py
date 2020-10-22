@@ -54,6 +54,14 @@ class HOCRToken(Token):
 	def token_info(self):
 		return html.tostring(self._element, encoding='unicode'), self.page
 
+	@property
+	def page(self):
+		return 0
+
+	@property
+	def frame(self):
+		return (0, 0, 0, 0)
+
 	def __init__(self, info, docid, index):
 		(element, page) = info
 		if isinstance(element, str):

@@ -91,6 +91,33 @@ class Token(abc.ABC):
 		return None
 
 	@property
+	@abc.abstractmethod
+	def page(self) -> int:
+		"""
+		The page of the document on which the token is located.
+		
+		May not be applicable for all token types.
+		
+		:return: The page number.
+		"""
+		return None
+
+	@property
+	@abc.abstractmethod
+	def frame(self) -> (int, int, int, int):
+		"""
+		The coordinates of the token's location on the page.
+		
+		Takes the form [x0, y0, x1, y1] where (x0, y0) is the top-left corner, and
+		(x1, y1) is the bottom-right corner.
+		
+		May not be applicable for all token types.
+		
+		:return: The frame coordinates.
+		"""
+		return None
+
+	@property
 	def original(self) -> str:
 		"""
 		The original spelling of the Token.
@@ -166,6 +193,8 @@ class Token(abc.ABC):
 			'Index': self.index,
 			'Hyphenated': self.is_hyphenated,
 			'Discarded': self.is_discarded,
+			'Page': self.page,
+			'Frame': self.frame,
 		}
 		for k, item in self.kbest.items():
 			output[f'{k}-best'] = item.candidate

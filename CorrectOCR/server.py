@@ -195,6 +195,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     "Selection": [],
 		     "Token info": "...",
 		     "Token type": "PDFToken",
+			 "Page": 1,
+			 "Frame": [0, 0, 100, 100],
 		     "Annotation info": "...",
 		     "image_url": "/7696/token-2676.png"
 		   }
