@@ -85,7 +85,15 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	dictparser.add_argument('--clear', action='store_true', default=False, help='Clear the dictionary before adding words')
 	dictparser.set_defaults(func=commands.build_dictionary, **defaults)
 
-	alignparser = subparsers.add_parser('align', parents=[commonparser], help='Create alignments')
+	alignparser = subparsers.add_parser('align', parents=[commonparser], help="""
+		Create alignments.
+
+		The tokens of each pair of (original, gold) files  are aligned in order to
+		determine which characters and words were misread in the original and
+		corrected in the gold.
+		
+		These alignments can be used to train the model.
+	""")
 	group = alignparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--all', action='store_true', help='Align all original/gold pairs')
