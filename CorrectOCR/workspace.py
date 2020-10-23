@@ -250,13 +250,16 @@ class Document(object):
 
 		Possible steps are:
 
-		   -  ``tokenize`` (basic tokenizaton)
-		   -  ``align`` (alignment of original and gold tokens)
-		   -  ``kbest`` (generate k-best suggestions)
-		   -  ``bin`` (put tokens in bins according to heuristics)
-		   -  ``autocorrect`` (generate gold tokens where possible, ie. tokens not marked for manual annotation)
-		   -  ``server`` (all steps necessary for the backend server to work)
-		   -  ``all`` (perform all steps, including possible future ones)
+		   -  ``tokenize``: basic tokenizaton
+		   -  ``align``: alignment of original and gold tokens
+		   -  ``kbest`` calculates *k*-best correction candidates for each
+              token via the HMM
+		   -  ``bin``: sorts the tokens into *bins* according to the
+             `:py:mod:`Heuristics<CorrectOCR.heuristics>`
+		   -  ``autocorrect`` generates corrections where possible,
+		      ie. tokens not marked for manual annotation
+		   -  ``server``: performs all steps necessary for the backend server to work
+		   -  ``all``: performs all steps, including possible future ones
 
 		:param step: Which step to perform.
 		:param k: How many `k`-best suggestions to calculate, if necessary.
