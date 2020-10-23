@@ -248,6 +248,17 @@ class Document(object):
 		"""
 		Prepares the :class:`Tokens<CorrectOCR.tokens.Token>` for the given doc.
 
+		Possible steps are:
+
+		   -  ``tokenize`` (basic tokenizaton)
+		   -  ``align`` (alignment of original and gold tokens)
+		   -  ``kbest`` (generate k-best suggestions)
+		   -  ``bin`` (put tokens in bins according to heuristics)
+		   -  ``autocorrect`` (generate gold tokens where possible, ie. tokens not marked for manual annotation)
+		   -  ``server`` (all steps necessary for the backend server to work)
+		   -  ``all`` (perform all steps, including possible future ones)
+
+		:param step: Which step to perform.
 		:param k: How many `k`-best suggestions to calculate, if necessary.
 		:param dehyphenate: Whether to attempt dehyphenization of tokens.
 		:param force: Back up existing tokens and create new ones.
