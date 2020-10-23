@@ -100,8 +100,15 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	alignparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
 	alignparser.set_defaults(func=commands.do_align, **defaults)
 
-	modelparser = subparsers.add_parser('build_model', parents=[commonparser], help='Build model')
-	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM (default: 0.0001)')
+	modelparser = subparsers.add_parser('build_model', parents=[commonparser], help="""
+		Build model.
+		
+		This is done with the aligned original/gold-documents. If none exist, an attempt
+		will be made to create them.
+		
+		The result is an HMM as described in the original paper.
+	""")
+	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM')
 	modelparser.set_defaults(func=commands.build_model, **defaults)
 
 	addparser = subparsers.add_parser('add', parents=[commonparser], help='Add documents for processing')
