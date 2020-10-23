@@ -126,12 +126,17 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	addparser.add_argument('--max_count', type=int, help='Maximum number of new documents to add from --documentsFile.')
 	addparser.set_defaults(func=commands.do_add, **defaults)
 
-	prepareparser = subparsers.add_parser('prepare', parents=[commonparser], help='Prepare text for correction')
+	prepareparser = subparsers.add_parser('prepare', parents=[commonparser], help="""
+		Prepare text for correction.
+
+		See :meth:`Document.prepare()<CorrectOCR.workspace.Document.prepare>`
+		for further details on the possible steps.
+	""")
 	group = prepareparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
 	prepareparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
-	prepareparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation by merging multiple tokens into one (only possible for some formats)')
+	prepareparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation by merging multiple tokens into one (only possible for some file formats)')
 	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
 	prepareparser.set_defaults(func=commands.do_prepare, **defaults)
 
