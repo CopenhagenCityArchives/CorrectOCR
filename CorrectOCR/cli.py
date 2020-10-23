@@ -69,9 +69,19 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command', required=True)
 
-	dictparser = subparsers.add_parser('build_dictionary', parents=[commonparser], help='Build dictionary')
-	dictparser.add_argument('--corpusPath', type=Path, default='dictionary/', help='Directory of files to split into words and add to dictionary (TXT or PDF format)')
-	dictparser.add_argument('--corpusFile', type=Path, help='File containing list URLs to download and use as corpus (TXT format)')
+	dictparser = subparsers.add_parser('build_dictionary', parents=[commonparser], help="""
+		Build dictionary.
+		
+		Input files can be either ``.pdf``, ``.txt``, or ``.xml`` (in `TEI format <https://en.wikipedia.org/wiki/Text_Encoding_Initiative>`__). They may be
+		contained in ``.zip``-files.
+		
+		A ``corpusFile`` for 1800--1948 Danish is available in the ``workspace/resources/``
+		directory.
+		
+		It is strongly recommended to generate a large dictionary for best performance.
+	""")
+	dictparser.add_argument('--corpusPath', type=Path, default='dictionary/', help='Directory of files to split into words and add to dictionary')
+	dictparser.add_argument('--corpusFile', type=Path, help='File containing paths and URLs to use as corpus (TXT format)')
 	dictparser.add_argument('--clear', action='store_true', default=False, help='Clear the dictionary before adding words')
 	dictparser.set_defaults(func=commands.build_dictionary, **defaults)
 
