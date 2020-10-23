@@ -79,6 +79,8 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		directory.
 		
 		It is strongly recommended to generate a large dictionary for best performance.
+		
+		See :py:mod:`Dictionary<CorrectOCR.dictionary>` for further details.
 	""")
 	dictparser.add_argument('--corpusPath', type=Path, default='dictionary/', help='Directory of files to split into words and add to dictionary')
 	dictparser.add_argument('--corpusFile', type=Path, help='File containing paths and URLs to use as corpus (TXT format)')
@@ -93,6 +95,8 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		corrected in the gold.
 		
 		These alignments can be used to train the model.
+		
+		See :py:mod:`Aligner<CorrectOCR.aligner>` for further details.
 	""")
 	group = alignparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
@@ -107,6 +111,8 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		will be made to create them.
 		
 		The result is an HMM as described in the original paper.
+		
+		See :py:mod:`Model<CorrectOCR.model>` for further details.
 	""")
 	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM')
 	modelparser.set_defaults(func=commands.build_model, **defaults)
@@ -118,6 +124,8 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		a text file containing a list of documents.
 		
 		They will be copied or downloaded to the ``workspace/original/`` folder.
+		
+		See :py:mod:`Workspace)<CorrectOCR.workspace>` for further details.
 	""")
 	group = addparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('document', type=Path, nargs='?', help='Single path/URL to document')
