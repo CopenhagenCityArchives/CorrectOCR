@@ -167,7 +167,16 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	cropparser.add_argument('--edge_right', type=int, help='Set right cropping edge (in pixels)')
 	cropparser.set_defaults(func=commands.do_crop, **defaults)
 
-	statsparser = subparsers.add_parser('stats', parents=[commonparser], help='Calculate stats for correction decisions')
+	statsparser = subparsers.add_parser('stats', parents=[commonparser], help="""
+		Calculate stats for correction decisions.
+		
+		The procedure is to first generate a report that shows how many tokens
+		have been sorted into each bin. This report can then be annotated with
+		the desired decision for each bin, and use this annotated report to
+		generate settings for the heuristics.
+		
+		See :py:mod:`Heuristics)<CorrectOCR.heuristics>` for further details.
+	""")
 	group = statsparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--make_report', action='store_true', help='Make heuristics statistics report from tokens')
 	group.add_argument('--make_settings', action='store_true', help='Make heuristics settings from report')
