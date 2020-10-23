@@ -111,12 +111,19 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM')
 	modelparser.set_defaults(func=commands.build_model, **defaults)
 
-	addparser = subparsers.add_parser('add', parents=[commonparser], help='Add documents for processing')
+	addparser = subparsers.add_parser('add', parents=[commonparser], help="""
+		Add documents for processing
+		
+		One may add a single document directly on the command line, or provide
+		a text file containing a list of documents.
+		
+		They will be copied or downloaded to the ``workspace/original/`` folder.
+	""")
 	group = addparser.add_mutually_exclusive_group(required=True)
-	group.add_argument('document', type=Path, nargs='?', help='Single file/URL to copy/download and make available for prepare')
-	group.add_argument('--documentsFile', type=Path, help='File containing list of files/URLS to copy/download and make available for prepare')
-	addparser.add_argument('--prepare_step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], help='Automatically prepare documents to step')
-	addparser.add_argument('--max_count', type=int, help='Maximum number of files to add from --documentsFile.')
+	group.add_argument('document', type=Path, nargs='?', help='Single path/URL to document')
+	group.add_argument('--documentsFile', type=Path, help='File containing list of files/URLS to documents')
+	addparser.add_argument('--prepare_step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], help='Automatically prepare added documents')
+	addparser.add_argument('--max_count', type=int, help='Maximum number of new documents to add from --documentsFile.')
 	addparser.set_defaults(func=commands.do_add, **defaults)
 
 	prepareparser = subparsers.add_parser('prepare', parents=[commonparser], help='Prepare text for correction')
