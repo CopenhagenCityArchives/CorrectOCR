@@ -22,7 +22,7 @@ def get_workspace_argparser():
 	workspaceparser.add_argument('--trainingPath', metavar='PATH', type=Path, help='Path for generated training files')
 	workspaceparser.add_argument('--correctedPath', metavar='PATH', type=Path, help='Directory to output corrected docs')
 	workspaceparser.add_argument('--docInfoBaseURL', metavar='URL', type=str, help='Base URL that serves info about documents')
-	workspaceparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus headers (default: 0)')
+	workspaceparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus headers')
 	workspaceparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
 
 	return workspaceparser
