@@ -148,7 +148,18 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
 	prepareparser.set_defaults(func=commands.do_prepare, **defaults)
 
-	cropparser = subparsers.add_parser('crop', parents=[commonparser], help='Crop (mark as disabled) tokens by removing bands near the edges. If neither --edge_left nor --edge_right are provided, an attempt will be made to calculate them automatically.')
+	cropparser = subparsers.add_parser('crop', parents=[commonparser], help="""
+		Mark tokens near the edges of a page as disabled.
+		
+		This may be desirable for scanned documents where the OCR has picked up
+		partial words or sentences near the page edges.
+		
+		The tokens are not discarded, merely marked disabled so they don't
+		show up in the correction interface or generated gold files.
+		
+		If neither --edge_left nor --edge_right are provided, an attempt
+		will be made to calculate them automatically.
+	""")
 	group = cropparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
