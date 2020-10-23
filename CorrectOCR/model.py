@@ -230,6 +230,7 @@ class HMM(object):
 		Generates *k*-best correction candidates for a list of Tokens and adds them
 		to each token.
 
+		:param force: Force the regeneration of candidates if they already exist.
 		:param tokens: List of tokens.
 		:param k: How many candidates to generate.
 		"""
