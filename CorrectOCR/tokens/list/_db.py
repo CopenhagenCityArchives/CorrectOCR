@@ -89,7 +89,6 @@ class DBTokenList(TokenList):
 				LEFT JOIN kbest
 				ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
 				WHERE token.doc_id = ? AND token.doc_index = ?
-				ORDER BY kbest.k
 				""",
 				docid,
 				index
