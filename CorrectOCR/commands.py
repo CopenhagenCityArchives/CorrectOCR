@@ -205,11 +205,14 @@ def do_prepare(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.prepare')
 	
 	if config.docid:
-		workspace.docs[config.docid].prepare(config.step, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
+		docs = [workspace.docs[config.docid]]
 	elif config.all:
-		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
-			log.info(f'{docid}: {doc}')
-			doc.prepare(config.step, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
+		docs = filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items())
+	else:
+		docs = []
+
+	for doc in docs:
+		doc.prepare(config.step, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 
 ##########################################################################################
 
