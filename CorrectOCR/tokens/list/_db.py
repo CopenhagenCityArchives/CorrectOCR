@@ -108,13 +108,15 @@ class DBTokenList(TokenList):
 						'Heuristic': result.heuristic,
 						'Selection': json.loads(result.selection),
 						'Decision': result.decision,
-						'K': result.k,
 						'Hyphenated': result.hyphenated,
 						'Discarded': result.discarded,
+						'k-best': dict(),
 					}
 				# then set k-best from all rows
-				token_dict[f"{result.k}-best"] = result.candidate
-				token_dict[f"{result.k}-best prob."] = result.probability
+				token_dict['k-best'][result.k] = {
+					'candidate': result.candidate,
+					'probability': result.probability,
+				}
 			#DBTokenList.log.debug(f'token_dict: {token_dict}')
 			if token_dict:
 				return Token.from_dict(token_dict)

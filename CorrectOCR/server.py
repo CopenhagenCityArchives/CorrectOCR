@@ -175,14 +175,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		   Content-Type: application/json
 		   
 		   {
-		     "1-best": "Jornben",
-		     "1-best prob.": 2.96675056066388e-08,
-		     "2-best": "Joreben",
-		     "2-best prob.": 7.41372275428713e-10,
-		     "3-best": "Jornhen",
-		     "3-best prob.": 6.17986300962785e-10,
-		     "4-best": "Joraben",
-		     "4-best prob.": 5.52540106969346e-10,
 		     "Bin": 2,
 		     "Decision": "annotator",
 		     "Doc ID": "7696",
@@ -199,6 +191,12 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     "Frame": [0, 0, 100, 100],
 		     "Annotation info": "...",
 		     "image_url": "/7696/token-2676.png"
+		     "k-best": {
+			   1: { "candidate": "Jornben", "probability": 2.96675056066388e-08 },
+			   2: { "candidate": "Joreben", "probability": 7.41372275428713e-10 },
+			   3: { "candidate": "Jornhen", "probability": 6.17986300962785e-10 },
+			   4: { "candidate": "Joraben", "probability": 5.52540106969346e-10 }
+		     }
 		   }
 		
 		:param string docid: The ID of the requested document.

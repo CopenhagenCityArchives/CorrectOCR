@@ -5,6 +5,7 @@ import collections
 import json
 import logging
 import string
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, DefaultDict, List, NamedTuple, Optional
 
@@ -22,7 +23,8 @@ def tokenize_str(data: str, language='english') -> List[str]:
 ##########################################################################################
 
 
-class KBestItem(NamedTuple):
+@dataclass
+class KBestItem:
 	candidate: str = ''
 	probability: float = 0.0
 
@@ -196,9 +198,11 @@ class Token(abc.ABC):
 			'Page': self.page,
 			'Frame': self.frame,
 		}
+		output['k-best'] = dict()
 		for k, item in self.kbest.items():
 			output[f'{k}-best'] = item.candidate
 			output[f'{k}-best prob.'] = item.probability
+			output['k-best'][k] = vars(item)
 		if self.bin:
 			output['Bin'] = self.bin.number or -1
 			output['Heuristic'] = self.bin.heuristic
@@ -230,16 +234,22 @@ class Token(abc.ABC):
 		t.is_hyphenated = d.get('Hyphenated', False)
 		t.is_discarded = d.get('Discarded', False)
 		t.annotation_info = json.loads(d['Annotation info']),
-		kbest = collections.defaultdict(lambda: KBestItem(''))
-		k = 1
-		while f'{k}-best' in d:
-			candidate = d[f'{k}-best']
-			if candidate == '':
-				break
-			probability = d[f'{k}-best prob.']
-			kbest[k] = KBestItem(candidate, float(probability))
-			k += 1
-		t.kbest = kbest
+		if 'k-best' in d:
+			kbest = dict()
+			for k, d in d['k-best'].items():
+				kbest[k] = KBestItem(d['candidate'], d['probability'])
+			t.kbest = kbest
+		else:
+			kbest = collections.defaultdict(lambda: KBestItem(''))
+			k = 1
+			while f'{k}-best' in d:
+				candidate = d[f'{k}-best']
+				if candidate == '':
+					break
+				probability = d[f'{k}-best prob.']
+				kbest[k] = KBestItem(candidate, float(probability))
+				k += 1
+			t.kbest = kbest
 		if 'Bin' in d and d['Bin'] not in ('', '-1', -1):
 			from ..heuristics import Heuristics
 			t.bin = Heuristics.bin(int(d['Bin']))
