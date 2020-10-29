@@ -216,6 +216,11 @@ def do_prepare(workspace: Workspace, config):
 		if config.autocrop:
 			log.info(f'Autocropping {docid}: {doc}')
 			doc.crop_tokens()
+		if config.precache_images:
+			log.info(f'Precaching images for {docid}: {doc}')
+			for token in progressbar.progressbar(doc.tokens):
+				_, _ = token.extract_image(workspace)
+
 
 ##########################################################################################
 

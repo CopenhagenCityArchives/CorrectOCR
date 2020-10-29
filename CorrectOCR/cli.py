@@ -147,6 +147,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	prepareparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation by merging multiple tokens into one (only possible for some file formats)')
 	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
 	prepareparser.add_argument('--autocrop', action='store_true', help='Discard tokens near page edges')
+	prepareparser.add_argument('--precache_images', action='store_true', help='Create images for the server API')
 	prepareparser.set_defaults(func=commands.do_prepare, **defaults)
 
 	cropparser = subparsers.add_parser('crop', parents=[commonparser], help="""
