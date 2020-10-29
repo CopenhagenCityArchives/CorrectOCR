@@ -53,7 +53,6 @@ def setup(configfiles, args):
 	storageparser = get_storage_argparser()
 	storageparser.set_defaults(**dict(config.items('storage')))
 	(storageconfig, args) = storageparser.parse_known_args(args)
-	storageconfig.trainingPath = workspaceconfig.trainingPath
 
 	# parse the remaining args according to chosen command
 

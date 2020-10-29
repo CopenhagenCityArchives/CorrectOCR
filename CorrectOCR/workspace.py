@@ -43,6 +43,7 @@ class Workspace(object):
 		self.config = workspaceconfig
 		self.storageconfig = storageconfig
 		self.root = self.config.rootPath.resolve()
+		self.storageconfig.trainingPath = self.root.joinpath(self.config.trainingPath) # hacky...
 		self._originalPath = self.root.joinpath(self.config.originalPath)
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(self.config))} at {self.root}')
 		Workspace.log.info(f'Storage configuration:\n{pformat(vars(self.storageconfig))}')

@@ -10,22 +10,23 @@ class FSTokenList(TokenList):
 		from .. import Token
 		from ...fileio import FileIO
 		self.docid = docid
-		path = self.config.trainingPath.joinpath(f'{docid}.csv')
-		self.log.debug(f'Load from {path}')
-		for row in FileIO.load(path):
+		self.path = FSTokenList._path(self.config, docid)
+		self.log.debug(f'Load from {self.path}')
+		for row in FileIO.load(self.path):
 			self.tokens.append(Token.from_dict(row))
 		FSTokenList.log.debug(f'doc {docid} ready for server: {self.server_ready}')
 
 	def save(self, token: 'Token' = None):
 		from ...fileio import FileIO
 
-		path = self.config.trainingPath.joinpath(f'{self.docid}.csv')
-		self.log.debug(f'Save to {path}')
+		self.log.debug(f'Save to {self.path}')
 
-		FileIO.save(self, path)
+		FileIO.save(self, self.path)
 
 	@staticmethod
 	def exists(config, docid: str):
-		path = config.trainingPath.joinpath(f'{docid}.csv')
+		return FSTokenList._path(config, docid).is_file()
 
-		return path.is_file()
+	@staticmethod
+	def _path(config, docid):
+		return config.trainingPath.joinpath(f'{docid}.csv')
