@@ -253,7 +253,7 @@ class DBTokenList(TokenList):
 					FROM token
 					WHERE token.doc_id = ?
 					AND token.discarded = ?
-					AND token.gold IS NOT NONE AND token.gold != ''
+					AND token.gold IS NOT NULL AND token.gold != ''
 					""",
 					self.docid,
 					is_discarded,
