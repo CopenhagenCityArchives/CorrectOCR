@@ -205,13 +205,13 @@ def do_prepare(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.prepare')
 	
 	if config.docid:
-		docs = [workspace.docs[config.docid]]
+		docs = {config.docid: workspace.docs[config.docid]}
 	elif config.all:
 		docs = filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items())
 	else:
-		docs = []
+		docs = {}
 
-	for doc in docs:
+	for docid, doc in docs:
 		doc.prepare(config.step, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 		if config.autocrop:
 			log.info(f'Autocropping {docid}: {doc}')
