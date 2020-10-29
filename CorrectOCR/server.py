@@ -346,12 +346,19 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'authorized': authorized
 		}), 200 if authorized else 401
 
-	def add_and_prepare(uris):
+	def add_and_prepare(uris, autocrop=True, precache_images=True):
 		for uri in uris:
 			log.info(f'Adding {uri}')
 			doc_id = workspace.add_doc(uri)
 			log.info(f'Preparing {doc_id}')
 			workspace.docs[doc_id].prepare('server', k=config.k)
+			if autocrop:
+				log.info(f'Autocropping {docid}: {doc}')
+				doc.crop_tokens()
+			if precache_images:
+				log.info(f'Precaching images for {docid}: {doc}')
+				for token in progressbar.progressbar(doc.tokens):
+					_, _ = token.extract_image(workspace)
 
 	@app.route('/add_docs', methods=['POST'])
 	def add_docs():
