@@ -23,7 +23,7 @@ docker-compose up
 
 To prepare tokens from `/app/workspace/original/`
 ```console
-docker-compose exec backend python -m CorrectOCR prepare --all --step server --loglevel DEBUG
+docker-compose exec backend python -m CorrectOCR prepare --all --step server --autocrop --precache_images --loglevel DEBUG
 ```
 
 To open shell on db (run in another terminal):
