@@ -236,8 +236,8 @@ class Token(abc.ABC):
 		t.annotation_info = json.loads(d['Annotation info']),
 		if 'k-best' in d:
 			kbest = dict()
-			for k, d in d['k-best'].items():
-				kbest[k] = KBestItem(d['candidate'], d['probability'])
+			for k, b in d['k-best'].items():
+				kbest[k] = KBestItem(b['candidate'], b['probability'])
 			t.kbest = kbest
 		else:
 			kbest = collections.defaultdict(lambda: KBestItem(''))
