@@ -2,7 +2,7 @@
 CorrectOCR is a tool used to improve text from OCR processes on printed text in PDF documents.
 
 # Documentation
-Is available at [readthedocs](https://correctocr.readthedocs.io) ![Build Status](https://readthedocs.org/projects/correctocr/badge/?version=latest)
+Is available at [readthedocs](https://correctocr.readthedocs.io) [![Build Status](https://readthedocs.org/projects/correctocr/badge/?version=latest)](https://readthedocs.org/projects/correctocr/builds/)
 
 # Development
 Local development is done using docker-compose: ``docker-compose up``
