@@ -80,7 +80,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		
 		It is strongly recommended to generate a large dictionary for best performance.
 		
-		See :py:mod:`Dictionary<CorrectOCR.dictionary>` for further details.
+		.. See :py:mod:`Dictionary<CorrectOCR.dictionary>` for further details.
+
+		See CorrectOCR.dictionary for further details.
 	""")
 	dictparser.add_argument('--corpusPath', type=Path, default='dictionary/', help='Directory of files to split into words and add to dictionary')
 	dictparser.add_argument('--corpusFile', type=Path, help='File containing paths and URLs to use as corpus (TXT format)')
@@ -96,7 +98,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		
 		These alignments can be used to train the model.
 		
-		See :py:mod:`Aligner<CorrectOCR.aligner>` for further details.
+		.. See :py:mod:`Aligner<CorrectOCR.aligner>` for further details.
+		
+		See CorrectOCR.aligner for further details.
 	""")
 	group = alignparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
@@ -112,7 +116,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		
 		The result is an HMM as described in the original paper.
 		
-		See :py:mod:`Model<CorrectOCR.model>` for further details.
+		.. See :py:mod:`Model<CorrectOCR.model>` for further details.
+		
+		See CorrectOCR.model for further details.
 	""")
 	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM')
 	modelparser.set_defaults(func=commands.build_model, **defaults)
@@ -125,7 +131,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		
 		They will be copied or downloaded to the ``workspace/original/`` folder.
 		
-		See :py:mod:`Workspace<CorrectOCR.workspace>` for further details.
+		.. See :py:mod:`Workspace<CorrectOCR.workspace>`
+		
+		See CorrectOCR.workspace.Workspace for further details.
 	""")
 	group = addparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('document', type=Path, nargs='?', help='Single path/URL to document')
@@ -137,7 +145,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	prepareparser = subparsers.add_parser('prepare', parents=[commonparser], help="""
 		Prepare text for correction.
 
-		See :meth:`Document.prepare()<CorrectOCR.workspace.Document.prepare>`
+		.. See :py:class:`Document<CorrectOCR.workspace.Document>`
+
+		See CorrectOCR.workspace.Document
 		for further details on the possible steps.
 	""")
 	group = prepareparser.add_mutually_exclusive_group(required=True)
@@ -177,7 +187,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		the desired decision for each bin, and use this annotated report to
 		generate settings for the heuristics.
 		
-		See :py:mod:`Heuristics<CorrectOCR.heuristics>` for further details.
+		.. See :py:mod:`Heuristics<CorrectOCR.heuristics>` for further details.
+
+		See CorrectOCR.heuristics.Heuristics for further details.
 	""")
 	group = statsparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--make_report', action='store_true', help='Make heuristics statistics report from tokens')
