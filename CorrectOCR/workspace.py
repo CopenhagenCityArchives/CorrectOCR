@@ -254,9 +254,9 @@ class Document(object):
 		   -  ``tokenize``: basic tokenizaton
 		   -  ``align``: alignment of original and gold tokens
 		   -  ``kbest`` calculates *k*-best correction candidates for each
-              token via the HMM
+		      token via the HMM
 		   -  ``bin``: sorts the tokens into *bins* according to the
-             `:py:mod:`Heuristics<CorrectOCR.heuristics>`
+		      :py:mod:`Heuristics<CorrectOCR.heuristics>`
 		   -  ``autocorrect`` generates corrections where possible,
 		      ie. tokens not marked for manual annotation
 		   -  ``server``: performs all steps necessary for the backend server to work

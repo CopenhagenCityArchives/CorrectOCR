@@ -125,7 +125,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		
 		They will be copied or downloaded to the ``workspace/original/`` folder.
 		
-		See :py:mod:`Workspace)<CorrectOCR.workspace>` for further details.
+		See :py:mod:`Workspace<CorrectOCR.workspace>` for further details.
 	""")
 	group = addparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('document', type=Path, nargs='?', help='Single path/URL to document')
@@ -177,7 +177,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		the desired decision for each bin, and use this annotated report to
 		generate settings for the heuristics.
 		
-		See :py:mod:`Heuristics)<CorrectOCR.heuristics>` for further details.
+		See :py:mod:`Heuristics<CorrectOCR.heuristics>` for further details.
 	""")
 	group = statsparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--make_report', action='store_true', help='Make heuristics statistics report from tokens')
