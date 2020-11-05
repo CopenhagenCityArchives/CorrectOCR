@@ -152,10 +152,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		tokenindex = [{
 			'info_url': url_for('tokeninfo', docid=docid, index=n),
 			'image_url': url_for('tokenimage', docid=docid, index=n),
-			'string': (token.gold or token.original),
-			'is_corrected': (token.gold is not None and token.gold.strip() != ''),
-			'is_discarded': token.is_discarded,
-		} for n, token in enumerate(filter(g.discard_filter, g.docs[docid]['tokens']))]
+			'string': tv['string'],
+			'is_corrected': tv['is_corrected'],
+			'is_discarded': tv['is_discarded'],
+		} for n, tv in enumerate(g.docs[docid]['tokens'].overview)]
 		return json.jsonify(tokenindex)
 
 	@app.route('/<string:docid>/token-<int:index>.json')
