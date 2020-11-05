@@ -9,6 +9,12 @@ php:
 services:
   - docker
 
+stages:
+  - name: deploy
+    if: branch = master
+  - name: script
+    if: branch = master
+
 before_install:
   # Stop travis mysql as we're using MySQL in an image
   - sudo service mysql stop
