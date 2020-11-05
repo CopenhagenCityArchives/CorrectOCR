@@ -114,6 +114,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		Get information about the :class:`Tokens<CorrectOCR.tokens.Token>` in a given document.
 		
+		Returns ``404`` if the document cannot be found, otherwise ``200``.
+		
 		.. :quickref: 2 Documents; Get list of tokens in document
 
 		:param string docid: The ID of the requested document.
@@ -161,7 +163,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/<string:docid>/token-<int:index>.json')
 	def tokeninfo(docid, index):
 		"""
-		Get information about a specific :class:`Token<CorrectOCR.tokens.Token>`
+		Get information about a specific :class:`Token<CorrectOCR.tokens.Token>`.
+		
+		Returns ``404`` if the document or token cannot be found, otherwise ``200``.
 		
 		**Note**: The data is not escaped; care must be taken when displaying in a browser.
 		
@@ -226,6 +230,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		Update a given token with a `gold` transcription and/or hyphenation info.
 		
+		Returns ``404`` if the document or token cannot be found, otherwise ``200``.
+		
 		.. :quickref: 3 Tokens; Update token
 
 		:param string docid: The ID of the requested document.
@@ -282,6 +288,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	def tokenimage(docid, index):
 		"""
 		Returns a snippet of the original document as an image, for comparing with the OCR result.
+		
+		Returns ``404`` if the document or token cannot be found, otherwise ``200``.
 		
 		.. :quickref: 3 Tokens; Get token image
 
@@ -364,6 +372,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		Adds a number of documents to the backend.
 		
 		Each URL will be downloaded and tokens will prepared in a background thread. Once they are prepared, they will become available in the other endpoints.
+		
+		Returns ``400`` if no URLs are specified, otherwise ``200``.
 		
 		.. :quickref: 2 Documents; Add more documents
 
