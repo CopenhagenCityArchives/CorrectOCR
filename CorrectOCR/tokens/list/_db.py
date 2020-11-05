@@ -101,6 +101,7 @@ class DBTokenList(TokenList):
 						'Token type': result.token_type,
 						'Token info': result.token_info,
 						'Annotation info': result.annotation_info,
+						'Last Modified': result.last_modified,
 						'Doc ID': result.doc_id,
 						'Index': result.doc_index,
 						'Gold': result.gold,
@@ -128,8 +129,8 @@ class DBTokenList(TokenList):
 		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
 		with get_connection(config).cursor() as cursor:
 			cursor.execute("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, last_modified) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				token.docid,
 				token.index,
@@ -144,6 +145,7 @@ class DBTokenList(TokenList):
 				token.__class__.__name__,
 				json.dumps(token.token_info),
 				json.dumps(token.annotation_info),
+				token.last_modified,
 			)
 			if len(token.kbest) > 0:
 				kbestdata = []
@@ -183,6 +185,7 @@ class DBTokenList(TokenList):
 				token.__class__.__name__,
 				json.dumps(token.token_info),
 				json.dumps(token.annotation_info),
+				token.last_modified,
 			])
 			for k, item in token.kbest.items():
 				kbestdata.append([
@@ -198,8 +201,8 @@ class DBTokenList(TokenList):
 			return
 		with get_connection(config).cursor() as cursor:
 			cursor.executemany("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, last_modified) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				tokendata,
 			)

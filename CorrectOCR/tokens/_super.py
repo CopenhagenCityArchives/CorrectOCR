@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import collections
+import datetime
 import json
 import logging
 import string
@@ -78,6 +79,7 @@ class Token(abc.ABC):
 		self.is_discarded = False #: Whether the token has been discarded (marked irrelevant by code or annotator).
 
 		self.annotation_info = {} #: An arbitrary key/value store of information about the annotations
+		self.last_modified = None #: When the ``gold`` property was last updated.
 
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
@@ -136,6 +138,7 @@ class Token(abc.ABC):
 	@gold.setter
 	def gold(self, gold):
 		self._gold = gold
+		self.last_modified = datetime.datetime.now()
 		if self._gold:
 			self._gold = self._gold.lstrip(string.punctuation).rstrip(string.punctuation)
 
@@ -211,6 +214,7 @@ class Token(abc.ABC):
 		output['Token type'] = self.__class__.__name__
 		output['Token info'] = json.dumps(self.token_info)
 		output['Annotation info'] = json.dumps(self.annotation_info)
+		output['Last Modified'] = self.last_modified.timestamp() if self.last_modified else None
 
 		return output
 
@@ -233,7 +237,8 @@ class Token(abc.ABC):
 		t.gold = d.get('Gold', None)
 		t.is_hyphenated = d.get('Hyphenated', False)
 		t.is_discarded = d.get('Discarded', False)
-		t.annotation_info = json.loads(d['Annotation info']),
+		t.annotation_info = json.loads(d['Annotation info'])
+		t.last_modified = datetime.datetime.fromtimestamp(d['Last Modified']) if d['Last Modified'] else None
 		if 'k-best' in d:
 			kbest = dict()
 			for k, b in d['k-best'].items():
