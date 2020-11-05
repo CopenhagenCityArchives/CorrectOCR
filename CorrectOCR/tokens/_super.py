@@ -64,7 +64,7 @@ class Token(abc.ABC):
 		(self._punct_prefix, self.normalized, self._punct_suffix) = m.groups('')
 		self.docid = docid  #: The doc with which the Token is associated.
 		self.index = index #: The placement of the Token in the doc.
-		self.gold = None
+		self.gold = None # (documented in @property methods below)
 		self.bin: Optional[Bin] = None  #: Heuristics bin.
 		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
 		"""
@@ -77,7 +77,7 @@ class Token(abc.ABC):
 		self.is_hyphenated = False #: Whether the token is hyphenated to the following token.
 		self.is_discarded = False #: Whether the token has been discarded (marked irrelevant by code or annotator).
 
-		self.annotation_info = {}
+		self.annotation_info = {} #: An arbitrary key/value store of information about the annotations
 
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
