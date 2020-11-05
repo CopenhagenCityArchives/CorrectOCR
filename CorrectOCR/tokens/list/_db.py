@@ -303,6 +303,31 @@ class DBTokenList(TokenList):
 			DBTokenList.log.debug(f'_get_count: {count}')
 			return count
 
+	@property
+	def overview(self):
+		with get_connection(self.config).cursor() as cursor:
+			cursor.execute("""
+				SELECT
+					doc_id,
+					doc_index,
+					original,
+					gold,
+					discarded
+				FROM token
+				WHERE token.doc_id = ?
+				ORDER BY doc_index
+				""",
+				self.docid,
+			)
+			for result in cursor.fetchall():
+				yield {
+					'doc_id': result.doc_id,
+					'doc_index': result.doc_index,
+					'string': (result.gold or result.original),
+					'is_corrected': (result.gold is not None and result.gold.strip() != ''),
+					'is_discarded': result.discarded,
+				}
+
 
 # for testing:
 def logging_execute(cursor, sql, *args) :
