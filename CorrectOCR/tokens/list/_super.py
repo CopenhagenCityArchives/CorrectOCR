@@ -116,6 +116,28 @@ class TokenList(collections.abc.MutableSequence):
 		else:
 			return random.choice(filtered_tokens)
 
+	@property
+	def overview(self):
+		"""
+			Generator that returns an fast overview of the TokenList.
+			
+			Each item is a dictionary containing the following keys:
+			
+			  - ``doc_id``: The document
+			  - ``doc_index``: The Token's placement in the document
+			  - ``string``: TODO
+			  - ``is_corrected``: Whether the Token has a set gold property
+			  - ``is_discarded``: Whether the Token is marked as discarded
+		"""
+		for token in self.tokens:
+			yield {
+				'doc_id': token.docid,
+				'doc_index': token.index,
+				'string': (token.gold or token.original),
+				'is_corrected': (token.gold is not None and token.gold.strip() != ''),
+				'is_discarded': token.is_discarded,
+			}
+
 ##########################################################################################
 
 
