@@ -238,7 +238,8 @@ class Token(abc.ABC):
 		t.is_hyphenated = d.get('Hyphenated', False)
 		t.is_discarded = d.get('Discarded', False)
 		t.annotation_info = json.loads(d['Annotation info'])
-		t.last_modified = datetime.datetime.fromtimestamp(d['Last Modified']) if d['Last Modified'] else None
+		print(type(d['Last Modified']))
+		t.last_modified = d['Last Modified'] if d['Last Modified'] else None
 		if 'k-best' in d:
 			kbest = dict()
 			for k, b in d['k-best'].items():
