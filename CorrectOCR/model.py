@@ -240,9 +240,8 @@ class HMM(object):
 
 		HMM.log.info(f'Generating {k}-best suggestions for each token')
 		for i, token in enumerate(progressbar.progressbar(tokens)):
-			if force or not token.kbest:
+			if force or not token.kbest or len(token.kbest) != k:
 				token.kbest = self.kbest_for_word(token.normalized, k)
-			#HMM.log.debug(vars(token))
 
 		HMM.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
 
