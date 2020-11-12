@@ -1,4 +1,5 @@
 import logging
+import traceback
 from pathlib import Path
 from typing import List
 
@@ -49,12 +50,18 @@ class PDFToken(Token):
 	def ordering(self):
 		return self.page_n, self.block_n, self.line_n, self.word_n
 
-	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15):
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False):
 		imagefile = FileIO.cachePath('pdf').joinpath(
-			f'{self.docid}-{self.page_n}-{self.block_n}-{self.line_n}-{self.word_n}-{self.normalized}.png'
+			f'{self.docid}-{self.index}.png'
 		)
-		if imagefile.is_file():
-			return imagefile, Image.open(str(imagefile))
+		if not force and imagefile.is_file():
+			try:
+				img = Image.open(str(imagefile))
+				#PDFToken.log.debug(f'{imagefile}: {img}')
+				return imagefile, img
+			except:
+				PDFToken.log.error(f'Error with image file, will attempt regeneration.\n{traceback.format_exc()}')
+				return self.extract_image(workspace, highlight_word, left, right, top, bottom, force=True)
 		#PDFToken.log.debug(f'word_image: {file.name} token {self} filename {imagefile}')
 		xref, pagerect, pix = workspace._cached_page_image(self.docid, self.page_n) # TODO
 		xscale = pix.width / pagerect.width
