@@ -16,25 +16,11 @@ def close_connection(connection):
 
 def get_connection(config):
 	log = logging.getLogger(f'{__name__}.get_connection')
-	if not hasattr(config, 'connection'):
-		con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
-		log.debug(f'Connection string: {con_str}')
-		setattr(config, 'connection', pyodbc.connect(con_str))
-		setattr(config, '_finalize', weakref.finalize(config, close_connection, config.connection))
-		log.debug(f'config.connection: {config.connection}')
-	try:
-		# this feels super hacky, but it works...
-		with config.connection.cursor() as cursor:
-			cursor.execute('SELECT 1')
-			result = cursor.fetchone()
-			#log.debug(f'config.connection is ok: {config.connection}')
-	except:
-		log.error(traceback.format_exc())
-		log.error(f'config.connection is NOT ok: {config.connection}. Will attempt to re-establish')
-		config.connection.close()
-		delattr(config, 'connection')
-		get_connection(config)
-	return config.connection
+	con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
+	#log.debug(f'Connection string: {con_str}')
+	connection = pyodbc.connect(con_str)
+	#setattr(config, '_finalize', weakref.finalize(config, close_connection, connection))
+	return connection
 
 
 @TokenList.register('db')
