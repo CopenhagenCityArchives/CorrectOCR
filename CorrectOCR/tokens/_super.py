@@ -75,8 +75,8 @@ class Token(abc.ABC):
 		"""
 		self.decision: Optional[str] = None #: The decision that was made when :attr:`gold` was set automatically.
 		self.selection: Any = None #: The selected automatic correction for the :attr:`decision`.
-		self.is_hyphenated = False #: Whether the token is hyphenated to the following token.
-		self.is_discarded = False #: Whether the token has been discarded (marked irrelevant by code or annotator).
+		self.is_hyphenated = False # (documented in @property methods below)
+		self.is_discarded = False #: (documented in @property methods below)
 
 		self.annotation_info = {} #: An arbitrary key/value store of information about the annotations
 		self.last_modified = None #: When the ``gold`` property was last updated.
@@ -141,6 +141,30 @@ class Token(abc.ABC):
 		self.last_modified = datetime.datetime.now()
 		if self._gold:
 			self._gold = self._gold.lstrip(string.punctuation).rstrip(string.punctuation)
+
+	@property
+	def is_discarded(self) -> str:
+		"""
+		Whether the token has been discarded (marked irrelevant by code or annotator).
+		"""
+		return self._is_discarded
+
+	@is_discarded.setter
+	def is_discarded(self, is_discarded):
+		self._is_discarded = is_discarded
+		self.last_modified = datetime.datetime.now()
+
+	@property
+	def is_hyphenated(self) -> str:
+		"""
+		Whether the token is hyphenated to the following token.
+		"""
+		return self._is_hyphenated
+
+	@is_hyphenated.setter
+	def is_hyphenated(self, is_hyphenated):
+		self._is_hyphenated = is_hyphenated
+		self.last_modified = datetime.datetime.now()
 
 	@property
 	def k(self) -> int:
