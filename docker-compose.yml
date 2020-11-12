@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile-dev
       context: .
     working_dir: /app
-    entrypoint: uwsgi --socket /tmp/correctocr.sock --http :5000 --wsgi-file uwsgi.py --callable app --processes 4 --threads 2
+    entrypoint: uwsgi --socket /tmp/correctocr.sock --http :5000 --wsgi-file uwsgi.py --callable app --processes 20 --threads 8 --http-timeout 300 --uid nobody --gid nogroup --master
     ports:
       - "5000:5000"
       - "80:5000"
