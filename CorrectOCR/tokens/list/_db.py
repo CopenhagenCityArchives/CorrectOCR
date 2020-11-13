@@ -301,7 +301,8 @@ class DBTokenList(TokenList):
 					doc_index,
 					original,
 					gold,
-					discarded
+					discarded,
+					last_modified
 				FROM token
 				WHERE token.doc_id = ?
 				ORDER BY doc_index
@@ -315,6 +316,7 @@ class DBTokenList(TokenList):
 					'string': (result.gold or result.original),
 					'is_corrected': (result.gold is not None and result.gold.strip() != ''),
 					'is_discarded': result.discarded,
+					'last_modified': result.last_modified,
 				}
 
 
