@@ -98,6 +98,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		  workspace.docInfoBaseURL
 		:>jsonarr int count: Total number of Tokens.
 		:>jsonarr int corrected: Number of corrected Tokens.
+		:>jsonarr int discarded: Number of discarded Tokens.
+		:>jsonarr int last_modified: The date/time of the last modified token.
 		"""
 		docindex = [{
 			'docid': docid,
@@ -105,7 +107,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'info_url': doc['info_url'],
 			'count': len(doc['tokens']),
 			'corrected': doc['tokens'].corrected_count,
-			'discarded': doc['tokens'].discarded_count
+			'discarded': doc['tokens'].discarded_count,
+			'last_modified': doc['tokens'].last_modified.timestamp() if doc['tokens'].last_modified else None,
 		} for docid, doc in g.docs.items()]
 		return json.jsonify(docindex)
 
