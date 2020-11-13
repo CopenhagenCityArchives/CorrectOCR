@@ -25,6 +25,7 @@ services:
       - CORRECTOCR_STORAGE_DB_PASS=123abc
       - CORRECTOCR_STORAGE_DB_NAME=correctocr
       - CORRECTOCR_WORKSPACE_ROOTPATH=/app/workspace/
+      - PROGRESSBAR_IS_TERMINAL=false
   db:
     container_name: db
     image: mysql:latest
