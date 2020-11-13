@@ -206,7 +206,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			   2: { "candidate": "Joreben", "probability": 7.41372275428713e-10 },
 			   3: { "candidate": "Jornhen", "probability": 6.17986300962785e-10 },
 			   4: { "candidate": "Joraben", "probability": 5.52540106969346e-10 }
-		     }
+		     },
+		     "Last Modified": 1605255523
 		   }
 		
 		:param string docid: The ID of the requested document.
