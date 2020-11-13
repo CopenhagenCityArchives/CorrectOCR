@@ -319,6 +319,22 @@ class DBTokenList(TokenList):
 					'last_modified': result.last_modified,
 				}
 
+	@property
+	def last_modified(self):
+		with get_connection(self.config).cursor() as cursor:
+			cursor.execute("""
+				SELECT
+					MAX(last_modified)
+				FROM token
+				WHERE token.doc_id = ?
+				ORDER BY doc_index
+				""",
+				self.docid,
+			)
+			res = cursor.fetchone()[0]
+			DBTokenList.log.debug(f'last_modified: {res}')
+			return res
+
 
 # for testing:
 def logging_execute(cursor, sql, *args) :
