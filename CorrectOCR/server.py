@@ -372,12 +372,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			log.info(f'Preparing {doc_id}')
 			workspace.docs[doc_id].prepare('server', k=config.k)
 			if autocrop:
-				log.info(f'Autocropping {doc_id}: {workspace.docs[doc_id]}')
 				workspace.docs[doc_id].crop_tokens()
 			if precache_images:
-				log.info(f'Precaching images for {doc_id}: {workspace.docs[doc_id]}')
-				for token in progressbar.progressbar(workspace.docs[doc_id].tokens):
-					_, _ = token.extract_image(workspace)
+				workspace.docs[doc_id].precache_images()
 			log.info(f'Document {doc_id} is ready.')
 
 	@app.route('/add_docs', methods=['POST'])

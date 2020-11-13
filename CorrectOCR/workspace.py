@@ -162,6 +162,12 @@ class Workspace(object):
 ##########################################################################################
 
 
+def window(iterable, size=3):
+    """Generate a sliding window of values."""
+    its = itertools.tee(iterable, size)
+    return zip(*(itertools.islice(it, index, None) for index, it in enumerate(its)))
+
+
 class Document(object):
 	log = logging.getLogger(f'{__name__}.Document')
 
@@ -315,8 +321,21 @@ class Document(object):
 		self.tokens.save()
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
+		Document.log.info(f'Cropping {docid}: {doc}')
 		Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens)
 		self.tokens.save()
+
+	def precache_images(self, complete=False):
+		Document.log.info(f'Precaching images for {docid}: {doc}')
+		if complete:
+			for token in progressbar.progressbar(self.tokens):
+				_, _ = token.extract_image(workspace)
+		else:
+			for l, token, r in progressbar.progressbar(list(window(self.tokens))):
+				if token.decision == 'annotator' and not token.is_discarded:
+					_, _ = l.extract_image(workspace)
+					_, _ = token.extract_image(workspace)
+					_, _ = r.extract_image(workspace)
 
 
 class CorpusFile(object):
