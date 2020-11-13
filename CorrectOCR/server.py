@@ -149,6 +149,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:>jsonarr string image_url: URL to Token image.
 		:>jsonarr string string: Current Token string.
 		:>jsonarr bool is_corrected: Whether the Token has been corrected at the moment.
+		:>jsonarr bool is_discarded: Whether the Token has been discarded at the moment.
+		:>jsonarr bool last_modified: The date/time when the token was last modified.
 		"""
 		if docid not in g.docs:
 			return json.jsonify({
@@ -160,6 +162,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'string': tv['string'],
 			'is_corrected': tv['is_corrected'],
 			'is_discarded': tv['is_discarded'],
+			'last_modified': tv['last_modified'].timestamp() if tv['last_modified'] else None,
 		} for n, tv in enumerate(g.docs[docid]['tokens'].overview)]
 		return json.jsonify(tokenindex)
 
