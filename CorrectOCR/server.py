@@ -88,7 +88,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		       "url": "/<docid>/tokens.json",
 		       "info_url": "...",
 		       "count": 100,
-		       "corrected": 87
+		       "corrected": 87,
+		       "discarded": 10,
+		       "last_modified": 1605255523
 		     }
 		   ]
 		
@@ -135,13 +137,17 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		       "info_url": "/<docid>/token-0.json",
 		       "image_url": "/<docid>/token-0.png",
 		       "string": "Example",
-		       "is_corrected": true
+		       "is_corrected": true,
+		       "is_discarded": false,
+		       "last_modified": 1605255523
 		     },
 		     {
 		       "info_url": "/<docid>/token-1.json",
 		       "image_url": "/<docid>/token-1.png",
 		       "string": "Exanpie",
-		       "is_corrected": false
+		       "is_corrected": false,
+		       "is_discarded": false,
+		       "last_modified": null
 		     }
 		   ]
 
