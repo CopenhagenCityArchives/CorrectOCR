@@ -57,7 +57,15 @@ def setup(configfiles, args):
 	# parse the remaining args according to chosen command
 
 	rootparser = get_root_argparser(dict(config.items('configuration')), dict(config.items('server')))
-	args = rootparser.parse_args(args)
+
+	# parsing twice to allow common args to appear after command
+	args = rootparser.parse_known_args(args)
+	args = rootparser.parse_args(args[1], args[0])
+
+	if args.command is None:
+		rootparser.print_help()
+		print('\nERROR: You must choose a command.')
+		exit(-1)
 
 	logging.basicConfig(
 		stream=sys.stdout,
