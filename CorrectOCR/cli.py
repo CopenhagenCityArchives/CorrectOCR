@@ -13,6 +13,17 @@ del loglevels['NOTSET']
 del loglevels['WARN']
 
 
+def str2bool(v):
+	if isinstance(v, bool):
+		return v
+	if v.lower() in ('yes', 'true', 't', 'y', '1'):
+		return True
+	elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+		return False
+	else:
+		raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 def get_workspace_argparser():
 	workspaceparser = argparse.ArgumentParser()
 	
@@ -154,7 +165,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
 	prepareparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
-	prepareparser.add_argument('--dehyphenate', action='store_true', help='Repair hyphenation by merging multiple tokens into one (only possible for some file formats)')
+	prepareparser.add_argument('--dehyphenate', type=str2bool, nargs='?', default=True, help='Automatically mark tokens as hyphenated if they end with a dash')
 	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
 	prepareparser.add_argument('--autocrop', action='store_true', help='Discard tokens near page edges')
 	prepareparser.add_argument('--precache_images', action='store_true', help='Create images for the server API')
