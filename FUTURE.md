@@ -16,7 +16,7 @@ mwe = nltk.tokenize.MWETokenizer(mwes, separator='.')
 words = mwe.tokenize(words)
 ```
 
-Alternately, create an `AbbreviationToken` that holds the constituent parts similar to DehyphenationToken and where gold is the expanded abbreviation.
+Possibly use special Tokens where gold is the expanded abbreviation.
 
 
 hocr
@@ -29,12 +29,14 @@ hocr
 		*	https://gist.github.com/luipillmann/d76eb4f4eea0320bb35dcd1b2a4575ee
 	*	https://github.com/glazzara/olena
 	*	https://github.com/phatn/lapdftext
+*	--build_pdf --images 1,2,3 --pdfname etc
+*	check tesseract version before using locale trick
 
 
 dictionary
 ----------
 
-consider word frequency and weight lookups accordingly? 
+*	consider word frequency and weight lookups accordingly? 
 
 
 misc
