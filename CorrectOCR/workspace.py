@@ -30,7 +30,6 @@ class Workspace(object):
 	   -  **originalPath** (:class:`Path<pathlib.Path>`): Directory containing the original docs.
 	   -  **goldPath** (:class:`Path<pathlib.Path>`): Directory containing the gold (if any) docs.
 	   -  **trainingPath** (:class:`Path<pathlib.Path>`): Directory for storing intermediate docs.
-	   -  **correctedPath** (:class:`Path<pathlib.Path>`): Directory for saving corrected docs.
 	   -  **docInfoBaseURL** (:class:`str`): Base URL that when appended with a doc_id provides information about documents.
 
 	:param resourceconfig: Passed directly to :class:`ResourceManager<CorrectOCR.workspace.ResourceManager>`, see this for further info.
@@ -94,7 +93,6 @@ class Workspace(object):
 			self.root.joinpath(self.config.originalPath).resolve(),
 			self.root.joinpath(self.config.goldPath).resolve(),
 			self.root.joinpath(self.config.trainingPath).resolve(),
-			self.root.joinpath(self.config.correctedPath).resolve(),
 			self.nheaderlines,
 		)
 		self.docs[document.docid] = document
@@ -174,13 +172,12 @@ class Document(object):
 	"""
 	Documents provide access to paths and :class:`Tokens<CorrectOCR.tokens.Token>`.
 	"""
-	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, training: Path, corrected: Path, nheaderlines: int = 0):
+	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, training: Path, nheaderlines: int = 0):
 		"""
 		:param doc: A path to a file.
 		:param original: Directory for original uncorrected files.
 		:param gold: Directory for known correct "gold" files (if any).
 		:param training: Directory for storing intermediate files.
-		:param corrected: Directory for saving corrected files.
 		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)
 		"""
 		self.workspace = workspace
@@ -195,11 +192,9 @@ class Document(object):
 		if self.ext == '.txt':
 			self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(doc.name), nheaderlines)
 			self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(doc.name), nheaderlines)
-			self.correctedFile: Union[CorpusFile, Path] = CorpusFile(corrected.joinpath(doc.name), nheaderlines)
 		else:
 			self.originalFile: Union[CorpusFile, Path] = original.joinpath(doc.name)
 			self.goldFile: Union[CorpusFile, Path] = gold.joinpath(doc.name)
-			self.correctedFile: Union[CorpusFile, Path] = corrected.joinpath(doc.name)
 		if not self.originalFile.exists():
 			raise ValueError(f'Cannot create Document with non-existing original file: {self.originalFile}')
 		self.tokenFile = training.joinpath(f'{self.docid}.csv')  #: Path to token file (CSV format).
