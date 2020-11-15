@@ -105,6 +105,8 @@ class PDFTokenizer(Tokenizer):
 			PDFTokenizer.log.info(f'Getting tokens from {file.name} page {page.number}')
 			for w in progressbar.progressbar(page.getTextWords()):
 				token = PDFToken((page.number, ) + tuple(w), file.stem, len(tokens))
+				if self.dehyphenate and token.original[-1] == '-':
+					token.is_hyphenated = True
 				tokens.append(token)
 
 		PDFTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokens[:10]}')
