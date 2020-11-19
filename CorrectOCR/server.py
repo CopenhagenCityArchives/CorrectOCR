@@ -50,20 +50,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		} if workspace else {}
 		g.discard_filter = lambda t: not t.is_discarded
 
-	def is_authenticated(formdata) -> bool:
-		#app.logger.debug(f'config.auth_endpoint: {config.auth_endpoint}')
-		if not config.auth_endpoint or config.auth_endpoint == '':
-			return True # no authentication...
-		if config.auth_header not in formdata:
-			return False
-		r = requests.post(
-			config.auth_endpoint,
-			data={
-				config.auth_header: formdata[config.auth_header]
-			}
-		)
-		return r.status_code == 200
-
 	@app.route('/health')
 	def health():
 		return 'OK', 200
@@ -267,8 +253,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			}), 404
 		token = g.docs[docid]['tokens'][index]
 		if 'gold' in request.json:
-			if not is_authenticated(request.json):
-				return json.jsonify({'error': 'Unauthorized.'}), 401
 			token.gold = request.json['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
 			if 'annotation_info' in request.json:
@@ -355,15 +339,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		docid = random.choice(list(g.docs.keys()))
 		index = g.docs[docid]['tokens'].random_token_index(has_gold=False, is_discarded=False)
 		return redirect(url_for('tokeninfo', docid=docid, index=index))
-
-	# for local testing:
-	@app.route('/auth', methods=['POST'])
-	def auth():
-		log.debug(f'request.json: {request.json}')
-		authorized = request.json['auth_token'] == 'TEST'
-		return json.jsonify({
-			'authorized': authorized
-		}), 200 if authorized else 401
 
 	def add_and_prepare(uris, autocrop=True, precache_images=True):
 		for uri in uris:

@@ -241,8 +241,6 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	serverparser = subparsers.add_parser('server', help='Run basic JSON-dispensing Flask server')
 	serverparser.add_argument('--host', help='The host address')
 	serverparser.add_argument('--debug', action='store_true', help='Runs the server in debug mode (see Flask docs)')
-	serverparser.add_argument('--auth_endpoint', help='Authentication endpoint')
-	serverparser.add_argument('--auth_header', help='Authentication header field')
 	serverparser.set_defaults(func=commands.run_server, **serverdefaults)
 
 	return rootparser
