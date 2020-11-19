@@ -7,9 +7,10 @@ from CorrectOCR.tokens._text import StringToken
 
 
 class MockCorpusFile(object):
-	def __init__(self, s):
-		self.body = s
-		self.path = pathlib.Path('file.txt')
+	def __init__(self, body, docid='file'):
+		self.docid = docid
+		self.body = body
+		self.path = pathlib.Path(f'{self.docid}.txt')
 		self.id = self.path.stem
 
 
@@ -42,7 +43,7 @@ class MockWorkspace(object):
 		self.root = root
 		self.docid = docid
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=False)
-		tokens = t.tokenize(MockCorpusFile(contents), MockConfig(type='mem'))
+		tokens = t.tokenize( MockCorpusFile(contents, self.docid), MockConfig(type='mem'))
 		tokens[0].gold = tokens[0].original
 		self.doc = MockDocument(docid, tokens)
 		self.docs = {docid: self.doc}
