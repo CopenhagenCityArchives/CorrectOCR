@@ -264,10 +264,12 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			if request.json['hyphenate'] == 'left':
 				t = g.docs[docid]['tokens'][index-1]
 				t.is_hyphenated = True
+				t.drop_cached_image()
 				g.docs[docid]['tokens'].save(token=t)
 				return redirect(url_for('tokeninfo', docid=t.docid, index=t.index))
 			elif request.json['hyphenate'] == 'right':
 				token.is_hyphenated = True
+				token.drop_cached_image()
 				g.docs[docid]['tokens'].save(token=token)
 			else:
 				return json.jsonify({

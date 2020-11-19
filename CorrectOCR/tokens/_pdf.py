@@ -83,6 +83,10 @@ class PDFToken(Token):
 		image.save(imagefile)
 		return imagefile, image
 
+	def drop_cached_image(self):
+		if self.cached_image_path.is_file():
+			self.cached_image_path.unlink()
+
 	@staticmethod
 	def register(cls):
 		return super().register(cls)
