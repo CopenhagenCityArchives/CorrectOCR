@@ -240,7 +240,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:<json string annotation info: Save some metadata about this correction (eg. username, date). Will only be saved if there is a gold correction.
 		:<json string hyphenate: Optionally hyphenate to the `left` or `right`.
 		
-		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`.
+		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`. *NB*: If the hyphenation is set to ``left``, a redirect to the new "head" token will be returned.
 		"""
 		#app.logger.debug(f'request: {request} request.data: {request.data} request.json: {request.json}')
 		if docid not in g.docs:
@@ -265,6 +265,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				t = g.docs[docid]['tokens'][index-1]
 				t.is_hyphenated = True
 				g.docs[docid]['tokens'].save(token=t)
+				return redirect(url_for('tokeninfo', docid=t.docid, index=t.index))
 			elif request.json['hyphenate'] == 'right':
 				token.is_hyphenated = True
 				g.docs[docid]['tokens'].save(token=token)
