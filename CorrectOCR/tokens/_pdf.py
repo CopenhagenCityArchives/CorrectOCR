@@ -75,7 +75,9 @@ class PDFToken(Token):
 			PDFToken.log.debug(f'Going to create combined image for {self} and {next_token}')
 			_, next_token_img = next_token.extract_image(workspace, highlight_word=False, left=0, right=right, top=top, bottom=bottom, force=True)
 			#PDFToken.log.debug(f'next_token_img ({self.index}): {next_token_img}')
-			paste_coords = (tokenrect.x1, tokenrect.y0 + (next_token_img.height - tokenrect.height) - top)
+			centering_offset = int((tokenrect.height - next_token_img.height)/2)
+			#PDFToken.log.debug(f'centering_offset: ({tokenrect.height} - {next_token_img.height})/2 = {centering_offset}')
+			paste_coords = (tokenrect.x1, tokenrect.y0 + centering_offset)
 			#PDFToken.log.debug(f'paste_coords ({self.index}): {paste_coords}')
 			image.paste(next_token_img, paste_coords)
 			tokenrect.x1 += next_token_img.width - left
