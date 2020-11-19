@@ -30,7 +30,6 @@ class Workspace(object):
 	   -  **originalPath** (:class:`Path<pathlib.Path>`): Directory containing the original docs.
 	   -  **goldPath** (:class:`Path<pathlib.Path>`): Directory containing the gold (if any) docs.
 	   -  **trainingPath** (:class:`Path<pathlib.Path>`): Directory for storing intermediate docs.
-	   -  **correctedPath** (:class:`Path<pathlib.Path>`): Directory for saving corrected docs.
 	   -  **docInfoBaseURL** (:class:`str`): Base URL that when appended with a doc_id provides information about documents.
 
 	:param resourceconfig: Passed directly to :class:`ResourceManager<CorrectOCR.workspace.ResourceManager>`, see this for further info.
@@ -94,7 +93,6 @@ class Workspace(object):
 			self.root.joinpath(self.config.originalPath).resolve(),
 			self.root.joinpath(self.config.goldPath).resolve(),
 			self.root.joinpath(self.config.trainingPath).resolve(),
-			self.root.joinpath(self.config.correctedPath).resolve(),
 			self.nheaderlines,
 		)
 		self.docs[document.docid] = document
@@ -162,19 +160,24 @@ class Workspace(object):
 ##########################################################################################
 
 
+def window(iterable, size=3):
+    """Generate a sliding window of values."""
+    its = itertools.tee(iterable, size)
+    return zip(*(itertools.islice(it, index, None) for index, it in enumerate(its)))
+
+
 class Document(object):
 	log = logging.getLogger(f'{__name__}.Document')
 
 	"""
 	Documents provide access to paths and :class:`Tokens<CorrectOCR.tokens.Token>`.
 	"""
-	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, training: Path, corrected: Path, nheaderlines: int = 0):
+	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, training: Path, nheaderlines: int = 0):
 		"""
 		:param doc: A path to a file.
 		:param original: Directory for original uncorrected files.
 		:param gold: Directory for known correct "gold" files (if any).
 		:param training: Directory for storing intermediate files.
-		:param corrected: Directory for saving corrected files.
 		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)
 		"""
 		self.workspace = workspace
@@ -189,11 +192,9 @@ class Document(object):
 		if self.ext == '.txt':
 			self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(doc.name), nheaderlines)
 			self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(doc.name), nheaderlines)
-			self.correctedFile: Union[CorpusFile, Path] = CorpusFile(corrected.joinpath(doc.name), nheaderlines)
 		else:
 			self.originalFile: Union[CorpusFile, Path] = original.joinpath(doc.name)
 			self.goldFile: Union[CorpusFile, Path] = gold.joinpath(doc.name)
-			self.correctedFile: Union[CorpusFile, Path] = corrected.joinpath(doc.name)
 		if not self.originalFile.exists():
 			raise ValueError(f'Cannot create Document with non-existing original file: {self.originalFile}')
 		self.tokenFile = training.joinpath(f'{self.docid}.csv')  #: Path to token file (CSV format).
@@ -315,8 +316,21 @@ class Document(object):
 		self.tokens.save()
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
+		Document.log.info(f'Cropping {docid}: {doc}')
 		Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens)
 		self.tokens.save()
+
+	def precache_images(self, complete=False):
+		Document.log.info(f'Precaching images for {docid}: {doc}')
+		if complete:
+			for token in progressbar.progressbar(self.tokens):
+				_, _ = token.extract_image(workspace)
+		else:
+			for l, token, r in progressbar.progressbar(list(window(self.tokens))):
+				if token.decision == 'annotator' and not token.is_discarded:
+					_, _ = l.extract_image(workspace)
+					_, _ = token.extract_image(workspace)
+					_, _ = r.extract_image(workspace)
 
 
 class CorpusFile(object):

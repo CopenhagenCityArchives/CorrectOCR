@@ -141,7 +141,7 @@ class TokenList(collections.abc.MutableSequence):
 
 	@property
 	def last_modified(self):
-		return max(t.last_modified for t in self.tokens)
+		return max(t.last_modified for t in self.tokens if t.last_modified)
 
 ##########################################################################################
 

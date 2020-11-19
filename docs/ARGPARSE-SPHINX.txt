@@ -1,0 +1,46 @@
+**Describe the bug**
+
+When generating docs for our [CopenhagenCityArchives/CorrectOCR](https://github.com/CopenhagenCityArchives/CorrectOCR) project, Sphinx raises an error and spits out a stack trace.
+
+```
+Exception occurred:
+  File "/home/mee/.local/lib/python3.7/site-packages/sphinx/util/docutils.py", line 411, in env
+    return self.inliner.document.settings.env
+AttributeError: 'Values' object has no attribute 'env'
+The full traceback has been saved in /tmp/sphinx-err-7kh5ykye.log, if you want to report the issue to the developers.
+```
+
+Error log attached: [sphinx-err-7kh5ykye.log](https://github.com/sphinx-doc/sphinx/files/5464059/sphinx-err-7kh5ykye.log)
+
+I have locally inserted some print statements before the above-mentioned line to see what the objects look like, pasted below. The `document`s prior to to this last one have a lot of much html markup etc, so it seems that an empty document is being created at some point(?). Also note that there is no `_source`, unlike the other output which refer to eg. `/path/CorrectOCR/docs/commands.rst`.
+
+```
+self: <sphinx.domains.python.PyXRefRole object at 0x7ff57d2be438>
+self.inliner: <docutils.parsers.rst.states.Inliner object at 0x7ff54fca0e48>
+self.inliner.document: <document source="None"/>
+self.inliner.document.settings: {'title': None, 'generator': None, 'datestamp': None, 'source_link': None, 'source_url': None, 'toc_backlinks': 'entry', 'footnote_backlinks': 1, 'sectnum_xform': 1, 'strip_comments': None, 'strip_elements_with_classes': None, 'strip_classes': None, 'report_level': 2, 'halt_level': 4, 'exit_status_level': 5, 'debug': None, 'warning_stream': None, 'traceback': None, 'input_encoding': None, 'input_encoding_error_handler': 'strict', 'output_encoding': 'utf-8', 'output_encoding_error_handler': 'strict', 'error_encoding': 'UTF-8', 'error_encoding_error_handler': 'backslashreplace', 'language_code': 'en', 'record_dependencies': DependencyList(None, []), 'config': None, 'id_prefix': '', 'auto_id_prefix': 'id', 'dump_settings': None, 'dump_internals': None, 'dump_transforms': None, 'dump_pseudo_xml': None, 'expose_internals': None, 'strict_visitor': None, '_disable_config': None, '_source': None, '_destination': None, '_config_files': [], 'pep_references': None, 'pep_base_url': 'http://www.python.org/dev/peps/', 'pep_file_url_template': 'pep-%04d', 'rfc_references': None, 'rfc_base_url': 'http://tools.ietf.org/html/', 'tab_width': 8, 'trim_footnote_reference_space': None, 'file_insertion_enabled': 1, 'raw_enabled': 1, 'syntax_highlight': 'long', 'smart_quotes': False, 'smartquotes_locales': None, 'character_level_inline_markup': False}
+```
+
+What this all means, I have no idea, but I include it for reference.
+
+**To Reproduce**
+Steps to reproduce the behavior:
+```
+$ git clone https://github.com/CopenhagenCityArchives/CorrectOCR
+$ cd CorrectOCR/docs
+$ pip install -r requirements.txt
+$ make html
+```
+
+**Expected behavior**
+Documentation successfully generated.
+
+**Your project**
+https://github.com/CopenhagenCityArchives/CorrectOCR
+
+**Environment info**
+- OS: Debian
+- Sphinx version: 2.4.2
+- Python version: 3.7.3 (CPython)
+- Docutils version: 0.16 release
+- Jinja2 version: 2.11.1

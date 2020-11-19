@@ -202,11 +202,6 @@ def do_add(workspace: Workspace, config):
 ##########################################################################################
 
 
-def window(iterable, size=3):
-    """Generate a sliding window of values."""
-    its = itertools.tee(iterable, size)
-    return zip(*(itertools.islice(it, index, None) for index, it in enumerate(its)))
-
 def do_prepare(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.prepare')
 	
@@ -220,15 +215,9 @@ def do_prepare(workspace: Workspace, config):
 	for docid, doc in docs:
 		doc.prepare(config.step, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 		if config.autocrop:
-			log.info(f'Autocropping {docid}: {doc}')
 			doc.crop_tokens()
 		if config.precache_images:
-			log.info(f'Precaching images for {docid}: {doc}')
-			for l, token, r in progressbar.progressbar(list(window(doc.tokens))):
-				if token.decision == 'annotator' and not token.is_discarded:
-					_, _ = l.extract_image(workspace)
-					_, _ = token.extract_image(workspace)
-					_, _ = r.extract_image(workspace)
+			doc.precache_images()
 
 
 ##########################################################################################
