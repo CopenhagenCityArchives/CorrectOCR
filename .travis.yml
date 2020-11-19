@@ -9,11 +9,8 @@ php:
 services:
   - docker
 
-stages:
-  - name: deploy
-    if: branch = master
-  - name: script
-    if: branch = master
+# require the branch name to be master (note for PRs this is the base branch name)
+if: branch = master
 
 before_install:
   # Stop travis mysql as we're using MySQL in an image
