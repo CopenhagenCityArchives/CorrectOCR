@@ -67,7 +67,8 @@ class ServerTests(unittest.TestCase):
 		self.assertFalse(response.json['Hyphenated'], f'Token should NOT be hyphenated: {response.json}')
 
 		response = self.client.post('/abc/token-4.json', json={'hyphenate': 'left'}, follow_redirects=True)
-		self.assertFalse(response.json['Hyphenated'], f'Token should NOT be hyphenated: {response.json}')
+		self.assertEqual(response.json['Index'], 3, f'Response should be redirected to "main" token: {response.json}')
+		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
 		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
 
