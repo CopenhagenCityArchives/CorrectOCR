@@ -45,44 +45,58 @@ class PDFToken(Token):
 			int(token_info[7]),
 			int(token_info[8]),
 		)
+		self.cached_image_path = FileIO.cachePath('pdf').joinpath(
+			f'{self.docid}-{self.index}.png'
+		)
 
 	@property
 	def ordering(self):
 		return self.page_n, self.block_n, self.line_n, self.word_n
 
 	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False):
-		imagefile = FileIO.cachePath('pdf').joinpath(
-			f'{self.docid}-{self.index}.png'
-		)
-		if not force and imagefile.is_file():
+		if not force and self.cached_image_path.is_file():
 			try:
-				img = Image.open(str(imagefile))
-				#PDFToken.log.debug(f'{imagefile}: {img}')
-				return imagefile, img
+				img = Image.open(str(self.cached_image_path))
+				#PDFToken.log.debug(f'{self.cached_image_path}: {img}')
+				return self.cached_image_path, img
 			except:
 				PDFToken.log.error(f'Error with image file, will attempt regeneration.\n{traceback.format_exc()}')
 				return self.extract_image(workspace, highlight_word, left, right, top, bottom, force=True)
-		#PDFToken.log.debug(f'word_image: {file.name} token {self} filename {imagefile}')
 		xref, pagerect, pix = workspace._cached_page_image(self.docid, self.page_n) # TODO
 		xscale = pix.width / pagerect.width
 		yscale = pix.height / pagerect.height
-		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)
-		#PDFToken.log.debug(f'extract_image: {tokenrect} {xscale} {yscale}')
-		croprect = (
-			max(0, tokenrect.x0 - (left or 300)),
-			max(0, tokenrect.y0 - (top or 15)),
-			min(pix.width, tokenrect.x1 + (right or 300)),
-			min(pix.height, tokenrect.y1 + (bottom or 15)),
-		)
-		#PDFToken.log.debug(f'extract_image: {croprect}')
+		#PDFToken.log.debug(f'extract_image ({self.index}): {tokenrect} {xscale} {yscale}')
 		image = Image.frombytes('RGB', (pix.width, pix.height), pix.samples)
+		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)
+		#PDFToken.log.debug(f'tokenrect ({self.index}): {tokenrect}')
+		#PDFToken.log.debug(f'word_image ({self.index}): {image} token {self} filename {self.cached_image_path}')
+		if self.is_hyphenated:
+			next_token = workspace.docs[self.docid].tokens[self.index+1]
+			PDFToken.log.debug(f'Going to create combined image for {self} and {next_token}')
+			_, next_token_img = next_token.extract_image(workspace, highlight_word=False, left=0, right=right, top=top, bottom=bottom, force=True)
+			#PDFToken.log.debug(f'next_token_img ({self.index}): {next_token_img}')
+			paste_coords = (tokenrect.x1, tokenrect.y0 + (next_token_img.height - tokenrect.height) - top)
+			#PDFToken.log.debug(f'paste_coords ({self.index}): {paste_coords}')
+			image.paste(next_token_img, paste_coords)
+			tokenrect.x1 += next_token_img.width - left
+		croprect = (
+			max(0, tokenrect.x0 - left),
+			max(0, tokenrect.y0 - top),
+			min(pix.width, tokenrect.x1 + right),
+			min(pix.height, tokenrect.y1 + bottom),
+		)
+		#PDFToken.log.debug(f'extract_image ({self.index}): {croprect}')
 		if highlight_word:
 			draw = ImageDraw.Draw(image)
 			draw.rectangle(tokenrect, outline=(255, 0, 0), width=3)
 		image = image.crop(croprect)
-		image.save(imagefile)
-		return imagefile, image
+		image.save(self.cached_image_path)
+		return self.cached_image_path, image
 
+	def drop_cached_image(self):
+		if self.cached_image_path.is_file():
+			self.cached_image_path.unlink()
+		
 	@staticmethod
 	def register(cls):
 		return super().register(cls)
