@@ -1,5 +1,4 @@
 import collections
-import itertools
 import logging
 import random
 import string
