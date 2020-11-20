@@ -21,6 +21,13 @@ def tokenize_str(data: str, language='english') -> List[str]:
 	return nltk.tokenize.word_tokenize(data, language.lower())
 
 
+_punctuation_splitter = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
+
+def punctuation_splitter(s):
+	m = _punctuation_splitter.search(s)
+	return m.groups('')
+
+
 ##########################################################################################
 
 
@@ -31,6 +38,10 @@ class KBestItem:
 
 	def __repr__(self) -> str:
 		return f'<KBestItem {self.candidate}, {self.probability:.2e}>'
+
+	@property
+	def normalized(self):
+		return punctuation_splitter(self.candidate)[1]
 
 
 ##########################################################################################
@@ -52,8 +63,6 @@ class Token(abc.ABC):
 		Token._subclasses[cls.__name__] = cls
 		return cls
 
-	_punctuation_splitter = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
-
 	def __init__(self, original: str, docid: str, index: int):
 		"""
 		:param original: Original spelling of the token.
@@ -61,8 +70,8 @@ class Token(abc.ABC):
 		"""
 		if type(self) is Token:
 			raise TypeError("Token base class cannot not be directly instantiated")
-		m = Token._punctuation_splitter.search(original)
-		(self._punct_prefix, self.normalized, self._punct_suffix) = m.groups('')
+		self.original = original
+		_, self.normalized, _ = punctuation_splitter(self.original)
 		self.docid = docid  #: The doc with which the Token is associated.
 		self.index = index #: The placement of the Token in the doc.
 		self.gold = None # (documented in @property methods below)
@@ -122,25 +131,16 @@ class Token(abc.ABC):
 		return None
 
 	@property
-	def original(self) -> str:
-		"""
-		The original spelling of the Token.
-		"""
-		return f'{self._punct_prefix}{self.normalized}{self._punct_suffix}'
-
-	@property
 	def gold(self) -> str:
 		"""
 		The corrected spelling of the Token.
 		"""
-		return f'{self._punct_prefix}{self._gold}{self._punct_suffix}' if self._gold is not None else None
+		return self._gold
 
 	@gold.setter
 	def gold(self, gold):
 		self._gold = gold
 		self.last_modified = datetime.datetime.now()
-		if self._gold:
-			self._gold = self._gold.lstrip(string.punctuation).rstrip(string.punctuation)
 
 	@property
 	def is_discarded(self) -> str:

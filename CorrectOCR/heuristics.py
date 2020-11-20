@@ -40,7 +40,7 @@ class Heuristics(object):
 
 	def bin_for_token(self, token: 'Token'):
 		# k best candidates which are in dictionary
-		filtids = [n for n, item in token.kbest.items() if item.candidate in self.dictionary]
+		filtids = [n for n, item in token.kbest.items() if item.normalized in self.dictionary]
 
 		dcode = None
 		if len(filtids) == 0:
@@ -52,7 +52,7 @@ class Heuristics(object):
 
 		token_bin = None
 		for num, _bin in _bins.items():
-			if _bin.matcher(token.normalized, token.kbest[1].candidate, self.dictionary, dcode):
+			if _bin.matcher(token.normalized, token.kbest[1].normalized, self.dictionary, dcode):
 				token_bin = _bin._copy()
 				break
 
@@ -133,7 +133,7 @@ class Heuristics(object):
 			counts['2 gold == k1'] += 1
 
 		# lower k best candidate words that pass the dictionary check
-		kbest_filtered = [item.candidate for (k, item) in token.kbest if item.candidate in self.dictionary and k > 1]
+		kbest_filtered = [item.candidate for (k, item) in token.kbest if item.normalized in self.dictionary and k > 1]
 
 		if gold in kbest_filtered:
 			counts['3 gold == lower kbest'] += 1
@@ -174,7 +174,7 @@ class Heuristics(object):
 				out += f'\tgold = {example.gold}\n'
 				out += '\tkbest = [\n'
 				for k, item in example.kbest:
-					inDict = ' * is in dictionary' if item.candidate in self.dictionary else ''
+					inDict = ' * is in dictionary' if item.normalized in self.dictionary else ''
 					out += f'\t\t{k}: {item.candidate} ({item.probability:.2e}){inDict}\n'
 				out += '\t]\n'
 			out += '\n\n\n'
