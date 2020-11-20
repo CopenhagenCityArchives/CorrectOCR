@@ -320,12 +320,12 @@ class Document(object):
 		self.tokens.save()
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
-		Document.log.info(f'Cropping {docid}: {doc}')
+		Document.log.info(f'Cropping tokens for {self.docid}')
 		Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens)
 		self.tokens.save()
 
 	def precache_images(self, complete=False):
-		Document.log.info(f'Precaching images for {docid}: {doc}')
+		Document.log.info(f'Precaching images for {self.docid}')
 		if complete:
 			for token in progressbar.progressbar(self.tokens):
 				_, _ = token.extract_image(workspace)
