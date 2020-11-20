@@ -263,6 +263,10 @@ class Document(object):
 		   -  ``server``: performs all steps necessary for the backend server to work
 		   -  ``all``: performs all steps, including possible future ones
 
+		*Note*: To force retokenization from the ground up, the ``step`` parameter
+		must be explicitly set to ``tokenize`` (and of course the ``force`` parameter
+		must be set to ``True``).
+
 		:param step: Which step to perform.
 		:param k: How many `k`-best suggestions to calculate, if necessary.
 		:param dehyphenate: Whether to attempt dehyphenization of tokens.
@@ -285,7 +289,7 @@ class Document(object):
 					self.workspace.storageconfig
 				)
 		elif step == 'align':
-			self.prepare('tokenize', k, dehyphenate, force)
+			self.prepare('tokenize', k, dehyphenate)
 			if self.goldFile.is_file():
 				(_, wordAlignments, _) = self.alignments()
 				for i, token in enumerate(self.tokens): # TODO force
@@ -298,7 +302,7 @@ class Document(object):
 			if self.goldFile.is_file():
 				self.prepare('align', k, dehyphenate, force)
 			else:
-				self.prepare('tokenize', k, dehyphenate, force)
+				self.prepare('tokenize', k, dehyphenate)
 			self.workspace.resources.hmm.generate_kbest(self.tokens, k, force)
 		elif step == 'bin':
 			self.prepare('kbest', k, dehyphenate, force)
