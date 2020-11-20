@@ -1,6 +1,6 @@
 import logging
 
-from ._super import Token, Tokenizer, tokenize_str
+from ._super import Token, Tokenizer
 from ..workspace import CorpusFile
 
 
@@ -35,7 +35,7 @@ class StringTokenizer(Tokenizer):
 	def tokenize(self, file: CorpusFile, storageconfig):
 		from .list import TokenList
 
-		tokens = tokenize_str(file.body, self.language.name)
+		tokens = file.body.split()
 		#StringTokenizer.log.debug(f'tokens: {tokens}')
 
 		if self.dehyphenate:
