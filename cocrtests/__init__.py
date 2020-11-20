@@ -5,4 +5,5 @@ logging.debug(f'If this text is visible, debug logging is active. Change it in {
 
 from .hyphenation import *
 from .pdf import *
+from .punctuation import *
 from .server import *
