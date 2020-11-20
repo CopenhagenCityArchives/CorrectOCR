@@ -207,8 +207,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		    Relevant keys for frontend display include
 		    `original` (uncorrected OCR result),
-		    `gold` (corrected version, if available),
-		    TODO
+		    `gold` (corrected version, if available).
 		"""
 		if docid not in g.docs:
 			return json.jsonify({
@@ -231,6 +230,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		
 		Returns ``404`` if the document or token cannot be found, otherwise ``200``.
 		
+		If an invalid ``hyphenate`` value is submitted, status code ``400`` will be returned.
+		
 		.. :quickref: 3 Tokens; Update token
 
 		:param string docid: The ID of the requested document.
@@ -240,7 +241,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:<json string annotation info: Save some metadata about this correction (eg. username, date). Will only be saved if there is a gold correction.
 		:<json string hyphenate: Optionally hyphenate to the `left` or `right`.
 		
-		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`. *NB*: If the hyphenation is set to ``left``, a redirect to the new "head" token will be returned.
+		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`.
+		    *NB*: If the hyphenation is set to ``left``, a redirect to the new "head" token will be returned.
 		"""
 		#app.logger.debug(f'request: {request} request.data: {request.data} request.json: {request.json}')
 		if docid not in g.docs:
