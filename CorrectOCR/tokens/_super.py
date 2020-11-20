@@ -289,6 +289,8 @@ class Token(abc.ABC):
 		#t.__class__.log.debug(t)
 		return t
 
+	def drop_cached_image(self):
+		pass
 
 ##########################################################################################
 
