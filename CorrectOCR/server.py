@@ -343,12 +343,12 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		index = g.docs[docid]['tokens'].random_token_index(has_gold=False, is_discarded=False)
 		return redirect(url_for('tokeninfo', docid=docid, index=index))
 
-	def add_and_prepare(uris, autocrop=True, precache_images=True):
+	def add_and_prepare(uris, autocrop, precache_images, force_prepare):
 		for uri in uris:
 			log.info(f'Adding {uri}')
 			doc_id = workspace.add_doc(uri)
 			log.info(f'Preparing {doc_id}')
-			workspace.docs[doc_id].prepare('server', k=config.k)
+			workspace.docs[doc_id].prepare('server', k=config.k, force=force_prepare)
 			if autocrop:
 				workspace.docs[doc_id].crop_tokens()
 			if precache_images:
@@ -372,7 +372,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		#log.debug(f'request.json: {request.json}')
 		#log.debug(f'request.form: {request.form}')
 		if request.json and 'urls' in request.json:
-			thread = Thread(target=add_and_prepare, args=(request.json['urls'], request.json.get('autocrop', True), request.json.get('precache_images', True)))
+			thread = Thread(target=add_and_prepare, args=(request.json['urls'], request.json.get('autocrop', True), request.json.get('precache_images', True), request.json.get('force_prepare', True)))
 			thread.start()
 			return json.jsonify({
 				'detail': f'Adding and preparing documents from list of URLs. They will become available once prepared.',
