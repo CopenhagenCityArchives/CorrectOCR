@@ -26,6 +26,7 @@ services:
       - CORRECTOCR_STORAGE_DB_NAME=correctocr
       - CORRECTOCR_WORKSPACE_ROOTPATH=/app/workspace/
       - PROGRESSBAR_IS_TERMINAL=false
+      - PROGRESSBAR_MINIMUM_UPDATE_INTERVAL=5
   db:
     container_name: db
     image: mysql:latest
