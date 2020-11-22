@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw
 from ._super import Token, Tokenizer
 from ..fileio import FileIO
 
+logging.getLogger('PIL').setLevel(logging.INFO) # avoid potential DEBUG-level spam
 
 @Token.register
 class PDFToken(Token):
