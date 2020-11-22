@@ -329,13 +329,13 @@ class Document(object):
 		Document.log.info(f'Precaching images for {self.docid}')
 		if complete:
 			for token in progressbar.progressbar(self.tokens):
-				_, _ = token.extract_image(workspace)
+				_, _ = token.extract_image(self.workspace)
 		else:
 			for l, token, r in progressbar.progressbar(list(window(self.tokens))):
 				if token.decision == 'annotator' and not token.is_discarded:
-					_, _ = l.extract_image(workspace)
-					_, _ = token.extract_image(workspace)
-					_, _ = r.extract_image(workspace)
+					_, _ = l.extract_image(self.workspace)
+					_, _ = token.extract_image(self.workspace)
+					_, _ = r.extract_image(self.workspace)
 
 
 class CorpusFile(object):
