@@ -215,7 +215,7 @@ class HOCRTokenizer(Tokenizer):
 		return all_tokens
 
 	@staticmethod
-	def apply(original, tokens: List[HOCRToken], corrected):
+	def apply(original, tokens: List[HOCRToken], outfile: Path, highlight=False):
 		pdf = fitz.open()
 		pix = fitz.Pixmap(str(original))
 		page = pdf.newPage(-1, width=pix.width, height=pix.height)
@@ -240,4 +240,4 @@ class HOCRTokenizer(Tokenizer):
 					f' -- rect.height: {rect.height} result: {res}\n'
 				)
 
-		pdf.save(str(corrected.parent.joinpath(corrected.stem + '.pdf')))
+		pdf.save(str(outfile.with_suffix('.pdf')))

@@ -55,13 +55,13 @@ class StringTokenizer(Tokenizer):
 		return tokenlist
 
 	@staticmethod
-	def apply(original: CorpusFile, tokens, corrected: CorpusFile):
+	def apply(original: CorpusFile, tokens, outfile: CorpusFile, highlight=False):
 		spaced = str.join(' ', [token.gold or token.original for token in tokens])
 		despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
-		corrected.header = original.header.replace(u'Corrected: No', u'Corrected: Yes') 
-		corrected.body = despaced
-		corrected.save()
+		outfile.header = original.header.replace(u'Corrected: No', u'Corrected: Yes') 
+		outfile.body = despaced
+		outfile.save()
 
 	@staticmethod
 	def crop_tokens(original, config, tokens, edge_left = None, edge_right = None):

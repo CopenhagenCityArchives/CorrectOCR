@@ -213,11 +213,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group2.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
 	group2.add_argument('--apply', type=Path, help='Apply externally corrected token CSV to original document')
 	group2.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
+	group2.add_argument('--gold_ready', action='store_true', help='Apply gold from ready document')
 	correctparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
 	correctparser.set_defaults(func=commands.do_correct, **defaults)
-
-	goldparser = subparsers.add_parser('make_gold', help='Make gold documents from all ready (fully annotated)')
-	goldparser.set_defaults(func=commands.make_gold, **defaults)
 
 	indexparser = subparsers.add_parser('index', help='Generate index data')
 	group = indexparser.add_mutually_exclusive_group(required=True)

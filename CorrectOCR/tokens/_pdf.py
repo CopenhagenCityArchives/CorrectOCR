@@ -131,7 +131,7 @@ class PDFTokenizer(Tokenizer):
 		return tokens
 
 	@staticmethod
-	def apply(original, tokens: List[PDFToken], corrected, highlight=False):
+	def apply(original, tokens: List[PDFToken], outfile, highlight=False):
 		pdf_original = fitz.open(str(original))
 		pdf_corrected = fitz.open()
 
@@ -173,13 +173,12 @@ class PDFTokenizer(Tokenizer):
 			elif highlight:
 				page.drawRect(rect, color=blue)
 
-		PDFTokenizer.log.info(f'Saving corrected PDF to {corrected}')
-		pdf_corrected.save(str(corrected))#, garbage=4, deflate=True)
+		PDFTokenizer.log.info(f'Saving corrected PDF to {outfile}')
+		pdf_corrected.save(str(outfile))#, garbage=4, deflate=True)
 
 	@staticmethod
 	def crop_tokens(original, config, tokens, edge_left = None, edge_right = None):
 		pdf_original = fitz.open(str(original))
-		pdf_corrected = fitz.open()
 
 		page_filter = lambda t: t.token_info[0] == page.number
 

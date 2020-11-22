@@ -285,11 +285,6 @@ def do_correct(workspace: Workspace, config):
 		log.info(f'Getting corrections from interactive session')
 		workspace.docs[config.docid].prepare('bin', k=config.k)
 
-		# get header, if any
-		#header = workspace.docs[docid].correctedFile.header
-		# print info to annotator
-		#log.info(f'header: {header}')
-
 		metrics = CorrectionShell.start(doc.tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
 		corrected = workspace.docs[config.docid].tokens
 		log.debug(metrics['newWords'])
@@ -303,6 +298,17 @@ def do_correct(workspace: Workspace, config):
 				workspace.resources.correctionTracking[f'{original}\t{gold}'] = count
 			workspace.resources.correctionTracking.save()
 			workspace.resources.memoizedCorrections.save()
+	elif config.gold_ready:
+		missing_gold_count = 0
+		for token in doc.tokens:
+			if not token.gold:
+				missing_gold_count += 1
+
+		if missing_gold_count == 0:
+			log.info(f'Document {docid} is fully corrected! Applying corrections in new gold file.')
+			corrected = doc.tokens
+		else:
+			log.info(f'Document {docid} has {missing_gold_count} tokens without gold')
 	else:
 		log.critical('This shouldn''t happen!')
 		raise SystemExit(-1)
@@ -313,34 +319,9 @@ def do_correct(workspace: Workspace, config):
 	Tokenizer.for_extension(doc.ext).apply(
 		doc.originalFile,
 		corrected,
-		doc.correctedFile,
+		doc.goldFile,
 		highlight=config.highlight
 	)
-
-
-##########################################################################################
-
-
-def make_gold(workspace: Workspace, config):
-	log = logging.getLogger(f'{__name__}.make_gold')
-
-	for docid, doc in workspace.docs:
-		log.info(f'Getting tokens for {docid}')
-		doc.prepare('autocorrect', k=config.k)
-
-		missing_gold_count = 0
-		for token in doc.tokens:
-			if not token.gold:
-				missing_gold_count += 1
-		log.info(f'Document {docid} has {missing_gold_count} tokens without gold')
-
-		if missing_gold_count == 0:
-			log.info(f'Document {docid} is fully corrected! Applying corrections in new gold file.')
-			Tokenizer.for_extension(workspace.docs[docid].ext).apply(
-				doc.originalFile,
-				doc.tokens,
-				doc.goldFile
-			)
 
 
 ##########################################################################################
