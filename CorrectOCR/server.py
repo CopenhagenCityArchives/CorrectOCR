@@ -257,33 +257,40 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
 		token = g.docs[docid]['tokens'][index]
-		if 'gold' in request.json:
+		if 'hyphenate' in request.json:
+			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')
+			if request.json['hyphenate'] == 'left':
+				token.gold = ''
+				prev_token = g.docs[docid]['tokens'][index-1]
+				if 'gold' in request.json:
+					prev_token.gold = request.json['gold']
+				prev_token.is_hyphenated = True
+				prev_token.drop_cached_image()
+				g.docs[docid]['tokens'].save(token=prev_token)
+				return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))
+			elif request.json['hyphenate'] == 'right':
+				if 'gold' in request.json:
+					token.gold = request.json['gold']
+				token.is_hyphenated = True
+				token.drop_cached_image()
+				next_token = g.docs[docid]['tokens'][index+1]
+				next_token.gold = ''
+				next_token.drop_cached_image()
+				g.docs[docid]['tokens'].save(token=next_token)
+			else:
+				return json.jsonify({
+					'detail': f'Invalid hyphenation "{request.json["hyphenate"]}"',
+				}), 400
+		elif 'gold' in request.json:
 			token.gold = request.json['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
 			if 'annotation_info' in request.json:
 				app.logger.debug(f"Received annotation_info: {request.json['annotation_info']}")	
 				token.annotation_info = request.json['annotation_info']
-			g.docs[docid]['tokens'].save(token=token)
-		if 'hyphenate' in request.json:
-			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')
-			if request.json['hyphenate'] == 'left':
-				t = g.docs[docid]['tokens'][index-1]
-				t.is_hyphenated = True
-				t.drop_cached_image()
-				g.docs[docid]['tokens'].save(token=t)
-				return redirect(url_for('tokeninfo', docid=t.docid, index=t.index))
-			elif request.json['hyphenate'] == 'right':
-				token.is_hyphenated = True
-				token.drop_cached_image()
-				g.docs[docid]['tokens'].save(token=token)
-			else:
-				return json.jsonify({
-					'detail': f'Invalid hyphenation "{request.json["hyphenate"]}"',
-				}), 400
-		if 'discard' in request.json:
+		elif 'discard' in request.json:
 			app.logger.debug(f'Going to discard token.')
 			token.is_discarded = True
-			g.docs[docid]['tokens'].save(token=token)
+		g.docs[docid]['tokens'].save(token=token)
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
