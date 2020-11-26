@@ -214,7 +214,7 @@ class DBTokenList(TokenList):
 				SELECT COUNT(*)
 				FROM token
 				WHERE token.doc_id = ?
-				AND token.gold IS NOT NULL AND token.gold != ''
+				AND token.gold IS NOT NULL
 				""",
 				self.docid,
 			)
@@ -243,7 +243,7 @@ class DBTokenList(TokenList):
 					FROM token
 					WHERE token.doc_id = ?
 					AND token.discarded = ?
-					AND token.gold IS NOT NULL AND token.gold != ''
+					AND token.gold IS NOT NULL
 					""",
 					self.docid,
 					is_discarded,

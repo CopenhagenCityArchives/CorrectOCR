@@ -90,7 +90,7 @@ class TokenList(collections.abc.MutableSequence):
 
 	@property
 	def corrected_count(self):
-		return len([t for t in self if t.gold and t.gold != ''])
+		return len([t for t in self if t.gold])
 
 	@property
 	def discarded_count(self):
