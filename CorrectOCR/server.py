@@ -220,6 +220,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			return json.jsonify({
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
+		prev_token = g.docs[docid]['tokens'][index-1]
+		if prev_token.is_hyphenated:
+			return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))
 		token = g.docs[docid]['tokens'][index]
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
