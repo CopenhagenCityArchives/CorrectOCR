@@ -349,7 +349,7 @@ class DBTokenList(TokenList):
 				self.docid,
 			)
 			res = cursor.fetchone()[0]
-			DBTokenList.log.debug(f'last_modified: {res}')
+			#DBTokenList.log.debug(f'last_modified: {res}')
 			return res
 
 
