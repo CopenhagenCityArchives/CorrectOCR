@@ -11,7 +11,7 @@ from CorrectOCR.heuristics import Heuristics
 
 class TestHeuristics(unittest.TestCase):
 	def test_auto_dehyphenation(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=True)
+		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('String')
 		tokens = t.tokenize(f, MockConfig(type='fs'))

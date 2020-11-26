@@ -42,19 +42,8 @@ class StringTokenizer(Tokenizer):
 
 		tokens = file.body.split()
 		#StringTokenizer.log.debug(f'tokens: {tokens}')
-
-		if self.dehyphenate:
-			dehyphenated = []
-			t = iter(tokens)
-			for token in t:
-				if token[-1] == '-':
-					dehyphenated.append(token[:-1] + next(t))
-				else:
-					dehyphenated.append(token)
-			tokens = dehyphenated
-		#StringTokenizer.log.debug(f'tokens: {tokens}')
-
 		tokenlist = TokenList.new(storageconfig, docid=file.id, tokens=[StringToken(w, file.path.stem, i) for i, w in enumerate(tokens)])
+
 		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokenlist[:10]}')
 	
 		return tokenlist

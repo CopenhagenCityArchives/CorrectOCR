@@ -75,6 +75,8 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	rootparser.add_argument('-k', type=int, default=4, help='Number of k-best candidates to use for tokens (default: 4)')
 	rootparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
 	rootparser.add_argument('--loglevel', type=str, help='Log level', choices=loglevels.keys(), default='INFO')
+	rootparser.add_argument('--dehyphenate', type=str2bool, nargs='?', help='Automatically mark new tokens as hyphenated if they end with a dash')
+	rootparser.set_defaults(**defaults)
 
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command')
 
@@ -163,7 +165,6 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
 	prepareparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
-	prepareparser.add_argument('--dehyphenate', type=str2bool, nargs='?', default=True, help='Automatically mark tokens as hyphenated if they end with a dash')
 	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
 	prepareparser.add_argument('--autocrop', action='store_true', help='Discard tokens near page edges')
 	prepareparser.add_argument('--precache_images', action='store_true', help='Create images for the server API')

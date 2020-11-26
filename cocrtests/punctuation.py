@@ -11,7 +11,7 @@ from CorrectOCR.tokens import Tokenizer
 
 class TestPunctuation(unittest.TestCase):
 	def test_punctuation(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=True)
+		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('(test)')
 		tokens = t.tokenize(f, MockConfig(type='fs'))

@@ -148,6 +148,18 @@ class TokenList(collections.abc.MutableSequence):
 	def last_modified(self):
 		return max(t.last_modified for t in self.tokens if t.last_modified)
 
+	def dehyphenate(self):
+		TokenList.log.debug(f'Going to dehyphenate {len(self.tokens)} tokens')
+		count = 0
+		tokens = iter(self.tokens)
+		for token in tokens:
+			if token.original[-1] == '-':
+				token.is_hyphenated = True
+				next(tokens).gold = ''
+				count += 1
+		TokenList.log.debug(f'Dehyphenated {count} tokens')
+
+
 ##########################################################################################
 
 

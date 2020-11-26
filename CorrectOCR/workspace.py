@@ -284,11 +284,13 @@ class Document(object):
 
 		if step == 'tokenize':
 			if force or len(self.tokens) == 0:
-				tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.config.language, dehyphenate)
+				tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.config.language)
 				self.tokens = tokenizer.tokenize(
 					self.originalFile,
 					self.workspace.storageconfig
 				)
+				if dehyphenate:
+					self.tokens.dehyphenate()
 		elif step == 'align':
 			self.prepare('tokenize', k, dehyphenate)
 			if self.goldFile.is_file():

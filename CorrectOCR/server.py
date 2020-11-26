@@ -168,6 +168,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		
 		Returns ``404`` if the document or token cannot be found, otherwise ``200``.
 		
+		**Note**: If the token is the second part of a hyphenated token, a ``302``-redirect to the previous token will be returned.
+
 		**Note**: The data is not escaped; care must be taken when displaying in a browser.
 		
 		.. :quickref: 3 Tokens; Get token
@@ -363,7 +365,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			log.info(f'Adding {uri}')
 			doc_id = workspace.add_doc(uri)
 			log.info(f'Preparing {doc_id}')
-			workspace.docs[doc_id].prepare('server', k=config.k, force=force_prepare)
+			workspace.docs[doc_id].prepare('server', k=config.k, dehyphenate=config.dehyphenate, force=force_prepare)
 			if autocrop:
 				workspace.docs[doc_id].crop_tokens()
 			if precache_images:

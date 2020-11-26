@@ -323,14 +323,13 @@ class Tokenizer(abc.ABC):
 		Tokenizer.log.debug(f'_subclasses: {Tokenizer._subclasses}')
 		return Tokenizer._subclasses[ext]
 
-	def __init__(self, language, dehyphenate):
+	def __init__(self, language):
 		"""
 
 		:type language: :class:`pycountry.Language`
 		:param language: The language to use for tokenization (for example, the `.txt` tokenizer internally uses nltk whose tokenizers function best with a language parameter).
 		"""
 		self.language = language
-		self.dehyphenate = dehyphenate
 		self.tokens = []
 
 	@abc.abstractmethod
