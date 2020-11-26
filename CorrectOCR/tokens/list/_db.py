@@ -222,6 +222,21 @@ class DBTokenList(TokenList):
 			return result[0]
 
 	@property
+	def corrected_by_model_count(self):
+		with get_connection(self.config).cursor() as cursor:
+			cursor.execute("""
+				SELECT COUNT(*)
+				FROM token
+				WHERE token.doc_id = ?
+				AND token.gold IS NOT NULL
+				AND token.decision != 'annotator'
+				""",
+				self.docid,
+			)
+			result = cursor.fetchone()
+			return result[0]
+
+	@property
 	def discarded_count(self):
 		with get_connection(self.config).cursor() as cursor:
 			cursor.execute("""

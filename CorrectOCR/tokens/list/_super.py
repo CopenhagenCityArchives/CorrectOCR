@@ -93,6 +93,10 @@ class TokenList(collections.abc.MutableSequence):
 		return len([t for t in self if t.gold])
 
 	@property
+	def corrected_by_model_count(self):
+		return len([t for t in self if t.gold and t.decision != 'annotator'])
+
+	@property
 	def discarded_count(self):
 		return len([t for t in self if not t.is_discarded])
 
