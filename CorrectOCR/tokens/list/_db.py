@@ -317,6 +317,7 @@ class DBTokenList(TokenList):
 					original,
 					gold,
 					discarded,
+					decision,
 					last_modified
 				FROM token
 				WHERE token.doc_id = ?
@@ -331,6 +332,7 @@ class DBTokenList(TokenList):
 					'string': (result.gold or result.original),
 					'is_corrected': (result.gold is not None and result.gold.strip() != ''),
 					'is_discarded': result.discarded,
+					'requires_annotator': (result.decision == 'annotator'),
 					'last_modified': result.last_modified,
 				}
 

@@ -140,6 +140,7 @@ class TokenList(collections.abc.MutableSequence):
 				'string': (token.gold or token.original),
 				'is_corrected': (token.gold is not None and token.gold.strip() != ''),
 				'is_discarded': token.is_discarded,
+				'requires_annotator': (token.decision == 'annotator'),
 				'last_modified': token.last_modified,
 			}
 
