@@ -263,7 +263,7 @@ class Token(abc.ABC):
 		t.is_discarded = d.get('Discarded', False)
 		t.annotation_info = json.loads(d['Annotation info'])
 
-		t.last_modified = d['Last Modified'] if d['Last Modified'] else None
+		t.last_modified = d['Last Modified'] if 'Last Modified' in d else None
 		if 'k-best' in d:
 			kbest = dict()
 			for k, b in d['k-best'].items():
