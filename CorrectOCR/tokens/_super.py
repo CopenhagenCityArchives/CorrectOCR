@@ -227,8 +227,6 @@ class Token(abc.ABC):
 		}
 		output['k-best'] = dict()
 		for k, item in self.kbest.items():
-			output[f'{k}-best'] = item.candidate
-			output[f'{k}-best prob.'] = item.probability
 			output['k-best'][k] = vars(item)
 		if self.bin:
 			output['Bin'] = self.bin.number or -1
@@ -268,17 +266,6 @@ class Token(abc.ABC):
 			kbest = dict()
 			for k, b in d['k-best'].items():
 				kbest[k] = KBestItem(b['candidate'], b['probability'])
-			t.kbest = kbest
-		else:
-			kbest = collections.defaultdict(lambda: KBestItem(''))
-			k = 1
-			while f'{k}-best' in d:
-				candidate = d[f'{k}-best']
-				if candidate == '':
-					break
-				probability = d[f'{k}-best prob.']
-				kbest[k] = KBestItem(candidate, float(probability))
-				k += 1
 			t.kbest = kbest
 		if 'Bin' in d and d['Bin'] not in ('', '-1', -1):
 			from ..heuristics import Heuristics
