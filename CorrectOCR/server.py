@@ -156,6 +156,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'string': tv['string'],
 			'is_corrected': tv['is_corrected'],
 			'is_discarded': tv['is_discarded'],
+			'requires_annotator': tv['requires_annotator'],
 			'last_modified': tv['last_modified'].timestamp() if tv['last_modified'] else None,
 		} for n, tv in enumerate(g.docs[docid]['tokens'].overview)]
 		return json.jsonify(tokenindex)
