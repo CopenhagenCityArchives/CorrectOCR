@@ -1,5 +1,7 @@
 import logging
 
+from typing import Tuple
+
 from ._super import Token, Tokenizer
 from ..workspace import CorpusFile
 
@@ -24,6 +26,9 @@ class StringToken(Token):
 		self._string = original
 		super().__init__(original, docid, index)
 
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False):
+		# It doesn't make sense to show an image for a pure text token.
+		return None, None
 
 ##########################################################################################
 

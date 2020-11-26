@@ -8,7 +8,7 @@ import logging
 import string
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, DefaultDict, List, NamedTuple, Optional
+from typing import Any, DefaultDict, List, NamedTuple, Optional, Tuple
 
 import nltk
 import regex
@@ -291,6 +291,10 @@ class Token(abc.ABC):
 
 	def drop_cached_image(self):
 		pass
+
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Any]:
+		pass
+
 
 ##########################################################################################
 

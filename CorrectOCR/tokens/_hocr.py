@@ -16,6 +16,9 @@ from lxml import html
 from ._super import Token, Tokenizer, TokenList
 
 
+# NOTE: This has not been properly maintained in a while, and will need a lot of work to get running again.
+
+
 class TokenSegment(NamedTuple):
 	docid: str
 	page: int
@@ -79,6 +82,8 @@ class HOCRToken(Token):
 		else:
 			return fitz.Rect(0.0, 0.0, 0.0, 0.0)
 
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Image.Image]:
+		return None, None # TODO
 
 ##########################################################################################
 

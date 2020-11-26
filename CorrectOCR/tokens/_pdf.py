@@ -1,7 +1,7 @@
 import logging
 import traceback
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import fitz
 import numpy
@@ -54,7 +54,7 @@ class PDFToken(Token):
 	def ordering(self):
 		return self.page_n, self.block_n, self.line_n, self.word_n
 
-	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False):
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Image.Image]:
 		if not force and self.cached_image_path.is_file():
 			try:
 				img = Image.open(str(self.cached_image_path))
