@@ -399,9 +399,4 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				'detail': f'No document URLs specified.',
 			}), 400
 
-	@app.route('/test')
-	def test():
-		log.debug(f'hit test endpoint')
-		return 'test', 200
-
 	return app
