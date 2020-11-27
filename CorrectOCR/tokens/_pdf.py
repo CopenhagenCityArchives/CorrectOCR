@@ -91,7 +91,11 @@ class PDFToken(Token):
 		#PDFToken.log.debug(f'extract_image ({self.index}): {croprect}')
 		if highlight_word:
 			draw = ImageDraw.Draw(image)
-			draw.rectangle(tokenrect, outline=(255, 0, 0), width=3)
+			if self.gold:
+				color = (0x28, 0xa7, 0x45) # bootstrap green #28a745
+			else:
+				color = (0xdc, 0x35, 0x45) # bootstrap red #dc3545
+			draw.rectangle(tokenrect, outline=color, width=3)
 		image = image.crop(croprect)
 		image.save(self.cached_image_path)
 		return self.cached_image_path, image
