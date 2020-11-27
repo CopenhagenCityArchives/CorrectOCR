@@ -26,6 +26,7 @@ class HMM(object):
 	def init(self, initial: Dict[str, float]):
 		self._init = defaultdict(float)
 		self._init.update(initial)
+		self.states = self.init.keys()
 
 	@property
 	def tran(self) -> DefaultDict[str, DefaultDict[str, float]]:
@@ -68,7 +69,6 @@ class HMM(object):
 			HMM.log.info(f'Loading HMM parameters from {path}')
 			(self.init, self.tran, self.emis) = FileIO.load(path)
 
-		self.states = self.init.keys()
 		#HMM.log.debug(f'init: {self.init}')
 		#HMM.log.debug(f'tran: {self.tran}')
 		#HMM.log.debug(f'emis: {self.emis}')
