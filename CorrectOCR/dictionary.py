@@ -8,6 +8,8 @@ from .fileio import FileIO
 class Dictionary(Set[str]):
 	"""
 	Set of words to use for determining correctness of :class:`Tokens<CorrectOCR.tokens.Token>` and suggestions.
+	
+	**Note**: A Dictionary "contains" all "words" that do not contain alphabetic letters, such as ``8,5`` or ``(600)``.
 	"""
 	log = logging.getLogger(f'{__name__}.Dictionary')
 
@@ -32,7 +34,7 @@ class Dictionary(Set[str]):
 		return f'<{self.__class__.__name__} "{len(self)}{" ignoreCase" if self.ignoreCase else ""}>'
 	
 	def __contains__(self, word: str) -> bool:
-		if word.isnumeric():
+		if not word.isalpha():
 			return True
 		if self.ignoreCase:
 			word = word.lower()
