@@ -9,7 +9,7 @@ class MemTokenList(TokenList):
 	"""
 	log = logging.getLogger(f'{__name__}.MemTokenList')
 
-	def load(self, docid: str):
+	def load(self, doc: 'CorrectOCR.workspace.Document'):
 		pass
 
 	def save(self, token: 'Token' = None):
@@ -20,5 +20,5 @@ class MemTokenList(TokenList):
 		self.log.debug(f'self.tokens: {self.tokens}')
 
 	@staticmethod
-	def exists(config, docid: str):
+	def exists(config, doc: 'CorrectOCR.workspace.Document'):
 		return False

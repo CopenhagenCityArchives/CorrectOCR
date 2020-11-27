@@ -22,9 +22,9 @@ class StringToken(Token):
 	def frame(self):
 		return (0, 0, 0, 0)
 
-	def __init__(self, original, docid, index):
+	def __init__(self, original, doc, index):
 		self._string = original
-		super().__init__(original, docid, index)
+		super().__init__(original, doc, index)
 
 	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False):
 		# It doesn't make sense to show an image for a pure text token.
@@ -37,25 +37,25 @@ class StringToken(Token):
 class StringTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.StringTokenizer')
 
-	def tokenize(self, file: CorpusFile, storageconfig):
+	def tokenize(self, doc, storageconfig):
 		from .list import TokenList
 
-		tokens = file.body.split()
+		tokens = doc.originalFile.body.split()
 		#StringTokenizer.log.debug(f'tokens: {tokens}')
-		tokenlist = TokenList.new(storageconfig, docid=file.id, tokens=[StringToken(w, file.path.stem, i) for i, w in enumerate(tokens)])
+		tokenlist = TokenList.new(storageconfig, doc=doc, tokens=[StringToken(w, doc.docid, i) for i, w in enumerate(tokens)])
 
 		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokenlist[:10]}')
 	
 		return tokenlist
 
 	@staticmethod
-	def apply(original: CorpusFile, tokens, outfile: CorpusFile, highlight=False):
+	def apply(doc, tokens, highlight=False):
 		spaced = str.join(' ', [token.gold or token.original for token in tokens])
 		despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
-		outfile.header = original.header.replace(u'Corrected: No', u'Corrected: Yes') 
-		outfile.body = despaced
-		outfile.save()
+		doc.goldFile.header = doc.originalFile.header.replace(u'Corrected: No', u'Corrected: Yes') 
+		doc.goldFile.body = despaced
+		doc.goldFile.save()
 
 	@staticmethod
 	def crop_tokens(original, config, tokens, edge_left = None, edge_right = None):

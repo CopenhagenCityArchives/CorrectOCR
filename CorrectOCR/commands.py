@@ -375,13 +375,12 @@ def do_index(workspace: Workspace, config):
 				run = []
 
 		if config.highlight and workspace.docs[docid].ext == '.pdf':
-			from .tokens._pdf import PDFToken
 			log.info(f'Applying highlights')
 			pdf = fitz.open(workspace.docs[docid].originalFile)
 			red = (1.0, 0.0, 0.0)
 			for run in matches:
 				for tagged_token in run:
-					token: PDFToken = tagged_token.token
+					token = tagged_token.token
 					page = pdf[token.ordering[0]]
 					annotation = page.addRectAnnot(token.rect)
 					annotation.setColors({'fill': red, 'stroke': red})

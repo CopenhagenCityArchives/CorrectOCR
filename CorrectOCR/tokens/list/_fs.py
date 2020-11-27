@@ -6,10 +6,10 @@ from ._super import TokenList
 class FSTokenList(TokenList):
 	log = logging.getLogger(f'{__name__}.FSTokenList')
 
-	def load(self, docid: str):
+	def load(self, doc: 'CorrectOCR.workspace.Document'):
 		from .. import Token
 		from ...fileio import FileIO
-		self.docid = docid
+		self.doc = doc
 		self.path = FSTokenList._path(self.config, docid)
 		self.log.debug(f'Load from {self.path}')
 		for row in FileIO.load(self.path):
@@ -24,9 +24,9 @@ class FSTokenList(TokenList):
 		FileIO.save(self, self.path)
 
 	@staticmethod
-	def exists(config, docid: str):
-		return FSTokenList._path(config, docid).is_file()
+	def exists(config, doc: 'CorrectOCR.workspace.Document'):
+		return FSTokenList._path(config, doc).is_file()
 
 	@staticmethod
-	def _path(config, docid):
-		return config.trainingPath.joinpath(f'{docid}.csv')
+	def _path(config, doc: 'CorrectOCR.workspace.Document'):
+		return config.trainingPath.joinpath(f'{doc.docid}.csv')

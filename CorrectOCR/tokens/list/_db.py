@@ -30,8 +30,8 @@ class DBTokenList(TokenList):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
-	def load(self, docid: str):
-		self.docid = docid
+	def load(self, doc: 'CorrectOCR.workspace.Document'):
+		self.doc = doc
 		with get_connection(self.config).cursor() as cursor:
 			cursor.execute("""
 				SELECT COUNT(*)
@@ -66,7 +66,7 @@ class DBTokenList(TokenList):
 		return self.tokens[key]
 
 	@staticmethod
-	def _get_token(config, docid, index):
+	def _get_token(config, doc, index):
 		from .. import Token
 		with get_connection(config).cursor() as cursor:
 			cursor.execute("""
@@ -76,7 +76,7 @@ class DBTokenList(TokenList):
 				ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
 				WHERE token.doc_id = ? AND token.doc_index = ?
 				""",
-				docid,
+				doc.docid,
 				index
 			)
 			token_dict = None
@@ -284,23 +284,23 @@ class DBTokenList(TokenList):
 		return self[self.random_token_index(has_gold, is_discarded)]
 
 	@staticmethod
-	def exists(config, docid: str):
+	def exists(config, doc: 'CorrectOCR.workspace.Document'):
 		DBTokenList.log.debug(f'Checking if tokens for {docid} exist')
 		with get_connection(config).cursor() as cursor:
 			cursor.execute(
 				"SELECT * FROM token WHERE doc_id = ? LIMIT 1",
-				docid,
+				doc.docid,
 			)
 			res = cursor.fetchone()
 			DBTokenList.log.debug(f'res: {res}')
 			return res is not None
 
 	@staticmethod
-	def _get_count(config, docid):
+	def _get_count(config, doc: 'CorrectOCR.workspace.Document'):
 		with get_connection(config).cursor() as cursor:
 			cursor.execute(
 				"SELECT MAX(doc_index) FROM token WHERE doc_id = ?",
-				docid,
+				doc.docid,
 			)
 			res = cursor.fetchone()[0]
 			count = int(res or 0)

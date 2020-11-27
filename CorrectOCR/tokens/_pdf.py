@@ -30,9 +30,9 @@ class PDFToken(Token):
 	def frame(self):
 		return (self.token_info[1], self.token_info[2], self.token_info[3], self.token_info[4])
 
-	def __init__(self, token_info, docid, index):
+	def __init__(self, token_info, doc, index):
 		original = token_info[5]
-		super().__init__(original, docid, index)
+		super().__init__(original, doc, index)
 		self.page_n = int(token_info[0])
 		self.rect = fitz.Rect(
 			float(token_info[1]),
@@ -116,12 +116,12 @@ class PDFToken(Token):
 class PDFTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.PDFTokenizer')
 
-	def tokenize(self, file: Path, storageconfig):
+	def tokenize(self, doc: 'CorrectOCR.workspace.Document', storageconfig):
 		from .list import TokenList
 
-		doc = fitz.open(str(file))
+		doc = fitz.open(doc.originalPath)
 
-		tokens = TokenList.new(storageconfig, docid=file.stem)
+		tokens = TokenList.new(storageconfig, doc=doc)
 		for page in doc:
 			PDFTokenizer.log.info(f'Getting tokens from {file.name} page {page.number}')
 			for w in progressbar.progressbar(page.getTextWords()):
@@ -133,8 +133,8 @@ class PDFTokenizer(Tokenizer):
 		return tokens
 
 	@staticmethod
-	def apply(original, tokens: List[PDFToken], outfile, highlight=False):
-		pdf_original = fitz.open(str(original))
+	def apply(doc, tokens: List[PDFToken], outfile, highlight=False):
+		pdf_original = fitz.open(str(doc.originalFile))
 		pdf_corrected = fitz.open()
 
 		PDFTokenizer.log.info('Copying images from original to corrected PDF')
@@ -179,15 +179,15 @@ class PDFTokenizer(Tokenizer):
 		pdf_corrected.save(str(outfile))#, garbage=4, deflate=True)
 
 	@staticmethod
-	def crop_tokens(original, config, tokens, edge_left = None, edge_right = None):
-		pdf_original = fitz.open(str(original))
+	def crop_tokens(doc, config, edge_left = None, edge_right = None):
+		pdf_original = fitz.open(str(doc.originalFile))
 
 		page_filter = lambda t: t.token_info[0] == page.number
 
-		PDFTokenizer.log.info(f'Going to crop {len(tokens)} tokens.')
+		PDFTokenizer.log.info(f'Going to crop {len(doc.tokens)} tokens.')
 		for page in pdf_original:
 			page_width = page.rect.x1
-			filtered_tokens = filter(page_filter, tokens)
+			filtered_tokens = filter(page_filter, doc.tokens)
 			page_tokens = list(filtered_tokens)
 			if edge_left is None and edge_right is None:
 				edge_left, edge_right = PDFTokenizer.calculate_crop_area(page_tokens, page_width)

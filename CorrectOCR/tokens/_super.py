@@ -63,7 +63,7 @@ class Token(abc.ABC):
 		Token._subclasses[cls.__name__] = cls
 		return cls
 
-	def __init__(self, original: str, docid: str, index: int):
+	def __init__(self, original: str, doc: 'CorrectOCR.workspace.Document', index: int):
 		"""
 		:param original: Original spelling of the token.
 		:param docid: The doc with which the Token is associated.
@@ -72,7 +72,7 @@ class Token(abc.ABC):
 			raise TypeError("Token base class cannot not be directly instantiated")
 		self.original = original
 		_, self.normalized, _ = punctuation_splitter(self.original)
-		self.docid = docid  #: The doc with which the Token is associated.
+		self.doc = doc  #: The doc with which the Token is associated.
 		self.index = index #: The placement of the Token in the doc.
 		self.gold = None # (documented in @property methods below)
 		self.bin: Optional[Bin] = None  #: Heuristics bin.
@@ -93,6 +93,10 @@ class Token(abc.ABC):
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
 			self._gold = self.normalized
+
+	@property
+	def docid(self) -> str:
+		return self.doc.docid
 
 	@property
 	@abc.abstractmethod
@@ -224,8 +228,8 @@ class Token(abc.ABC):
 			'Discarded': self.is_discarded,
 			'Page': self.page,
 			'Frame': self.frame,
+			'k-best': dict(),
 		}
-		output['k-best'] = dict()
 		for k, item in self.kbest.items():
 			output['k-best'][k] = vars(item)
 		if self.bin:
@@ -333,19 +337,19 @@ class Tokenizer(abc.ABC):
 		self.tokens = []
 
 	@abc.abstractmethod
-	def tokenize(self, file: Path, storageconfig) -> TokenList:
+	def tokenize(self, doc: 'CorrectOCR.document.Document', storageconfig) -> TokenList:
 		"""
 		Generate tokens for the given document.
 
 		:param storageconfig: Storage configuration (database, filesystem) for resulting Tokens
-		:param file: A given document.
+		:param doc: A given document.
 		:return:
 		"""
 		pass
 
 	@staticmethod
 	@abc.abstractmethod
-	def apply(original: Path, tokens: TokenList, outfile: Path, highlight=False):
+	def apply(doc, tokens: TokenList, outfile, highlight=False):
 		pass
 
 	@staticmethod

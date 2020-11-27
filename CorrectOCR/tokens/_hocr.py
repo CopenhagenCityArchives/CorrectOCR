@@ -65,14 +65,14 @@ class HOCRToken(Token):
 	def frame(self):
 		return (0, 0, 0, 0)
 
-	def __init__(self, info, docid, index):
+	def __init__(self, info, doc, index):
 		(element, page) = info
 		if isinstance(element, str):
 			self._element = html.fromstring(element)
 		else:
 			self._element = element
 		self.page = page
-		super().__init__(self._element.text.strip(), docid, index)
+		super().__init__(self._element.text.strip(), doc, index)
 
 	def rect(self):
 		# example: title='bbox 77 204 93 234; x_wconf 95'
@@ -151,7 +151,7 @@ def columnize(image, columncount):
 		yield (left, 0, right-left, height)
 
 
-def tokenize_image(docid: str, page: int, image: Image, language='Eng', force=False):
+def tokenize_image(doc: 'CorrectOCR.workspace.Document', page: int, image: Image, language='Eng', force=False):
 	log = logging.getLogger(f'{__name__}.tokenize_image')
 
 	with c_locale():
@@ -164,7 +164,7 @@ def tokenize_image(docid: str, page: int, image: Image, language='Eng', force=Fa
 			tesseract.SetImage(image)
 
 			for index, rect in enumerate(columnize(image, 2)):
-				log.info(f'Generating hOCR for column {index} of {docid} page {page}')
+				log.info(f'Generating hOCR for column {index} of {doc} page {page}')
 
 				tesseract.SetRectangle(*rect)
 
@@ -179,7 +179,7 @@ def tokenize_image(docid: str, page: int, image: Image, language='Eng', force=Fa
 					rect,
 					image,
 					hocr,
-					[HOCRToken((e, page), docid, i) for i, e in enumerate(elements) if e.text.strip() != '']
+					[HOCRToken((e, page), doc, i) for i, e in enumerate(elements) if e.text.strip() != '']
 				)
 
 
