@@ -51,7 +51,7 @@ class HMM(object):
 			for inner, e in d.items():
 				self._emis[outer][inner] = e
 
-	def __init__(self, path: Path, multichars=None, dictionary: Dictionary = None):
+	def __init__(self, path: Path, multichars=None, dictionary: Dictionary = None, use_cache=True):
 		"""
 		:param path: Path for loading and saving.
 		:param multichars: A dictionary of possible multicharacter substitutions (eg. 'cr': 'æ' or vice versa).
@@ -64,7 +64,7 @@ class HMM(object):
 		self.path = path
 
 		(self.init, self.tran, self.emis) = (dict(), dict(), dict())
-		if self.path.is_file():
+		if self.path and self.path.is_file():
 			HMM.log.info(f'Loading HMM parameters from {path}')
 			(self.init, self.tran, self.emis) = FileIO.load(path)
 
@@ -79,7 +79,10 @@ class HMM(object):
 		else:
 			HMM.log.debug(f'HMM initialized: {self}')
 
-		self.cache = PickledLRUCache.by_name(f'{__name__}.HMM.kbest')
+		if use_cache:
+			self.cache = PickledLRUCache.by_name(f'{__name__}.HMM.kbest')
+		else:
+			self.cache = None
 
 	def __str__(self):
 		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
