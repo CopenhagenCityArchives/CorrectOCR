@@ -1,17 +1,21 @@
 import logging
 import itertools
+import string
 from collections import defaultdict
 from pathlib import Path
 from typing import Set
 
 import progressbar
 
-from ._util import punctuationRE
+from ._util import letterRE
 from .fileio import FileIO
+
 
 class Dictionary(Set[str]):
 	"""
 	Set of words to use for determining correctness of :class:`Tokens<CorrectOCR.tokens.Token>` and suggestions.
+	
+	**Note**: A Dictionary "contains" all "words" that do not contain alphabetic letters, such as ``8,5`` or ``(600)``.
 	"""
 	log = logging.getLogger(f'{__name__}.Dictionary')
 
@@ -40,8 +44,8 @@ class Dictionary(Set[str]):
 		#return len([len(group) for group in self.groups.values()])
 
 	def __contains__(self, word: str) -> bool:
-		word = word.replace('\xad', '') # strip soft hyphens
-		if word.isnumeric():
+		word = self.clean(word)
+		if word == '' or not letterRE.search(word):
 			return True
 		if self.ignoreCase:
 			word = word.lower()
@@ -65,8 +69,8 @@ class Dictionary(Set[str]):
 		:param word: The word to add.
 		:param nowarn: Don't warn about long words (>15 letters).
 		"""
-		word = punctuationRE.sub('', word).strip()
-		if word == '' or not word.isalpha():
+		word = self.clean(word)
+		if word == '' or not letterRE.search(word):
 			return
 		if len(word) > 15 and not nowarn:
 			Dictionary.log.warning(f'Added word is more than 15 characters long: {word}')
@@ -97,3 +101,9 @@ class Dictionary(Set[str]):
 		for group in self.groups.keys():
 			if group in self._dirty:
 				self.save_group(group)
+
+	def clean(self, word: str) -> str:
+		word = word.replace('\xad', '') # remove soft hyphens
+		word = word.replace('-', '') # remove hard hyphens
+		word = word.strip(string.punctuation + string.whitespace) # strip surrounding punctuation
+		return word
