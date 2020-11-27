@@ -16,6 +16,8 @@ class TestHeuristics(unittest.TestCase):
 		f = MockCorpusFile('String')
 		tokens = t.tokenize(f, MockConfig(type='fs'))
 		token = tokens[0]
+
+		self.assertIsNone(token.bin, f'Token should not be in any bin.')
 		
 		token.kbest = {
 			1: KBestItem("String", 1.0),
