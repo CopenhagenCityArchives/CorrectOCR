@@ -87,6 +87,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		  workspace.docInfoBaseURL
 		:>jsonarr int count: Total number of Tokens.
 		:>jsonarr int corrected: Number of corrected Tokens.
+		:>jsonarr int corrected_by_model: Number of Tokens that were automatically corrected by the model.
 		:>jsonarr int discarded: Number of discarded Tokens.
 		:>jsonarr int last_modified: The date/time of the last modified token.
 		"""
@@ -127,6 +128,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		       "string": "Example",
 		       "is_corrected": true,
 		       "is_discarded": false,
+		       "requires_annotator": false,
 		       "last_modified": 1605255523
 		     },
 		     {
@@ -135,6 +137,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		       "string": "Exanpie",
 		       "is_corrected": false,
 		       "is_discarded": false,
+		       "requires_annotator": true,
 		       "last_modified": null
 		     }
 		   ]
@@ -212,7 +215,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		    Relevant keys for frontend display include
 		    `original` (uncorrected OCR result),
-		    `gold` (corrected version, if available).
+		    `gold` (corrected version, if available). For further information, see the Token class.
 		"""
 		if docid not in g.docs:
 			return json.jsonify({
@@ -240,6 +243,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		
 		If an invalid ``hyphenate`` value is submitted, status code ``400`` will be returned.
 		
+		**Note**: If ``gold`` and ``hyphenate`` are supplied, the ``gold`` value will be set on the main token (the left one of the pair).
+		
+		**Note**: If the hyphenation is set to ``left``, a redirect to the new "head" token will be returned.
+		
 		.. :quickref: 3 Tokens; Update token
 
 		:param string docid: The ID of the requested document.
@@ -250,7 +257,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:<json string hyphenate: Optionally hyphenate to the `left` or `right`.
 		
 		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`.
-		    *NB*: If the hyphenation is set to ``left``, a redirect to the new "head" token will be returned.
 		"""
 		#app.logger.debug(f'request: {request} request.data: {request.data} request.json: {request.json}')
 		if docid not in g.docs:
