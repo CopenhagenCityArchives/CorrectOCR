@@ -192,6 +192,10 @@ class HMM(object):
 
 		return [(''.join(seq), prob) for seq, prob in paths[:k]]
 
+	def __getitem__(self, item_key):
+		word, k = item_key
+		return self.kbest_for_word(word, k)
+
 	@cached
 	def kbest_for_word(self, word: str, k: int) -> DefaultDict[int, KBestItem]:
 		"""
