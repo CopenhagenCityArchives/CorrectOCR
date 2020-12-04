@@ -84,11 +84,9 @@ class HMM(object):
 		else:
 			self.cache = None
 
-	def __str__(self):
-		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
 
 	def __repr__(self):
-		return self.__str__()
+		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
 
 	def save(self, path: Path = None):
 		"""
