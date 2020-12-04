@@ -97,6 +97,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	""")
 	dictparser.add_argument('--corpusPath', type=Path, default='dictionary/', help='Directory of files to split into words and add to dictionary')
 	dictparser.add_argument('--corpusFile', type=Path, help='File containing paths and URLs to use as corpus (TXT format)')
+	dictparser.add_argument('--add_annotator_gold', action='store_true', default=False, help='Add gold words from annotated tokens')
 	dictparser.add_argument('--clear', action='store_true', default=False, help='Clear the dictionary before adding words')
 	dictparser.set_defaults(func=commands.build_dictionary, **defaults)
 

@@ -124,6 +124,13 @@ def build_dictionary(workspace: Workspace, config):
 			log.error(f'Unrecognized filetype:{file}')
 		log.info(f'Wordcount {len(workspace.resources.dictionary)}')
 
+	if config.add_annotator_gold:
+		for docid, doc in workspace.items():
+			log.info('Adding gold words from annotated tokens in document {docid}')
+			for token in doc.tokens:
+				if token.decision == 'annotator' and token.gold is not None:
+					workspace.resources.dictionary.add(token.gold)
+
 	workspace.resources.dictionary.save()
 
 
