@@ -74,6 +74,8 @@ class Heuristics(object):
 		counts = Counter()
 		annotatorRequired = 0
 		for token in progressbar.progressbar(tokens):
+			if token.is_discarded:
+				continue
 			if force or not token.bin:
 				token.decision, token.selection, t.bin = self.bin_for_token(token)
 			counts[token.bin.number] += 1
