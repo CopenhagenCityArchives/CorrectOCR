@@ -27,6 +27,7 @@ class HMM(object):
 		self._init = defaultdict(float)
 		self._init.update(initial)
 		self.states = self.init.keys()
+		self.clear_cache()
 
 	@property
 	def tran(self) -> DefaultDict[str, DefaultDict[str, float]]:
@@ -39,6 +40,7 @@ class HMM(object):
 		for outer, d in transition.items():
 			for inner, e in d.items():
 				self._tran[outer][inner] = e
+		self.clear_cache()
 
 	@property
 	def emis(self) -> DefaultDict[str, DefaultDict[str, float]]:
@@ -51,6 +53,7 @@ class HMM(object):
 		for outer, d in emission.items():
 			for inner, e in d.items():
 				self._emis[outer][inner] = e
+		self.clear_cache()
 
 	def __init__(self, path: Path, multichars=None, dictionary: Dictionary = None, use_cache=True):
 		"""
@@ -63,6 +66,7 @@ class HMM(object):
 		self.multichars = multichars
 		self.dictionary = dictionary
 		self.path = path
+		self.cache = None
 
 		(self.init, self.tran, self.emis) = (dict(), dict(), dict())
 		if self.path and self.path.is_file():
@@ -80,10 +84,12 @@ class HMM(object):
 			HMM.log.debug(f'HMM initialized: {self}')
 
 		if use_cache:
-			self.cache = PickledLRUCache.by_name(f'{__name__}.HMM.kbest')
-		else:
-			self.cache = None
+			self.cache = PickledLRUCache.by_name(f'{__name__}.HMM.kbest')			
 
+	def clear_cache(self):
+		if self.cache:
+			self.cache.delete()
+			self.cache = PickledLRUCache.by_name(f'{__name__}.HMM.kbest')
 
 	def __repr__(self):
 		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
