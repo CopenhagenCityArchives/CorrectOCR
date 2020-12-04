@@ -16,7 +16,7 @@ from .aligner import Aligner
 from .dictionary import Dictionary
 from .fileio import FileIO
 from .heuristics import Heuristics
-from .model import HMM
+from .model.hmm import HMM
 from .tokens import Tokenizer, TokenList, tokenize_str
 
 

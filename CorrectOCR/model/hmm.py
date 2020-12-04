@@ -7,12 +7,12 @@ from typing import DefaultDict, Dict, List, Optional, Tuple, Sequence
 
 import progressbar
 
-from . import punctuationRE
-from ._cache import PickledLRUCache, cached
-from .dictionary import Dictionary
-from .fileio import FileIO
-from .model.kbest import KBestItem
-from .tokens import KBestItem, TokenList
+from .kbest import KBestItem
+from .. import punctuationRE
+from .._cache import PickledLRUCache, cached
+from ..dictionary import Dictionary
+from ..fileio import FileIO
+from ..tokens import TokenList
 
 
 class HMM(object):
