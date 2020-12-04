@@ -18,19 +18,18 @@ CREATE TABLE token (
 );
 
 CREATE TABLE kbest (
-	doc_id VARCHAR(255) NOT NULL,
-	doc_index INT NOT NULL,
+	word VARCHAR(255) NOT NULL,
 	k INT NOT NULL,
 	candidate VARCHAR(255) NOT NULL,
 	probability float NOT NULL,
-	PRIMARY KEY (doc_id, doc_index, k)
+	PRIMARY KEY (word, k)
 );
 
 CREATE INDEX idx_token_doc_id_doc_index
 	ON token(doc_id, doc_index);
 
-CREATE INDEX idx_kbest_doc_id_doc_index
-	ON kbest(doc_id, doc_index);
+CREATE INDEX idx_kbest_word
+    ON kbest(word);
 
-CREATE INDEX idx_kbest_doc_id_doc_index_k
-    ON kbest(doc_id, doc_index, k);
+CREATE INDEX idx_kbest_word_k
+    ON kbest(word, k);

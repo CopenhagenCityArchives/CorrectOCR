@@ -87,7 +87,7 @@ class DBTokenList(TokenList):
 				SELECT *
 				FROM token
 				LEFT JOIN kbest
-				ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
+				ON token.original = kbest.word
 				WHERE token.doc_id = ? AND token.doc_index = ?
 				""",
 				docid,
@@ -222,15 +222,14 @@ class DBTokenList(TokenList):
 				kbestdata = []
 				for k, item in token.kbest.items():
 					kbestdata.append([
-					token.docid,
-					token.index,
+					token.original,
 					k,
 					item.candidate,
 					item.probability,
 				])
 				cursor.executemany("""
-					REPLACE INTO kbest (doc_id, doc_index, k, candidate, probability)
-					VALUES (?, ?, ?, ?, ?) 
+					REPLACE INTO kbest (word, k, candidate, probability)
+					VALUES (?, ?, ?, ?) 
 					""",
 					kbestdata,
 				)
@@ -261,8 +260,7 @@ class DBTokenList(TokenList):
 			])
 			for k, item in token.kbest.items():
 				kbestdata.append([
-				token.docid,
-				token.index,
+				token.original,
 				k,
 				item.candidate,
 				item.probability,
@@ -280,8 +278,8 @@ class DBTokenList(TokenList):
 			)
 			if len(kbestdata) > 0:
 				cursor.executemany("""
-					REPLACE INTO kbest (doc_id, doc_index, k, candidate, probability)
-					VALUES (?, ?, ?, ?, ?) 
+					REPLACE INTO kbest (word, k, candidate, probability)
+					VALUES (?, ?, ?, ?) 
 					""",
 					kbestdata,
 				)
