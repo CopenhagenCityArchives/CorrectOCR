@@ -73,11 +73,11 @@ class Heuristics(object):
 		Heuristics.log.info('Running heuristics on tokens to determine annotator workload.')
 		counts = Counter()
 		annotatorRequired = 0
-		for t in progressbar.progressbar(tokens):
-			if force or not t.bin:
-				t.decision, t.selection, t.bin = self.bin_for_token(t)
-			counts[t.bin.number] += 1
-			if t.decision == 'annotator':
+		for token in progressbar.progressbar(tokens):
+			if force or not token.bin:
+				token.decision, token.selection, t.bin = self.bin_for_token(token)
+			counts[token.bin.number] += 1
+			if token.decision == 'annotator':
 				annotatorRequired += 1
 		Heuristics.log.debug(f'Counts for each bin: {counts}')
 		Heuristics.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
