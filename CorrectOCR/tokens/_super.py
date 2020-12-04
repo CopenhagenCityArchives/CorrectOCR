@@ -153,6 +153,7 @@ class Token(abc.ABC):
 	def is_discarded(self, is_discarded):
 		self._is_discarded = is_discarded
 		self.last_modified = datetime.datetime.now()
+		self.gold = ''
 
 	@property
 	def is_hyphenated(self) -> str:
