@@ -38,27 +38,27 @@ class Heuristics(object):
 		self.oversegmented = 0
 		self.undersegmented = 0
 
-	def bin_for_token(self, token: 'Token'):
+	def bin_for_word(self, word, kbest):
 		# k best candidates which are in dictionary
-		filtids = [n for n, item in token.kbest.items() if item.normalized in self.dictionary]
+		filtids = [n for n, item in kbest.items() if item.normalized in self.dictionary]
 
 		dcode = None
 		if len(filtids) == 0:
 			dcode = 'zerokd'
-		elif 0 < len(filtids) < token.k:
+		elif 0 < len(filtids) < len(kbest):
 			dcode = 'somekd'
-		elif len(filtids) == token.k:
+		elif len(filtids) == len(kbest):
 			dcode = 'allkd'
 
 		token_bin = None
 		for num, _bin in _bins.items():
-			if _bin.matcher(token.normalized, token.kbest[1].normalized, self.dictionary, dcode):
+			if _bin.matcher(word, kbest[1].normalized, self.dictionary, dcode):
 				token_bin = _bin._copy()
 				break
 
 		# return decision and chosen candidate(s)
 		if token_bin.heuristic == 'o':
-			(decision, selection) = ('original', token.original)
+			(decision, selection) = ('original', word)
 		elif token_bin.heuristic == 'k':
 			(decision, selection) = ('kbest', 1)
 		elif token_bin.heuristic == 'd':
@@ -77,7 +77,7 @@ class Heuristics(object):
 			if token.is_discarded:
 				continue
 			if force or not token.bin:
-				token.decision, token.selection, t.bin = self.bin_for_token(token)
+				token.decision, token.selection, t.bin = self.bin_for_word(token.normalized, token.kbest)
 			counts[token.bin.number] += 1
 			if token.decision == 'annotator':
 				annotatorRequired += 1
