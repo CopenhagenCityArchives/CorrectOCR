@@ -6,8 +6,9 @@ import sys
 
 from .mocks import *
 
-from CorrectOCR.tokens import Tokenizer, Token, KBestItem
-from CorrectOCR.model import HMM, HMMBuilder
+from CorrectOCR.model.kbest import KBestItem
+from CorrectOCR.model.hmm import HMM, HMMBuilder
+from CorrectOCR.tokens import Tokenizer, Token
 
 class TestModel(unittest.TestCase):
 	def test_kbest(self):

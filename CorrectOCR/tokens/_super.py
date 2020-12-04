@@ -6,42 +6,19 @@ import datetime
 import json
 import logging
 import string
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, DefaultDict, List, NamedTuple, Optional, Tuple
 
 import nltk
-import regex
 
 from .list import TokenList
+from .._util import punctuation_splitter
 from ..heuristics import Bin
+from ..model.kbest import KBestItem
 
 
 def tokenize_str(data: str, language='english') -> List[str]:
 	return nltk.tokenize.word_tokenize(data, language.lower())
-
-
-_punctuation_splitter = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
-
-def punctuation_splitter(s):
-	m = _punctuation_splitter.search(s)
-	return m.groups('')
-
-
-##########################################################################################
-
-
-@dataclass
-class KBestItem:
-	candidate: str = ''
-	probability: float = 0.0
-
-	def __repr__(self) -> str:
-		return f'<KBestItem {self.candidate}, {self.probability:.2e}>'
-
-	@property
-	def normalized(self):
-		return punctuation_splitter(self.candidate)[1]
 
 
 ##########################################################################################

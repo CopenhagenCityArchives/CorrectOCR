@@ -6,8 +6,9 @@ import sys
 
 from .mocks import *
 
-from CorrectOCR.tokens import Tokenizer, Token, KBestItem
 from CorrectOCR.heuristics import Heuristics
+from CorrectOCR.model.kbest import KBestItem
+from CorrectOCR.tokens import Tokenizer, Token
 
 class TestHeuristics(unittest.TestCase):
 	def test_auto_dehyphenation(self):
