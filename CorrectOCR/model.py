@@ -247,6 +247,8 @@ class HMM(object):
 
 		HMM.log.info(f'Generating {k}-best suggestions for each token')
 		for i, token in enumerate(progressbar.progressbar(tokens)):
+			if token.is_discarded:
+				continue
 			if force or not token.kbest or len(token.kbest) != k:
 				token.kbest = self.kbest_for_word(token.original, k)
 
