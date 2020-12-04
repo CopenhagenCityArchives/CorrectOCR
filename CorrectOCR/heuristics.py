@@ -7,7 +7,7 @@ from typing import Callable, DefaultDict, Dict, List, TYPE_CHECKING
 
 import progressbar
 
-from . import punctuationRE
+from ._util import punctuationRE
 if TYPE_CHECKING:
 	from .dictionary import Dictionary
 	from .tokens import Token

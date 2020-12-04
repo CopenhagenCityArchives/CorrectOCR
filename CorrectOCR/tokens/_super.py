@@ -12,7 +12,7 @@ from typing import Any, DefaultDict, List, NamedTuple, Optional, Tuple
 import nltk
 
 from .list import TokenList
-from .._util import punctuation_splitter
+from .._util import punctuation_splitter, punctuationRE
 from ..heuristics import Bin
 from ..model.kbest import KBestItem
 
@@ -176,14 +176,12 @@ class Token(abc.ABC):
 	def __hash__(self):
 		return self.original.__hash__()
 
-	_is_punctuationRE = regex.compile(r'^\p{punct}+$')
-
 	def is_punctuation(self) -> bool:
 		"""
 		Is the Token purely punctuation?
 		"""
 		#self.__class__.log.debug(f'{self}')
-		return Token._is_punctuationRE.match(self.original)
+		return punctuationRE.fullmatch(self.original)
 
 	def is_numeric(self) -> bool:
 		"""

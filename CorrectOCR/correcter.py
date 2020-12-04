@@ -3,7 +3,7 @@ import logging
 from collections import deque
 from typing import List, Iterator, TypeVar, Tuple
 
-from . import punctuationRE
+from ._util import punctuationRE
 from .tokens import TokenList
 
 '''

@@ -8,8 +8,8 @@ from typing import DefaultDict, Dict, List, Optional, Tuple, Sequence
 import progressbar
 
 from .kbest import KBestItem
-from .. import punctuationRE
 from .._cache import PickledLRUCache, cached
+from .._util import punctuationRE
 from ..dictionary import Dictionary
 from ..fileio import FileIO
 from ..tokens import TokenList

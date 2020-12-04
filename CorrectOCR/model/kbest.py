@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ._util import punctuation_splitter
+from .._util import punctuation_splitter
 
 @dataclass
 class KBestItem:
