@@ -50,7 +50,7 @@ class StringTokenizer(Tokenizer):
 
 	@staticmethod
 	def apply(original: CorpusFile, tokens, outfile: CorpusFile, highlight=False):
-		spaced = str.join(' ', [token.gold or token.original for token in tokens])
+		spaced = str.join(' ', [token.gold or token.original for token in tokens if not token.is_discarded])
 		despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
 		outfile.header = original.header.replace(u'Corrected: No', u'Corrected: Yes') 
