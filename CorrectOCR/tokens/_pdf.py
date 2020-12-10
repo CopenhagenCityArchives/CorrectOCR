@@ -151,6 +151,9 @@ class PDFTokenizer(Tokenizer):
 
 		PDFTokenizer.log.info('Inserting tokens in corrected PDF')
 		for token in sorted(tokens, key=lambda x: x.ordering):
+			if token.is_discarded:
+				continue
+
 			page = pdf_corrected[token.ordering[0]]
 			word = token.gold or token.original
 
