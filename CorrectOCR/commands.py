@@ -128,7 +128,7 @@ def build_dictionary(workspace: Workspace, config):
 		for docid, doc in workspace.items():
 			log.info('Adding gold words from annotated tokens in document {docid}')
 			for token in doc.tokens:
-				if token.decision == 'annotator' and token.gold is not None:
+				if token.decision == 'annotator' and token.gold is not None and not token.is_discarded:
 					if token.gold not in workspace.resources.dictionary:
 						log.info(f'Adding {token.gold}')
 						workspace.resources.dictionary.add(token.gold)
