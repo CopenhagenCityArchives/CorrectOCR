@@ -55,7 +55,7 @@ class DBTokenList(TokenList):
 				self.docid,
 			)
 			server_ready = cursor.fetchone()[0] == 0
-			DBTokenList.log.debug(f'doc {self.docid} ready for server: {server_ready}')
+			#DBTokenList.log.debug(f'doc {self.docid} ready for server: {server_ready}')
 			return server_ready
 
 
