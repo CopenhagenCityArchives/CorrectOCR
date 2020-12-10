@@ -2,8 +2,8 @@ import logging
 from pathlib import Path
 from typing import Set
 
+from ._util import punctuationRE
 from .fileio import FileIO
-
 
 class Dictionary(Set[str]):
 	"""
@@ -45,12 +45,12 @@ class Dictionary(Set[str]):
 
 	def add(self, word: str, nowarn: bool = False):
 		"""
-		Add a new word to the dictionary. Silently drops non-alpha strings.
+		Add a new word (sans punctuation) to the dictionary. Silently drops non-alpha strings.
 
 		:param word: The word to add.
 		:param nowarn: Don't warn about long words (>15 letters).
 		"""
-		word = word.strip()
+		word = punctuationRE.sub(word, '').strip()
 		if word == '' or not word.isalpha() or word in self:
 			return
 		if len(word) > 15 and not nowarn:
