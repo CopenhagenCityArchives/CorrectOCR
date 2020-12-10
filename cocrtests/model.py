@@ -32,7 +32,7 @@ class TestModel(unittest.TestCase):
 
 		builder = HMMBuilder(dictionary, 0.0001, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', readCounts, [], gold_words)
 
-		hmm = HMM(None, None, dictionary, use_cache=False)
+		hmm = HMM(None, None, use_cache=False)
 		hmm.init = builder.init
 		hmm.tran = builder.tran
 		hmm.emis = builder.emis

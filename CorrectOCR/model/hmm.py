@@ -56,16 +56,14 @@ class HMM(object):
 				self._emis[outer][inner] = e
 		self.clear_cache()
 
-	def __init__(self, path: Path, multichars=None, dictionary: Dictionary = None, use_cache=True):
+	def __init__(self, path: Path, multichars=None, use_cache=True):
 		"""
 		:param path: Path for loading and saving.
 		:param multichars: A dictionary of possible multicharacter substitutions (eg. 'cr': 'æ' or vice versa).
-		:param dictionary: The dictionary against which to check validity.
 		"""
 		if multichars is None:
 			multichars = {}
 		self.multichars = multichars
-		self.dictionary = dictionary
 		self.path = path
 		self.cache = None
 
@@ -213,8 +211,7 @@ class HMM(object):
 		# Check for common multi-character errors. If any are present,
 		# make substitutions and compare probabilties of results.
 		for sub in self.multichars:
-			# Only perform the substitution if none of the k-best candidates are present in the dictionary
-			if sub in word and all(punctuationRE.sub('', x[0]) not in self.dictionary for x in k_best):
+			if sub in word:
 				variant_words = HMM._multichar_variants(word, sub, self.multichars[sub])
 				for v in variant_words:
 					if v != word:
