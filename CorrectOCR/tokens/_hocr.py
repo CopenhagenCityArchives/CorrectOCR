@@ -227,6 +227,9 @@ class HOCRTokenizer(Tokenizer):
 		page.insertImage(page.rect, pixmap=pix)
 
 		for token in progressbar.progressbar(tokens):
+			if token.is_discarded:
+				continue
+
 			page = pdf[token.page]
 			word = token.gold or token.original
 			# Adjust rectangle to fit word:
