@@ -243,7 +243,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		
 		If an invalid ``hyphenate`` value is submitted, status code ``400`` will be returned.
 		
-		**Note**: If ``gold`` and ``hyphenate`` are supplied, the ``gold`` value will be set on the main token (the left one of the pair).
+		**Note**: If ``gold`` and ``hyphenate`` are supplied, the ``gold`` value will be
+		inspected. If it contains a hyphen, the left and right parts will be set on the
+		respective tokens. If it does not, the gold will be set on the leftmost token,
+		and the right one discarded.
 		
 		**Note**: If the hyphenation is set to ``left``, a redirect to the new "head" token will be returned.
 		
@@ -273,15 +276,29 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			if request.json['hyphenate'] == 'left':
 				token.gold = ''
 				prev_token = g.docs[docid]['tokens'][index-1]
-				if 'gold' in request.json:
-					prev_token.gold = request.json['gold']
+				gold = request.json.get('gold', None)
+				if gold:
+					if '-' in gold:
+						a, b = gold.split('-')
+						prev_token.gold = a + '-'
+						token.gold = b
+					else:
+						prev_token.gold = gold
+						token.is_discarded = True
 				prev_token.is_hyphenated = True
 				prev_token.drop_cached_image()
 				g.docs[docid]['tokens'].save(token=prev_token)
 				return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))
 			elif request.json['hyphenate'] == 'right':
-				if 'gold' in request.json:
-					token.gold = request.json['gold']
+				gold = request.json.get('gold', None)
+				if gold:
+					if '-' in gold:
+						a, b = gold.split('-')
+						token.gold = a + '-'
+						next_token.gold = b
+					else:
+						token.gold = gold
+						next_token.is_discarded = True
 				token.is_hyphenated = True
 				token.drop_cached_image()
 				next_token = g.docs[docid]['tokens'][index+1]
