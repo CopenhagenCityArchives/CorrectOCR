@@ -40,6 +40,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		)
 		logging.getLogger().setLevel(logging.DEBUG)
 
+	if config.profile:
+		log.info('Using Werkzeug application profiler')
+		from werkzeug.middleware.profiler import ProfilerMiddleware
+		app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10], profile_dir=workspace.root)
+
 	@app.before_request
 	def before_request():
 		g.docs = {
