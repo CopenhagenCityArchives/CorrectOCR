@@ -293,7 +293,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				prev_token.is_hyphenated = True
 				prev_token.drop_cached_image()
 				g.docs[docid]['tokens'].save(token=prev_token)
-				return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))
 			elif request.json['hyphenate'] == 'right':
 				next_token = g.docs[docid]['tokens'][index+1]
 				gold = request.json.get('gold', None)
@@ -324,10 +323,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			app.logger.debug(f"Received annotation_info: {request.json['annotation_info']}")	
 			token.annotation_info = request.json['annotation_info']
 		g.docs[docid]['tokens'].save(token=token)
-		tokendict = vars(token)
-		if 'image_url' not in tokendict:
-			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
-		return json.jsonify(tokendict)
+		return tokeninfo(docid, index)
 
 	@app.route('/<string:docid>/token-<int:index>.png')
 	def tokenimage(docid, index):
