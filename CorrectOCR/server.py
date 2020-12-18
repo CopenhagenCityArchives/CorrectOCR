@@ -295,6 +295,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				g.docs[docid]['tokens'].save(token=prev_token)
 				return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))
 			elif request.json['hyphenate'] == 'right':
+				next_token = g.docs[docid]['tokens'][index+1]
 				gold = request.json.get('gold', None)
 				if gold:
 					if '-' in gold:
@@ -306,7 +307,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 						next_token.is_discarded = True
 				token.is_hyphenated = True
 				token.drop_cached_image()
-				next_token = g.docs[docid]['tokens'][index+1]
 				next_token.gold = ''
 				next_token.drop_cached_image()
 				g.docs[docid]['tokens'].save(token=next_token)
