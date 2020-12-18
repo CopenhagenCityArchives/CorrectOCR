@@ -152,7 +152,7 @@ class Token(abc.ABC):
 		return len(self.kbest)
 
 	def __str__(self):
-		return f'<{self.__class__.__name__} "{self.original}" "{self.gold}" {self.kbest} {self.bin}>'
+		return f'<{self.__class__.__name__} "{self.original}" "{self.gold}" {self.kbest} bin {self.bin.number}>'
 
 	def __repr__(self):
 		return self.__str__()
