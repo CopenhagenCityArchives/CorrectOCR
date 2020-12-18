@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import logging
 import re
 import requests
@@ -15,7 +16,7 @@ from .aligner import Aligner
 from .dictionary import Dictionary
 from .fileio import FileIO
 from .heuristics import Heuristics
-from .model import HMM
+from .model.hmm import HMM
 from .tokens import Tokenizer, TokenList, tokenize_str
 
 
@@ -263,6 +264,10 @@ class Document(object):
 		   -  ``server``: performs all steps necessary for the backend server to work
 		   -  ``all``: performs all steps, including possible future ones
 
+		*Note*: To force retokenization from the ground up, the ``step`` parameter
+		must be explicitly set to ``tokenize`` (and of course the ``force`` parameter
+		must be set to ``True``).
+
 		:param step: Which step to perform.
 		:param k: How many `k`-best suggestions to calculate, if necessary.
 		:param dehyphenate: Whether to attempt dehyphenization of tokens.
@@ -279,13 +284,15 @@ class Document(object):
 
 		if step == 'tokenize':
 			if force or len(self.tokens) == 0:
-				tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.config.language, dehyphenate)
+				tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.config.language)
 				self.tokens = tokenizer.tokenize(
 					self.originalFile,
 					self.workspace.storageconfig
 				)
+				if dehyphenate:
+					self.tokens.dehyphenate()
 		elif step == 'align':
-			self.prepare('tokenize', k, dehyphenate, force)
+			self.prepare('tokenize', k, dehyphenate)
 			if self.goldFile.is_file():
 				(_, wordAlignments, _) = self.alignments()
 				for i, token in enumerate(self.tokens): # TODO force
@@ -298,7 +305,7 @@ class Document(object):
 			if self.goldFile.is_file():
 				self.prepare('align', k, dehyphenate, force)
 			else:
-				self.prepare('tokenize', k, dehyphenate, force)
+				self.prepare('tokenize', k, dehyphenate)
 			self.workspace.resources.hmm.generate_kbest(self.tokens, k, force)
 		elif step == 'bin':
 			self.prepare('kbest', k, dehyphenate, force)
@@ -316,21 +323,21 @@ class Document(object):
 		self.tokens.save()
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
-		Document.log.info(f'Cropping {docid}: {doc}')
+		Document.log.info(f'Cropping tokens for {self.docid}')
 		Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens)
 		self.tokens.save()
 
 	def precache_images(self, complete=False):
-		Document.log.info(f'Precaching images for {docid}: {doc}')
+		Document.log.info(f'Precaching images for {self.docid}')
 		if complete:
 			for token in progressbar.progressbar(self.tokens):
-				_, _ = token.extract_image(workspace)
+				_, _ = token.extract_image(self.workspace)
 		else:
 			for l, token, r in progressbar.progressbar(list(window(self.tokens))):
 				if token.decision == 'annotator' and not token.is_discarded:
-					_, _ = l.extract_image(workspace)
-					_, _ = token.extract_image(workspace)
-					_, _ = r.extract_image(workspace)
+					_, _ = l.extract_image(self.workspace)
+					_, _ = token.extract_image(self.workspace)
+					_, _ = r.extract_image(self.workspace)
 
 
 class CorpusFile(object):
@@ -431,6 +438,6 @@ class ResourceManager(object):
 		self.memoizedCorrections = JSONResource(self.root.joinpath(config.memoizedCorrectionsFile).resolve())
 		self.multiCharacterError = JSONResource(self.root.joinpath(config.multiCharacterErrorFile).resolve())
 		self.dictionary = Dictionary(self.root.joinpath(config.dictionaryFile).resolve(), config.ignoreCase)
-		self.hmm = HMM(self.root.joinpath(config.hmmParamsFile).resolve(), self.multiCharacterError, self.dictionary)
+		self.hmm = HMM(self.root.joinpath(config.hmmParamsFile).resolve(), self.multiCharacterError)
 		self.reportFile = self.root.joinpath(config.reportFile).resolve()
 		self.heuristics = Heuristics(JSONResource(self.root.joinpath(config.heuristicSettingsFile).resolve()), self.dictionary)

@@ -75,6 +75,8 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	rootparser.add_argument('-k', type=int, default=4, help='Number of k-best candidates to use for tokens (default: 4)')
 	rootparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
 	rootparser.add_argument('--loglevel', type=str, help='Log level', choices=loglevels.keys(), default='INFO')
+	rootparser.add_argument('--dehyphenate', type=str2bool, nargs='?', help='Automatically mark new tokens as hyphenated if they end with a dash')
+	rootparser.set_defaults(**defaults)
 
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command')
 
@@ -95,6 +97,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	""")
 	dictparser.add_argument('--corpusPath', type=Path, default='dictionary/', help='Directory of files to split into words and add to dictionary')
 	dictparser.add_argument('--corpusFile', type=Path, help='File containing paths and URLs to use as corpus (TXT format)')
+	dictparser.add_argument('--add_annotator_gold', action='store_true', default=False, help='Add gold words from annotated tokens')
 	dictparser.add_argument('--clear', action='store_true', default=False, help='Clear the dictionary before adding words')
 	dictparser.set_defaults(func=commands.build_dictionary, **defaults)
 
@@ -163,7 +166,6 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
 	prepareparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
-	prepareparser.add_argument('--dehyphenate', type=str2bool, nargs='?', default=True, help='Automatically mark tokens as hyphenated if they end with a dash')
 	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
 	prepareparser.add_argument('--autocrop', action='store_true', help='Discard tokens near page edges')
 	prepareparser.add_argument('--precache_images', action='store_true', help='Create images for the server API')
@@ -213,11 +215,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group2.add_argument('--interactive', action='store_true', default=False, help='Use interactive shell to input and approve suggested corrections')
 	group2.add_argument('--apply', type=Path, help='Apply externally corrected token CSV to original document')
 	group2.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
+	group2.add_argument('--gold_ready', action='store_true', help='Apply gold from ready document')
 	correctparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
 	correctparser.set_defaults(func=commands.do_correct, **defaults)
-
-	goldparser = subparsers.add_parser('make_gold', help='Make gold documents from all ready (fully annotated)')
-	goldparser.set_defaults(func=commands.make_gold, **defaults)
 
 	indexparser = subparsers.add_parser('index', help='Generate index data')
 	group = indexparser.add_mutually_exclusive_group(required=True)
@@ -241,6 +241,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	serverparser = subparsers.add_parser('server', help='Run basic JSON-dispensing Flask server')
 	serverparser.add_argument('--host', help='The host address')
 	serverparser.add_argument('--debug', action='store_true', help='Runs the server in debug mode (see Flask docs)')
+	serverparser.add_argument('--profile', type=str2bool, nargs='?', help='Use Werkzeug profiler middleware')
 	serverparser.set_defaults(func=commands.run_server, **serverdefaults)
 
 	return rootparser

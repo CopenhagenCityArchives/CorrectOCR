@@ -11,15 +11,16 @@ from CorrectOCR.tokens import Tokenizer
 
 class TestHyphenation(unittest.TestCase):
 	def test_auto_dehyphenation(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=True)
+		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('Str- ing')
 		tokens = t.tokenize(f, MockConfig(type='fs'))
+		tokens.dehyphenate()
 
 		self.assertEqual(str(tokens), 'String', f'Resulting string should be dehyphenated.')
 
 	def test_manual_dehyphenation(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=False)
+		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('Str- ing')
 		tokens = t.tokenize(f, MockConfig(type='fs'))

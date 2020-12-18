@@ -1,7 +1,7 @@
 import logging
 import traceback
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import fitz
 import numpy
@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw
 from ._super import Token, Tokenizer
 from ..fileio import FileIO
 
+logging.getLogger('PIL').setLevel(logging.INFO) # avoid potential DEBUG-level spam
 
 @Token.register
 class PDFToken(Token):
@@ -53,7 +54,7 @@ class PDFToken(Token):
 	def ordering(self):
 		return self.page_n, self.block_n, self.line_n, self.word_n
 
-	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False):
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Image.Image]:
 		if not force and self.cached_image_path.is_file():
 			try:
 				img = Image.open(str(self.cached_image_path))
@@ -75,7 +76,9 @@ class PDFToken(Token):
 			PDFToken.log.debug(f'Going to create combined image for {self} and {next_token}')
 			_, next_token_img = next_token.extract_image(workspace, highlight_word=False, left=0, right=right, top=top, bottom=bottom, force=True)
 			#PDFToken.log.debug(f'next_token_img ({self.index}): {next_token_img}')
-			paste_coords = (tokenrect.x1, tokenrect.y0 + (next_token_img.height - tokenrect.height) - top)
+			centering_offset = int((tokenrect.height - next_token_img.height)/2)
+			#PDFToken.log.debug(f'centering_offset: ({tokenrect.height} - {next_token_img.height})/2 = {centering_offset}')
+			paste_coords = (tokenrect.x1, tokenrect.y0 + centering_offset)
 			#PDFToken.log.debug(f'paste_coords ({self.index}): {paste_coords}')
 			image.paste(next_token_img, paste_coords)
 			tokenrect.x1 += next_token_img.width - left
@@ -88,10 +91,18 @@ class PDFToken(Token):
 		#PDFToken.log.debug(f'extract_image ({self.index}): {croprect}')
 		if highlight_word:
 			draw = ImageDraw.Draw(image)
-			draw.rectangle(tokenrect, outline=(255, 0, 0), width=3)
+			if self.gold:
+				color = (0x28, 0xa7, 0x45) # bootstrap green #28a745
+			else:
+				color = (0xdc, 0x35, 0x45) # bootstrap red #dc3545
+			draw.rectangle(tokenrect, outline=color, width=3)
 		image = image.crop(croprect)
 		image.save(self.cached_image_path)
 		return self.cached_image_path, image
+
+	def drop_cached_image(self):
+		if self.cached_image_path.is_file():
+			self.cached_image_path.unlink()
 
 	def drop_cached_image(self):
 		if self.cached_image_path.is_file():
@@ -128,7 +139,7 @@ class PDFTokenizer(Tokenizer):
 		return tokens
 
 	@staticmethod
-	def apply(original, tokens: List[PDFToken], corrected, highlight=False):
+	def apply(original, tokens: List[PDFToken], outfile, highlight=False):
 		pdf_original = fitz.open(str(original))
 		pdf_corrected = fitz.open()
 
@@ -146,6 +157,9 @@ class PDFTokenizer(Tokenizer):
 
 		PDFTokenizer.log.info('Inserting tokens in corrected PDF')
 		for token in sorted(tokens, key=lambda x: x.ordering):
+			if token.is_discarded:
+				continue
+
 			page = pdf_corrected[token.ordering[0]]
 			word = token.gold or token.original
 
@@ -170,13 +184,12 @@ class PDFTokenizer(Tokenizer):
 			elif highlight:
 				page.drawRect(rect, color=blue)
 
-		PDFTokenizer.log.info(f'Saving corrected PDF to {corrected}')
-		pdf_corrected.save(str(corrected))#, garbage=4, deflate=True)
+		PDFTokenizer.log.info(f'Saving corrected PDF to {outfile}')
+		pdf_corrected.save(str(outfile))#, garbage=4, deflate=True)
 
 	@staticmethod
 	def crop_tokens(original, config, tokens, edge_left = None, edge_right = None):
 		pdf_original = fitz.open(str(original))
-		pdf_corrected = fitz.open()
 
 		page_filter = lambda t: t.token_info[0] == page.number
 

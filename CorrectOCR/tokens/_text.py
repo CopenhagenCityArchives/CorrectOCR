@@ -1,6 +1,8 @@
 import logging
 
-from ._super import Token, Tokenizer, tokenize_str
+from typing import Tuple
+
+from ._super import Token, Tokenizer
 from ..workspace import CorpusFile
 
 
@@ -24,6 +26,9 @@ class StringToken(Token):
 		self._string = original
 		super().__init__(original, docid, index)
 
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False):
+		# It doesn't make sense to show an image for a pure text token.
+		return None, None
 
 ##########################################################################################
 
@@ -35,33 +40,22 @@ class StringTokenizer(Tokenizer):
 	def tokenize(self, file: CorpusFile, storageconfig):
 		from .list import TokenList
 
-		tokens = tokenize_str(file.body, self.language.name)
+		tokens = file.body.split()
 		#StringTokenizer.log.debug(f'tokens: {tokens}')
-
-		if self.dehyphenate:
-			dehyphenated = []
-			t = iter(tokens)
-			for token in t:
-				if token[-1] == '-':
-					dehyphenated.append(token[:-1] + next(t))
-				else:
-					dehyphenated.append(token)
-			tokens = dehyphenated
-		#StringTokenizer.log.debug(f'tokens: {tokens}')
-
 		tokenlist = TokenList.new(storageconfig, docid=file.id, tokens=[StringToken(w, file.path.stem, i) for i, w in enumerate(tokens)])
+
 		StringTokenizer.log.debug(f'Found {len(tokens)} tokens, first 10: {tokenlist[:10]}')
 	
 		return tokenlist
 
 	@staticmethod
-	def apply(original: CorpusFile, tokens, corrected: CorpusFile):
-		spaced = str.join(' ', [token.gold or token.original for token in tokens])
+	def apply(original: CorpusFile, tokens, outfile: CorpusFile, highlight=False):
+		spaced = str.join(' ', [token.gold or token.original for token in tokens if not token.is_discarded])
 		despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 
-		corrected.header = original.header.replace(u'Corrected: No', u'Corrected: Yes') 
-		corrected.body = despaced
-		corrected.save()
+		outfile.header = original.header.replace(u'Corrected: No', u'Corrected: Yes') 
+		outfile.body = despaced
+		outfile.save()
 
 	@staticmethod
 	def crop_tokens(original, config, tokens, edge_left = None, edge_right = None):

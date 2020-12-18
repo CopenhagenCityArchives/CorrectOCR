@@ -7,7 +7,7 @@ from typing import Callable, DefaultDict, Dict, List, TYPE_CHECKING
 
 import progressbar
 
-from . import punctuationRE
+from ._util import punctuationRE
 if TYPE_CHECKING:
 	from .dictionary import Dictionary
 	from .tokens import Token
@@ -38,27 +38,27 @@ class Heuristics(object):
 		self.oversegmented = 0
 		self.undersegmented = 0
 
-	def bin_for_token(self, token: 'Token'):
+	def bin_for_word(self, word, kbest):
 		# k best candidates which are in dictionary
-		filtids = [n for n, item in token.kbest.items() if item.candidate in self.dictionary]
+		filtids = [n for n, item in kbest.items() if item.normalized in self.dictionary]
 
 		dcode = None
 		if len(filtids) == 0:
 			dcode = 'zerokd'
-		elif 0 < len(filtids) < token.k:
+		elif 0 < len(filtids) < len(kbest):
 			dcode = 'somekd'
-		elif len(filtids) == token.k:
+		elif len(filtids) == len(kbest):
 			dcode = 'allkd'
 
 		token_bin = None
 		for num, _bin in _bins.items():
-			if _bin.matcher(token.normalized, token.kbest[1].candidate, self.dictionary, dcode):
+			if _bin.matcher(word, kbest[1].normalized, self.dictionary, dcode):
 				token_bin = _bin._copy()
 				break
 
 		# return decision and chosen candidate(s)
 		if token_bin.heuristic == 'o':
-			(decision, selection) = ('original', token.original)
+			(decision, selection) = ('original', word)
 		elif token_bin.heuristic == 'k':
 			(decision, selection) = ('kbest', 1)
 		elif token_bin.heuristic == 'd':
@@ -73,11 +73,20 @@ class Heuristics(object):
 		Heuristics.log.info('Running heuristics on tokens to determine annotator workload.')
 		counts = Counter()
 		annotatorRequired = 0
-		for t in progressbar.progressbar(tokens):
-			if force or not t.bin:
-				t.decision, t.selection, t.bin = self.bin_for_token(t)
-			counts[t.bin.number] += 1
-			if t.decision == 'annotator':
+		ts = iter(tokens)
+		for token in progressbar.progressbar(ts, max_count=len(tokens)):
+			if token.is_discarded:
+				continue
+			if force or not token.bin:
+				if token.is_hyphenated:
+					next_token = next(ts)
+					next_token.decision = 'annotator'
+					word = token.normalized[:-1] + next_token.normalized
+				else:
+					word = token.normalized
+				token.decision, token.selection, token.bin = self.bin_for_word(word, token.kbest)
+			counts[token.bin.number] += 1
+			if token.decision == 'annotator':
 				annotatorRequired += 1
 		Heuristics.log.debug(f'Counts for each bin: {counts}')
 		Heuristics.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
@@ -133,7 +142,7 @@ class Heuristics(object):
 			counts['2 gold == k1'] += 1
 
 		# lower k best candidate words that pass the dictionary check
-		kbest_filtered = [item.candidate for (k, item) in token.kbest if item.candidate in self.dictionary and k > 1]
+		kbest_filtered = [item.candidate for (k, item) in token.kbest if item.normalized in self.dictionary and k > 1]
 
 		if gold in kbest_filtered:
 			counts['3 gold == lower kbest'] += 1
@@ -174,7 +183,7 @@ class Heuristics(object):
 				out += f'\tgold = {example.gold}\n'
 				out += '\tkbest = [\n'
 				for k, item in example.kbest:
-					inDict = ' * is in dictionary' if item.candidate in self.dictionary else ''
+					inDict = ' * is in dictionary' if item.normalized in self.dictionary else ''
 					out += f'\t\t{k}: {item.candidate} ({item.probability:.2e}){inDict}\n'
 				out += '\t]\n'
 			out += '\n\n\n'

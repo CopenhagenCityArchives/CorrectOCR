@@ -1,5 +1,4 @@
 import collections
-import itertools
 import logging
 import random
 import string
@@ -17,7 +16,7 @@ from tei_reader import TeiReader
 from . import progname
 from .correcter import CorrectionShell
 from .fileio import _open_for_reading, FileIO
-from .model import HMMBuilder
+from .model.hmm import HMMBuilder
 from .server import create_app
 from .tokens import tokenize_str, Token, Tokenizer
 from .workspace import Workspace
@@ -124,6 +123,15 @@ def build_dictionary(workspace: Workspace, config):
 		else:
 			log.error(f'Unrecognized filetype:{file}')
 		log.info(f'Wordcount {len(workspace.resources.dictionary)}')
+
+	if config.add_annotator_gold:
+		for docid, doc in workspace.items():
+			log.info('Adding gold words from annotated tokens in document {docid}')
+			for token in doc.tokens:
+				if token.decision == 'annotator' and token.gold is not None and not token.is_discarded:
+					if token.gold not in workspace.resources.dictionary:
+						log.info(f'Adding {token.gold}')
+						workspace.resources.dictionary.add(token.gold)
 
 	workspace.resources.dictionary.save()
 
@@ -286,11 +294,6 @@ def do_correct(workspace: Workspace, config):
 		log.info(f'Getting corrections from interactive session')
 		workspace.docs[config.docid].prepare('bin', k=config.k)
 
-		# get header, if any
-		#header = workspace.docs[docid].correctedFile.header
-		# print info to annotator
-		#log.info(f'header: {header}')
-
 		metrics = CorrectionShell.start(doc.tokens, workspace.resources.dictionary, workspace.resources.correctionTracking)
 		corrected = workspace.docs[config.docid].tokens
 		log.debug(metrics['newWords'])
@@ -304,6 +307,17 @@ def do_correct(workspace: Workspace, config):
 				workspace.resources.correctionTracking[f'{original}\t{gold}'] = count
 			workspace.resources.correctionTracking.save()
 			workspace.resources.memoizedCorrections.save()
+	elif config.gold_ready:
+		missing_gold_count = 0
+		for token in doc.tokens:
+			if not token.gold:
+				missing_gold_count += 1
+
+		if missing_gold_count == 0:
+			log.info(f'Document {docid} is fully corrected! Applying corrections in new gold file.')
+			corrected = doc.tokens
+		else:
+			log.info(f'Document {docid} has {missing_gold_count} tokens without gold')
 	else:
 		log.critical('This shouldn''t happen!')
 		raise SystemExit(-1)
@@ -314,34 +328,9 @@ def do_correct(workspace: Workspace, config):
 	Tokenizer.for_extension(doc.ext).apply(
 		doc.originalFile,
 		corrected,
-		doc.correctedFile,
+		doc.goldFile,
 		highlight=config.highlight
 	)
-
-
-##########################################################################################
-
-
-def make_gold(workspace: Workspace, config):
-	log = logging.getLogger(f'{__name__}.make_gold')
-
-	for docid, doc in workspace.docs:
-		log.info(f'Getting tokens for {docid}')
-		doc.prepare('autocorrect', k=config.k)
-
-		missing_gold_count = 0
-		for token in doc.tokens:
-			if not token.gold:
-				missing_gold_count += 1
-		log.info(f'Document {docid} has {missing_gold_count} tokens without gold')
-
-		if missing_gold_count == 0:
-			log.info(f'Document {docid} is fully corrected! Applying corrections in new gold file.')
-			Tokenizer.for_extension(workspace.docs[docid].ext).apply(
-				doc.originalFile,
-				doc.tokens,
-				doc.goldFile
-			)
 
 
 ##########################################################################################

@@ -40,6 +40,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		)
 		logging.getLogger().setLevel(logging.DEBUG)
 
+	if config.profile:
+		log.info('Using Werkzeug application profiler')
+		from werkzeug.middleware.profiler import ProfilerMiddleware
+		app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10], profile_dir=workspace.root)
+
 	@app.before_request
 	def before_request():
 		g.docs = {
@@ -75,6 +80,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		       "info_url": "...",
 		       "count": 100,
 		       "corrected": 87,
+		       "corrected_by_model": 80,
 		       "discarded": 10,
 		       "last_modified": 1605255523
 		     }
@@ -86,6 +92,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		  workspace.docInfoBaseURL
 		:>jsonarr int count: Total number of Tokens.
 		:>jsonarr int corrected: Number of corrected Tokens.
+		:>jsonarr int corrected_by_model: Number of Tokens that were automatically corrected by the model.
 		:>jsonarr int discarded: Number of discarded Tokens.
 		:>jsonarr int last_modified: The date/time of the last modified token.
 		"""
@@ -95,6 +102,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'info_url': doc['info_url'],
 			'count': len(doc['tokens']),
 			'corrected': doc['tokens'].corrected_count,
+			'corrected_by_model': doc['tokens'].corrected_by_model_count,
 			'discarded': doc['tokens'].discarded_count,
 			'last_modified': doc['tokens'].last_modified.timestamp() if doc['tokens'].last_modified else None,
 		} for docid, doc in g.docs.items()]
@@ -125,6 +133,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		       "string": "Example",
 		       "is_corrected": true,
 		       "is_discarded": false,
+		       "requires_annotator": false,
 		       "last_modified": 1605255523
 		     },
 		     {
@@ -133,6 +142,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		       "string": "Exanpie",
 		       "is_corrected": false,
 		       "is_discarded": false,
+		       "requires_annotator": true,
 		       "last_modified": null
 		     }
 		   ]
@@ -154,6 +164,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'string': tv['string'],
 			'is_corrected': tv['is_corrected'],
 			'is_discarded': tv['is_discarded'],
+			'requires_annotator': tv['requires_annotator'],
 			'last_modified': tv['last_modified'].timestamp() if tv['last_modified'] else None,
 		} for n, tv in enumerate(g.docs[docid]['tokens'].overview)]
 		return json.jsonify(tokenindex)
@@ -165,6 +176,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		
 		Returns ``404`` if the document or token cannot be found, otherwise ``200``.
 		
+		**Note**: If the token is the second part of a hyphenated token, a ``302``-redirect to the previous token will be returned.
+
 		**Note**: The data is not escaped; care must be taken when displaying in a browser.
 		
 		.. :quickref: 3 Tokens; Get token
@@ -207,8 +220,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		    Relevant keys for frontend display include
 		    `original` (uncorrected OCR result),
-		    `gold` (corrected version, if available),
-		    TODO
+		    `gold` (corrected version, if available). For further information, see the Token class.
 		"""
 		if docid not in g.docs:
 			return json.jsonify({
@@ -218,6 +230,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			return json.jsonify({
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
+		prev_token = g.docs[docid]['tokens'][index-1]
+		if prev_token.is_hyphenated:
+			return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))
 		token = g.docs[docid]['tokens'][index]
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
@@ -230,6 +245,15 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		Update a given token with a `gold` transcription and/or hyphenation info.
 		
 		Returns ``404`` if the document or token cannot be found, otherwise ``200``.
+		
+		If an invalid ``hyphenate`` value is submitted, status code ``400`` will be returned.
+		
+		**Note**: If ``gold`` and ``hyphenate`` are supplied, the ``gold`` value will be
+		inspected. If it contains a hyphen, the left and right parts will be set on the
+		respective tokens. If it does not, the gold will be set on the leftmost token,
+		and the right one discarded.
+		
+		**Note**: If the hyphenation is set to ``left``, a redirect to the new "head" token will be returned.
 		
 		.. :quickref: 3 Tokens; Update token
 
@@ -252,37 +276,53 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
 		token = g.docs[docid]['tokens'][index]
-		if 'gold' in request.json:
-			token.gold = request.json['gold']
-			app.logger.debug(f'Received new gold for token: {token}')
-			if 'annotation_info' in request.json:
-				app.logger.debug(f"Received annotation_info: {request.json['annotation_info']}")	
-				token.annotation_info = request.json['annotation_info']
-			g.docs[docid]['tokens'].save(token=token)
 		if 'hyphenate' in request.json:
 			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')
 			if request.json['hyphenate'] == 'left':
-				t = g.docs[docid]['tokens'][index-1]
-				t.is_hyphenated = True
-				t.drop_cached_image()
-				g.docs[docid]['tokens'].save(token=t)
-				return redirect(url_for('tokeninfo', docid=t.docid, index=t.index))
+				token.gold = ''
+				prev_token = g.docs[docid]['tokens'][index-1]
+				gold = request.json.get('gold', None)
+				if gold:
+					if '-' in gold:
+						a, b = gold.split('-')
+						prev_token.gold = a + '-'
+						token.gold = b
+					else:
+						prev_token.gold = gold
+						token.is_discarded = True
+				prev_token.is_hyphenated = True
+				prev_token.drop_cached_image()
+				g.docs[docid]['tokens'].save(token=prev_token)
 			elif request.json['hyphenate'] == 'right':
+				next_token = g.docs[docid]['tokens'][index+1]
+				gold = request.json.get('gold', None)
+				if gold:
+					if '-' in gold:
+						a, b = gold.split('-')
+						token.gold = a + '-'
+						next_token.gold = b
+					else:
+						token.gold = gold
+						next_token.is_discarded = True
 				token.is_hyphenated = True
 				token.drop_cached_image()
-				g.docs[docid]['tokens'].save(token=token)
+				next_token.drop_cached_image()
+				g.docs[docid]['tokens'].save(token=next_token)
 			else:
 				return json.jsonify({
 					'detail': f'Invalid hyphenation "{request.json["hyphenate"]}"',
 				}), 400
-		if 'discard' in request.json:
+		elif 'gold' in request.json:
+			token.gold = request.json['gold']
+			app.logger.debug(f'Received new gold for token: {token}')
+		elif 'discard' in request.json:
 			app.logger.debug(f'Going to discard token.')
 			token.is_discarded = True
-			g.docs[docid]['tokens'].save(token=token)
-		tokendict = vars(token)
-		if 'image_url' not in tokendict:
-			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
-		return json.jsonify(tokendict)
+		if 'annotation_info' in request.json:
+			app.logger.debug(f"Received annotation_info: {request.json['annotation_info']}")	
+			token.annotation_info = request.json['annotation_info']
+		g.docs[docid]['tokens'].save(token=token)
+		return tokeninfo(docid, index)
 
 	@app.route('/<string:docid>/token-<int:index>.png')
 	def tokenimage(docid, index):
@@ -343,12 +383,12 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		index = g.docs[docid]['tokens'].random_token_index(has_gold=False, is_discarded=False)
 		return redirect(url_for('tokeninfo', docid=docid, index=index))
 
-	def add_and_prepare(uris, autocrop=True, precache_images=True):
+	def add_and_prepare(uris, autocrop, precache_images, force_prepare):
 		for uri in uris:
 			log.info(f'Adding {uri}')
 			doc_id = workspace.add_doc(uri)
 			log.info(f'Preparing {doc_id}')
-			workspace.docs[doc_id].prepare('server', k=config.k)
+			workspace.docs[doc_id].prepare('server', k=config.k, dehyphenate=config.dehyphenate, force=force_prepare)
 			if autocrop:
 				workspace.docs[doc_id].crop_tokens()
 			if precache_images:
@@ -372,7 +412,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		#log.debug(f'request.json: {request.json}')
 		#log.debug(f'request.form: {request.form}')
 		if request.json and 'urls' in request.json:
-			thread = Thread(target=add_and_prepare, args=(request.json['urls'], request.json.get('autocrop', True), request.json.get('precache_images', True)))
+			thread = Thread(target=add_and_prepare, args=(request.json['urls'], request.json.get('autocrop', True), request.json.get('precache_images', True), request.json.get('force_prepare', True)))
 			thread.start()
 			return json.jsonify({
 				'detail': f'Adding and preparing documents from list of URLs. They will become available once prepared.',
@@ -381,10 +421,5 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			return json.jsonify({
 				'detail': f'No document URLs specified.',
 			}), 400
-
-	@app.route('/test')
-	def test():
-		log.debug(f'hit test endpoint')
-		return 'test', 200
 
 	return app

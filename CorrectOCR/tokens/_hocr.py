@@ -16,6 +16,9 @@ from lxml import html
 from ._super import Token, Tokenizer, TokenList
 
 
+# NOTE: This has not been properly maintained in a while, and will need a lot of work to get running again.
+
+
 class TokenSegment(NamedTuple):
 	docid: str
 	page: int
@@ -79,6 +82,8 @@ class HOCRToken(Token):
 		else:
 			return fitz.Rect(0.0, 0.0, 0.0, 0.0)
 
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Image.Image]:
+		return None, None # TODO
 
 ##########################################################################################
 
@@ -215,13 +220,16 @@ class HOCRTokenizer(Tokenizer):
 		return all_tokens
 
 	@staticmethod
-	def apply(original, tokens: List[HOCRToken], corrected):
+	def apply(original, tokens: List[HOCRToken], outfile: Path, highlight=False):
 		pdf = fitz.open()
 		pix = fitz.Pixmap(str(original))
 		page = pdf.newPage(-1, width=pix.width, height=pix.height)
 		page.insertImage(page.rect, pixmap=pix)
 
 		for token in progressbar.progressbar(tokens):
+			if token.is_discarded:
+				continue
+
 			page = pdf[token.page]
 			word = token.gold or token.original
 			# Adjust rectangle to fit word:
@@ -240,4 +248,4 @@ class HOCRTokenizer(Tokenizer):
 					f' -- rect.height: {rect.height} result: {res}\n'
 				)
 
-		pdf.save(str(corrected.parent.joinpath(corrected.stem + '.pdf')))
+		pdf.save(str(outfile.with_suffix('.pdf')))

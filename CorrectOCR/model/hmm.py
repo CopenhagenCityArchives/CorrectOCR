@@ -7,11 +7,12 @@ from typing import DefaultDict, Dict, List, Optional, Tuple, Sequence
 
 import progressbar
 
-from . import punctuationRE
-from ._cache import PickledLRUCache, cached
-from .dictionary import Dictionary
-from .fileio import FileIO
-from .tokens import KBestItem, TokenList
+from .kbest import KBestItem
+from .._cache import PickledLRUCache, cached
+from .._util import punctuationRE
+from ..dictionary import Dictionary
+from ..fileio import FileIO
+from ..tokens import TokenList
 
 
 class HMM(object):
@@ -26,6 +27,8 @@ class HMM(object):
 	def init(self, initial: Dict[str, float]):
 		self._init = defaultdict(float)
 		self._init.update(initial)
+		self.states = self.init.keys()
+		self.clear_cache()
 
 	@property
 	def tran(self) -> DefaultDict[str, DefaultDict[str, float]]:
@@ -38,6 +41,7 @@ class HMM(object):
 		for outer, d in transition.items():
 			for inner, e in d.items():
 				self._tran[outer][inner] = e
+		self.clear_cache()
 
 	@property
 	def emis(self) -> DefaultDict[str, DefaultDict[str, float]]:
@@ -50,25 +54,24 @@ class HMM(object):
 		for outer, d in emission.items():
 			for inner, e in d.items():
 				self._emis[outer][inner] = e
+		self.clear_cache()
 
-	def __init__(self, path: Path, multichars=None, dictionary: Dictionary = None):
+	def __init__(self, path: Path, multichars=None, use_cache=True):
 		"""
 		:param path: Path for loading and saving.
 		:param multichars: A dictionary of possible multicharacter substitutions (eg. 'cr': 'æ' or vice versa).
-		:param dictionary: The dictionary against which to check validity.
 		"""
 		if multichars is None:
 			multichars = {}
 		self.multichars = multichars
-		self.dictionary = dictionary
 		self.path = path
+		self.cache = None
 
 		(self.init, self.tran, self.emis) = (dict(), dict(), dict())
-		if self.path.is_file():
+		if self.path and self.path.is_file():
 			HMM.log.info(f'Loading HMM parameters from {path}')
 			(self.init, self.tran, self.emis) = FileIO.load(path)
 
-		self.states = self.init.keys()
 		#HMM.log.debug(f'init: {self.init}')
 		#HMM.log.debug(f'tran: {self.tran}')
 		#HMM.log.debug(f'emis: {self.emis}')
@@ -79,13 +82,16 @@ class HMM(object):
 		else:
 			HMM.log.debug(f'HMM initialized: {self}')
 
-		self.cache = PickledLRUCache.by_name(f'{__name__}.HMM.kbest')
+		if use_cache:
+			self.cache = PickledLRUCache.by_name(f'{__name__}.HMM.kbest')			
 
-	def __str__(self):
-		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
+	def clear_cache(self):
+		if self.cache:
+			self.cache.delete()
+			self.cache = PickledLRUCache.by_name(f'{__name__}.HMM.kbest')
 
 	def __repr__(self):
-		return self.__str__()
+		return f'<{self.__class__.__name__} {"".join(sorted(self.states))}>'
 
 	def save(self, path: Path = None):
 		"""
@@ -184,6 +190,10 @@ class HMM(object):
 
 		return [(''.join(seq), prob) for seq, prob in paths[:k]]
 
+	def __getitem__(self, item_key):
+		word, k = item_key
+		return self.kbest_for_word(word, k)
+
 	@cached
 	def kbest_for_word(self, word: str, k: int) -> DefaultDict[int, KBestItem]:
 		"""
@@ -201,8 +211,7 @@ class HMM(object):
 		# Check for common multi-character errors. If any are present,
 		# make substitutions and compare probabilties of results.
 		for sub in self.multichars:
-			# Only perform the substitution if none of the k-best candidates are present in the dictionary
-			if sub in word and all(punctuationRE.sub('', x[0]) not in self.dictionary for x in k_best):
+			if sub in word:
 				variant_words = HMM._multichar_variants(word, sub, self.multichars[sub])
 				for v in variant_words:
 					if v != word:
@@ -239,9 +248,11 @@ class HMM(object):
 			raise SystemExit(-1)
 
 		HMM.log.info(f'Generating {k}-best suggestions for each token')
-		for i, token in enumerate(progressbar.progressbar(tokens)):
+		for token in progressbar.progressbar(tokens):
+			if token.is_discarded:
+				continue
 			if force or not token.kbest or len(token.kbest) != k:
-				token.kbest = self.kbest_for_word(token.normalized, k)
+				token.kbest = self.kbest_for_word(token.original, k)
 
 		HMM.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
 

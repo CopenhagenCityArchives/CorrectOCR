@@ -47,4 +47,7 @@ class PickledLRUCache(LRUCache):
 		FileIO.delete(self.path)
 
 def cached(func):
-	return cachedmethod(attrgetter('cache'))(func)
+	if attrgetter('cache') is not None:
+		return cachedmethod(attrgetter('cache'))(func)
+	else:
+		return func

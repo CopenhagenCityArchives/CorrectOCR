@@ -26,6 +26,7 @@ class MockConfig(object):
 		self.host = 'localhost'
 		self.debug = True
 		self.auth_endpoint = None
+		self.profile = False
 
 
 class MockDocument(object):
@@ -42,7 +43,7 @@ class MockWorkspace(object):
 	def __init__(self, root, docid, contents):
 		self.root = root
 		self.docid = docid
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'), dehyphenate=False)
+		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 		tokens = t.tokenize( MockCorpusFile(contents, self.docid), MockConfig(type='mem'))
 		tokens[0].gold = tokens[0].original
 		self.doc = MockDocument(docid, tokens)

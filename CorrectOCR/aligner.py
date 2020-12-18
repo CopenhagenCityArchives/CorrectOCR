@@ -3,7 +3,7 @@ import logging
 from difflib import SequenceMatcher
 from typing import Counter, DefaultDict, Dict, List, Optional, Tuple
 
-from . import punctuationRE
+from ._util import punctuationRE
 
 
 class Aligner(object):

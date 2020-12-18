@@ -6,31 +6,19 @@ import datetime
 import json
 import logging
 import string
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, DefaultDict, List, NamedTuple, Optional
+from typing import Any, DefaultDict, List, NamedTuple, Optional, Tuple
 
 import nltk
-import regex
 
 from .list import TokenList
+from .._util import punctuation_splitter, punctuationRE
 from ..heuristics import Bin
+from ..model.kbest import KBestItem
 
 
 def tokenize_str(data: str, language='english') -> List[str]:
 	return nltk.tokenize.word_tokenize(data, language.lower())
-
-
-##########################################################################################
-
-
-@dataclass
-class KBestItem:
-	candidate: str = ''
-	probability: float = 0.0
-
-	def __repr__(self) -> str:
-		return f'<KBestItem {self.candidate}, {self.probability:.2e}>'
 
 
 ##########################################################################################
@@ -52,8 +40,6 @@ class Token(abc.ABC):
 		Token._subclasses[cls.__name__] = cls
 		return cls
 
-	_punctuation_splitter = regex.compile(r'^(\p{punct}*)(.*?)(\p{punct}*)$')
-
 	def __init__(self, original: str, docid: str, index: int):
 		"""
 		:param original: Original spelling of the token.
@@ -61,8 +47,8 @@ class Token(abc.ABC):
 		"""
 		if type(self) is Token:
 			raise TypeError("Token base class cannot not be directly instantiated")
-		m = Token._punctuation_splitter.search(original)
-		(self._punct_prefix, self.normalized, self._punct_suffix) = m.groups('')
+		self.original = original
+		_, self.normalized, _ = punctuation_splitter(self.original)
 		self.docid = docid  #: The doc with which the Token is associated.
 		self.index = index #: The placement of the Token in the doc.
 		self.gold = None # (documented in @property methods below)
@@ -122,25 +108,16 @@ class Token(abc.ABC):
 		return None
 
 	@property
-	def original(self) -> str:
-		"""
-		The original spelling of the Token.
-		"""
-		return f'{self._punct_prefix}{self.normalized}{self._punct_suffix}'
-
-	@property
 	def gold(self) -> str:
 		"""
 		The corrected spelling of the Token.
 		"""
-		return f'{self._punct_prefix}{self._gold}{self._punct_suffix}' if self._gold is not None else None
+		return self._gold
 
 	@gold.setter
 	def gold(self, gold):
 		self._gold = gold
 		self.last_modified = datetime.datetime.now()
-		if self._gold:
-			self._gold = self._gold.lstrip(string.punctuation).rstrip(string.punctuation)
 
 	@property
 	def is_discarded(self) -> str:
@@ -153,6 +130,7 @@ class Token(abc.ABC):
 	def is_discarded(self, is_discarded):
 		self._is_discarded = is_discarded
 		self.last_modified = datetime.datetime.now()
+		self.gold = ''
 
 	@property
 	def is_hyphenated(self) -> str:
@@ -174,7 +152,7 @@ class Token(abc.ABC):
 		return len(self.kbest)
 
 	def __str__(self):
-		return f'<{self.__class__.__name__} "{self.original}" "{self.gold}" {self.kbest} {self.bin}>'
+		return f'<{self.__class__.__name__} "{self.original}" "{self.gold}" {self.kbest} bin {self.bin.number}>'
 
 	def __repr__(self):
 		return self.__str__()
@@ -198,14 +176,12 @@ class Token(abc.ABC):
 	def __hash__(self):
 		return self.original.__hash__()
 
-	_is_punctuationRE = regex.compile(r'^\p{punct}+$')
-
 	def is_punctuation(self) -> bool:
 		"""
 		Is the Token purely punctuation?
 		"""
 		#self.__class__.log.debug(f'{self}')
-		return Token._is_punctuationRE.match(self.original)
+		return punctuationRE.fullmatch(self.original)
 
 	def is_numeric(self) -> bool:
 		"""
@@ -227,8 +203,6 @@ class Token(abc.ABC):
 		}
 		output['k-best'] = dict()
 		for k, item in self.kbest.items():
-			output[f'{k}-best'] = item.candidate
-			output[f'{k}-best prob.'] = item.probability
 			output['k-best'][k] = vars(item)
 		if self.bin:
 			output['Bin'] = self.bin.number or -1
@@ -263,22 +237,11 @@ class Token(abc.ABC):
 		t.is_discarded = d.get('Discarded', False)
 		t.annotation_info = json.loads(d['Annotation info'])
 
-		t.last_modified = d['Last Modified'] if d['Last Modified'] else None
+		t.last_modified = d['Last Modified'] if 'Last Modified' in d else None
 		if 'k-best' in d:
 			kbest = dict()
 			for k, b in d['k-best'].items():
 				kbest[k] = KBestItem(b['candidate'], b['probability'])
-			t.kbest = kbest
-		else:
-			kbest = collections.defaultdict(lambda: KBestItem(''))
-			k = 1
-			while f'{k}-best' in d:
-				candidate = d[f'{k}-best']
-				if candidate == '':
-					break
-				probability = d[f'{k}-best prob.']
-				kbest[k] = KBestItem(candidate, float(probability))
-				k += 1
 			t.kbest = kbest
 		if 'Bin' in d and d['Bin'] not in ('', '-1', -1):
 			from ..heuristics import Heuristics
@@ -288,6 +251,12 @@ class Token(abc.ABC):
 			t.selection = d['Selection']
 		#t.__class__.log.debug(t)
 		return t
+
+	def drop_cached_image(self):
+		pass
+
+	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Any]:
+		pass
 
 
 ##########################################################################################
@@ -330,14 +299,13 @@ class Tokenizer(abc.ABC):
 		Tokenizer.log.debug(f'_subclasses: {Tokenizer._subclasses}')
 		return Tokenizer._subclasses[ext]
 
-	def __init__(self, language, dehyphenate):
+	def __init__(self, language):
 		"""
 
 		:type language: :class:`pycountry.Language`
 		:param language: The language to use for tokenization (for example, the `.txt` tokenizer internally uses nltk whose tokenizers function best with a language parameter).
 		"""
 		self.language = language
-		self.dehyphenate = dehyphenate
 		self.tokens = []
 
 	@abc.abstractmethod
@@ -353,7 +321,7 @@ class Tokenizer(abc.ABC):
 
 	@staticmethod
 	@abc.abstractmethod
-	def apply(original: Path, tokens: TokenList, corrected: Path):
+	def apply(original: Path, tokens: TokenList, outfile: Path, highlight=False):
 		pass
 
 	@staticmethod

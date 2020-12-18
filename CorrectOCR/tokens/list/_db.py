@@ -55,7 +55,7 @@ class DBTokenList(TokenList):
 				self.docid,
 			)
 			server_ready = cursor.fetchone()[0] == 0
-			DBTokenList.log.debug(f'doc {self.docid} ready for server: {server_ready}')
+			#DBTokenList.log.debug(f'doc {self.docid} ready for server: {server_ready}')
 			return server_ready
 
 
@@ -201,10 +201,11 @@ class DBTokenList(TokenList):
 				)
 
 	def save(self, token: 'Token' = None):
-		DBTokenList.log.info(f'Saving tokens.')
 		if token:
+			DBTokenList.log.info(f'Saving token: {token}.')
 			DBTokenList._save_token(self.config, token)
 		else:
+			DBTokenList.log.info(f'Saving all tokens.')
 			DBTokenList._save_all_tokens(self.config, self.tokens)
 
 	@property
@@ -214,7 +215,22 @@ class DBTokenList(TokenList):
 				SELECT COUNT(*)
 				FROM token
 				WHERE token.doc_id = ?
-				AND token.gold IS NOT NULL AND token.gold != ''
+				AND token.gold IS NOT NULL
+				""",
+				self.docid,
+			)
+			result = cursor.fetchone()
+			return result[0]
+
+	@property
+	def corrected_by_model_count(self):
+		with get_connection(self.config).cursor() as cursor:
+			cursor.execute("""
+				SELECT COUNT(*)
+				FROM token
+				WHERE token.doc_id = ?
+				AND token.gold IS NOT NULL
+				AND token.decision != 'annotator'
 				""",
 				self.docid,
 			)
@@ -243,7 +259,7 @@ class DBTokenList(TokenList):
 					FROM token
 					WHERE token.doc_id = ?
 					AND token.discarded = ?
-					AND token.gold IS NOT NULL AND token.gold != ''
+					AND token.gold IS NOT NULL
 					""",
 					self.docid,
 					is_discarded,
@@ -302,6 +318,7 @@ class DBTokenList(TokenList):
 					original,
 					gold,
 					discarded,
+					decision,
 					last_modified
 				FROM token
 				WHERE token.doc_id = ?
@@ -316,6 +333,7 @@ class DBTokenList(TokenList):
 					'string': (result.gold or result.original),
 					'is_corrected': (result.gold is not None and result.gold.strip() != ''),
 					'is_discarded': result.discarded,
+					'requires_annotator': (result.decision == 'annotator'),
 					'last_modified': result.last_modified,
 				}
 
@@ -332,7 +350,7 @@ class DBTokenList(TokenList):
 				self.docid,
 			)
 			res = cursor.fetchone()[0]
-			DBTokenList.log.debug(f'last_modified: {res}')
+			#DBTokenList.log.debug(f'last_modified: {res}')
 			return res
 
 

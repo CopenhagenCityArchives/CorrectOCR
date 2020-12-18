@@ -90,7 +90,11 @@ class TokenList(collections.abc.MutableSequence):
 
 	@property
 	def corrected_count(self):
-		return len([t for t in self if t.gold and t.gold != ''])
+		return len([t for t in self if t.gold])
+
+	@property
+	def corrected_by_model_count(self):
+		return len([t for t in self if t.gold and t.decision != 'annotator'])
 
 	@property
 	def discarded_count(self):
@@ -136,12 +140,25 @@ class TokenList(collections.abc.MutableSequence):
 				'string': (token.gold or token.original),
 				'is_corrected': (token.gold is not None and token.gold.strip() != ''),
 				'is_discarded': token.is_discarded,
+				'requires_annotator': (token.decision == 'annotator'),
 				'last_modified': token.last_modified,
 			}
 
 	@property
 	def last_modified(self):
 		return max(t.last_modified for t in self.tokens if t.last_modified)
+
+	def dehyphenate(self):
+		TokenList.log.debug(f'Going to dehyphenate {len(self.tokens)} tokens')
+		count = 0
+		tokens = iter(self.tokens)
+		for token in tokens:
+			if token.original[-1] == '-':
+				token.is_hyphenated = True
+				next(tokens).gold = ''
+				count += 1
+		TokenList.log.debug(f'Dehyphenated {count} tokens')
+
 
 ##########################################################################################
 
