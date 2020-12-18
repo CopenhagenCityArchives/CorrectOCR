@@ -306,7 +306,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 						next_token.is_discarded = True
 				token.is_hyphenated = True
 				token.drop_cached_image()
-				next_token.gold = ''
 				next_token.drop_cached_image()
 				g.docs[docid]['tokens'].save(token=next_token)
 			else:
