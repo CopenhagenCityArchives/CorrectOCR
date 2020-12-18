@@ -201,10 +201,11 @@ class DBTokenList(TokenList):
 				)
 
 	def save(self, token: 'Token' = None):
-		DBTokenList.log.info(f'Saving tokens.')
 		if token:
+			DBTokenList.log.info(f'Saving token: {token}.')
 			DBTokenList._save_token(self.config, token)
 		else:
+			DBTokenList.log.info(f'Saving all tokens.')
 			DBTokenList._save_all_tokens(self.config, self.tokens)
 
 	@property
