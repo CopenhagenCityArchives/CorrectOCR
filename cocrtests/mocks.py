@@ -26,6 +26,7 @@ class MockConfig(object):
 		self.host = 'localhost'
 		self.debug = True
 		self.auth_endpoint = None
+		self.profile = False
 
 
 class MockDocument(object):
