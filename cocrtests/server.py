@@ -66,18 +66,20 @@ class ServerTests(unittest.TestCase):
 		response = self.client.get('/abc/token-4.json', follow_redirects=True)
 		self.assertFalse(response.json['Hyphenated'], f'Token should NOT be hyphenated: {response.json}')
 
-		response = self.client.post('/abc/token-4.json', json={'hyphenate': 'left'}, follow_redirects=True)
+		response = self.client.post('/abc/token-4.json', json={'gold': 'ti-me', 'hyphenate': 'left'}, follow_redirects=True)
 		self.assertEqual(response.json['Index'], 3, f'Response should be redirected to "main" token: {response.json}')
 		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
 		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
+		self.assertEqual(response.json['Gold'], 'ti-', f'Token should have first part of hyphenated word: {response.json}')
 
 	def test_token_hyphenate_right(self):
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
 		self.assertFalse(response.json['Hyphenated'], f'Token should NOT be hyphenated: {response.json}')
 
-		response = self.client.post('/abc/token-3.json', json={'hyphenate': 'right'}, follow_redirects=True)
+		response = self.client.post('/abc/token-3.json', json={'gold': 'ti-me', 'hyphenate': 'right'}, follow_redirects=True)
 		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
+		self.assertEqual(response.json['Gold'], 'ti-', f'Token should have first part of hyphenated word: {response.json}')
 	
 	def test_random(self):
 		response = self.client.get('/random', follow_redirects=False)
