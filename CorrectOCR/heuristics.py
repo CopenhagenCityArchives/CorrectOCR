@@ -148,6 +148,9 @@ class Heuristics(object):
 			counts['3 gold == lower kbest'] += 1
 
 	def report(self) -> str:
+		if self.totalCount == 0:
+			raise ValueError(f'Cannot generate report: No tokens were added!')
+
 		Heuristics.log.debug(f'{[(i, b.counts) for i,b in _bins.items()]}')
 
 		out = ''
