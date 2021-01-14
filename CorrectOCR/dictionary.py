@@ -50,7 +50,7 @@ class Dictionary(Set[str]):
 		:param word: The word to add.
 		:param nowarn: Don't warn about long words (>15 letters).
 		"""
-		word = punctuationRE.sub(word, '').strip()
+		word = punctuationRE.sub('', word).strip()
 		if word == '' or not word.isalpha() or word in self:
 			return
 		if len(word) > 15 and not nowarn:
