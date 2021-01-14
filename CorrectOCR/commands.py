@@ -251,7 +251,7 @@ def do_stats(workspace: Workspace, config):
 	if config.make_report:
 		for docid, tokens in workspace.gold_tokens():
 			log.info(f'Collecting stats from {docid}')
-			for t in tokens:
+			for t in progressbar.progressbar(tokens):
 				workspace.resources.heuristics.add_to_report(t)
 
 		log.info(f'Saving report to {workspace.resources.reportFile}')
