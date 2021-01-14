@@ -22,10 +22,7 @@ class Dictionary(Set[str]):
 		if self._path and self._path.is_file():
 			Dictionary.log.info(f'Loading dictionary from {self._path.name}')
 			for line in FileIO.load(self._path).split('\n'):
-				if self.ignoreCase:
-					self.add(line.lower(), nowarn=True)
-				else:
-					self.add(line, nowarn=True)
+				self.add(line, nowarn=True)
 		Dictionary.log.info(f'{len(self)} words in dictionary')
 	
 	def __repr__(self) -> str:
