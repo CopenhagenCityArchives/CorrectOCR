@@ -19,4 +19,4 @@ COPY ./uwsgi.py ./
 
 EXPOSE 5000
 
-ENTRYPOINT uwsgi --socket /tmp/correctocr.sock --http :5000 --wsgi-file uwsgi.py --callable app --processes 20 --threads 8 --http-timeout 300 --uid nobody --gid nogroup --master
+ENTRYPOINT uwsgi --socket /tmp/correctocr.sock --http :5000 --wsgi-file uwsgi.py --callable app --processes 20 --threads 8 --http-timeout 300 --uid nobody --gid nogroup --master --logger file:logfile=/tmp/uwsgi.log,maxsize=200000 
