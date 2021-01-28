@@ -230,9 +230,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			return json.jsonify({
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
-		prev_token = g.docs[docid]['tokens'][index-1]
-		if prev_token.is_hyphenated:
-			return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))
+		if index > 0:
+			prev_token = g.docs[docid]['tokens'][index-1]
+			if prev_token.is_hyphenated:
+				return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))
 		token = g.docs[docid]['tokens'][index]
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
@@ -279,6 +280,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		if 'hyphenate' in request.json:
 			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')
 			if request.json['hyphenate'] == 'left':
+				if index == 0:
+					return json.jsonify({
+						'detail': f'Cannot hyphenate first token to the left',
+					}), 400
 				token.gold = ''
 				prev_token = g.docs[docid]['tokens'][index-1]
 				gold = request.json.get('gold', None)
@@ -294,6 +299,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				prev_token.drop_cached_image()
 				g.docs[docid]['tokens'].save(token=prev_token)
 			elif request.json['hyphenate'] == 'right':
+				if index == len(g.docs[docid]['tokens'])-1:
+					return json.jsonify({
+						'detail': f'Cannot hyphenate last token to the right',
+					}), 400
 				next_token = g.docs[docid]['tokens'][index+1]
 				gold = request.json.get('gold', None)
 				if gold:
