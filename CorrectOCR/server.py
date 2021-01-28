@@ -105,7 +105,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'corrected_by_model': doc['tokens'].corrected_by_model_count,
 			'discarded': doc['tokens'].discarded_count,
 			'last_modified': doc['tokens'].last_modified.timestamp() if doc['tokens'].last_modified else None,
-		} for docid, doc in g.docs.items()]
+		} for docid, doc in g.docs.items() if len(doc['tokens']) > 0]
 		return json.jsonify(docindex)
 
 	@app.route('/<string:docid>/tokens.json')
