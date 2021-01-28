@@ -81,6 +81,13 @@ class DBTokenList(TokenList):
 			)
 			token_dict = None
 			for result in cursor:
+				# pyodbc workaround
+				# we must reset the doc_id/doc_index in case there are no kbest
+				# because the empty result from the right table (kbest)
+				# will overwrite the left table (token)
+				# resulting in None when accessed as properties (but not as indexes!)
+				result.doc_id = result[0]
+				result.doc_index = result[1]
 				# init token with first row
 				if not token_dict:
 					token_dict = {
