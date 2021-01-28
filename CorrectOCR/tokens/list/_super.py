@@ -104,9 +104,6 @@ class TokenList(collections.abc.MutableSequence):
 	def server_ready(self):
 		return all(t.decision is not None for t in self.tokens)
 
-	def save(self, token: 'Token' = None):
-		pass
-	
 	def random_token_index(self, has_gold=False, is_discarded=False):
 		return self.random_token(has_gold, is_discarded).index
 
