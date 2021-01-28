@@ -47,6 +47,10 @@ class Token(abc.ABC):
 		"""
 		if type(self) is Token:
 			raise TypeError("Token base class cannot not be directly instantiated")
+		if docid is None:
+			raise ValueError('Tokens must have a docid!')
+		if index is None:
+			raise ValueError('Tokens must have an index!')
 		self.original = original
 		_, self.normalized, _ = punctuation_splitter(self.original)
 		self.docid = docid  #: The doc with which the Token is associated.
@@ -229,8 +233,8 @@ class Token(abc.ABC):
 		#self.__class__.log.debug(f'from_dict: {d}')
 		t = Token._subclasses[classname](
 			json.loads(d['Token info']),
-			d.get('Doc ID', None),
-			d.get('Index', -1)
+			d['Doc ID'],
+			d['Index']
 		)
 		t.gold = d.get('Gold', None)
 		t.is_hyphenated = d.get('Hyphenated', False)
