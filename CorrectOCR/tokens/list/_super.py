@@ -76,12 +76,8 @@ class TokenList(collections.abc.MutableSequence):
 	def __getitem__(self, key):
 		return self.tokens.__getitem__(key)
 
-	@staticmethod
-	def exists(config, docid: str) -> bool:
-		return TokenList.for_type(config.type).exists(config, docid)
-
 	@abc.abstractmethod
-	def load(self, docid: str):
+	def load(self):
 		pass
 
 	@abc.abstractmethod

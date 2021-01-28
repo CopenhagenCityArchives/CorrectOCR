@@ -203,10 +203,9 @@ class Document(object):
 		self.wordAlignmentsFile = training.joinpath(f'{self.docid}.wordAlignments.json')  #: Path to word-by-word alignments (JSON format).
 		self.readCountsFile = training.joinpath(f'{self.docid}.readCounts.json')  #: Path to letter read counts (JSON format).
 		
-		self.tokens = TokenList.new(self.workspace.storageconfig)
-		if TokenList.exists(self.workspace.storageconfig, self.docid):
-			self.tokens.load(self.docid)
-			Document.log.debug(f'Loaded {len(self.tokens)} tokens.')
+		self.tokens = TokenList.new(self.workspace.storageconfig, docid=self.docid)
+		self.tokens.load()
+		Document.log.debug(f'Loaded {len(self.tokens)} tokens.')
 
 	def alignments(self, force=False) -> Tuple[list, dict, list]:
 		"""

@@ -9,7 +9,7 @@ class MemTokenList(TokenList):
 	"""
 	log = logging.getLogger(f'{__name__}.MemTokenList')
 
-	def load(self, docid: str):
+	def load(self):
 		pass
 
 	def save(self, token: 'Token' = None):
@@ -18,7 +18,3 @@ class MemTokenList(TokenList):
 		if token:
 			self[token.index] = token
 		self.log.debug(f'self.tokens: {self.tokens}')
-
-	@staticmethod
-	def exists(config, docid: str):
-		return False

@@ -30,8 +30,9 @@ class DBTokenList(TokenList):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
-	def load(self, docid: str):
-		self.docid = docid
+	def load(self):
+		if self.docid is None:
+			raise ValueError('Cannot load a TokenList without a docid!')
 		with get_connection(self.config).cursor() as cursor:
 			cursor.execute("""
 				SELECT COUNT(*)
@@ -42,6 +43,7 @@ class DBTokenList(TokenList):
 			)
 			result = cursor.fetchone()
 			self.tokens = [None] * result[0]
+			DBTokenList.log.debug(f'doc {self.docid} has {len(self.tokens)} tokens')
 
 	@property
 	def server_ready(self):
@@ -290,18 +292,6 @@ class DBTokenList(TokenList):
 
 	def random_token(self, has_gold=False, is_discarded=False):
 		return self[self.random_token_index(has_gold, is_discarded)]
-
-	@staticmethod
-	def exists(config, docid: str):
-		DBTokenList.log.debug(f'Checking if tokens for {docid} exist')
-		with get_connection(config).cursor() as cursor:
-			cursor.execute(
-				"SELECT * FROM token WHERE doc_id = ? LIMIT 1",
-				docid,
-			)
-			res = cursor.fetchone()
-			DBTokenList.log.debug(f'res: {res}')
-			return res is not None
 
 	@staticmethod
 	def _get_count(config, docid):
