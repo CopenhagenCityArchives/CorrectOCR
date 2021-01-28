@@ -225,6 +225,7 @@ class DBTokenList(TokenList):
 				FROM token
 				WHERE token.doc_id = ?
 				AND token.gold IS NOT NULL
+				AND token.gold != ''
 				""",
 				self.docid,
 			)
