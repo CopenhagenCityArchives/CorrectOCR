@@ -255,50 +255,6 @@ class DBTokenList(TokenList):
 						stats['empty_gold'] += 1
 		return stats
 
-	@property
-	def corrected_count(self):
-		with get_connection(self.config).cursor() as cursor:
-			cursor.execute("""
-				SELECT COUNT(*)
-				FROM token
-				WHERE token.doc_id = ?
-				AND token.gold IS NOT NULL
-				AND token.gold != ''
-				""",
-				self.docid,
-			)
-			result = cursor.fetchone()
-			return result[0]
-
-	@property
-	def corrected_by_model_count(self):
-		with get_connection(self.config).cursor() as cursor:
-			cursor.execute("""
-				SELECT COUNT(*)
-				FROM token
-				WHERE token.doc_id = ?
-				AND token.gold IS NOT NULL
-				AND token.decision != 'annotator'
-				""",
-				self.docid,
-			)
-			result = cursor.fetchone()
-			return result[0]
-
-	@property
-	def discarded_count(self):
-		with get_connection(self.config).cursor() as cursor:
-			cursor.execute("""
-				SELECT COUNT(*)
-				FROM token
-				WHERE token.doc_id = ?
-				AND token.discarded = True
-				""",
-				self.docid,
-			)
-			result = cursor.fetchone()
-			return result[0]
-
 	def random_token_index(self, has_gold=False, is_discarded=False):
 		with get_connection(self.config).cursor() as cursor:
 			if has_gold:
