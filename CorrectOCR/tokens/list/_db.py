@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections
 import json
 import logging
 import traceback
@@ -216,6 +217,43 @@ class DBTokenList(TokenList):
 		else:
 			DBTokenList.log.info(f'Saving all tokens.')
 			DBTokenList._save_all_tokens(self.config, self.tokens)
+
+	@property
+	def stats(self):
+		stats = collections.defaultdict(int)
+		skip_next = False
+		with get_connection(self.config).cursor() as cursor:
+			cursor.execute("""
+				SELECT
+					doc_id,
+					doc_index,
+					discarded,
+					hyphenated,
+					gold,
+					decision
+				FROM token
+				WHERE token.doc_id = ?
+				""",
+				self.docid
+			)
+			for result in cursor.fetchall():
+				stats['index_count'] += 1
+				if skip_next:
+					skip_next = False
+					continue
+				if result.discarded:
+					stats['discarded_count'] += 1
+					continue
+				stats['token_count'] += 1
+				if result.hyphenated:
+					skip_next = True
+				if result.gold is not None:
+					stats['corrected_count'] += 1
+					if result.decision != 'annotator':
+						stats['corrected_by_model_count'] += 1
+					if result.gold == '':
+						stats['empty_gold'] += 1
+		return stats
 
 	@property
 	def corrected_count(self):
