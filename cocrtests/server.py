@@ -18,6 +18,11 @@ class ServerTests(unittest.TestCase):
 			docid='abc',
 			contents='Once upen a ti- me'
 		)
+		tokens = self.workspace.docs['abc'].tokens
+		tokens[0].gold = tokens[0].original
+		tokens[0].decision = 'original'
+		tokens[1].decision = 'annotator'
+
 		self.config = MockConfig(k=4)
 
 		self.app = create_app(self.workspace, self.config)
@@ -28,6 +33,7 @@ class ServerTests(unittest.TestCase):
 		self.assertEqual(len(response.json), len(self.workspace.docids_for_ext('.pdf')))
 		self.assertEqual(response.json[0]['count'], 5, f'There should be 5 tokens: {response.json}')
 		self.assertEqual(response.json[0]['corrected'], 1, f'There should be 1 corrected token: {response.json}')
+		self.assertEqual(response.json[0]['corrected_by_model'], 1, f'There should be 1 corrected by model token: {response.json}')
 
 	def test_doc_view(self):
 		response = self.client.get('/abc/tokens.json', follow_redirects=True)
@@ -90,3 +96,16 @@ class ServerTests(unittest.TestCase):
 		
 		response = self.client.get(response.location, follow_redirects=False)
 		self.assertEqual(response.status_code, 200, f'Response should be 200 OK: {response.json}')
+
+	def test_stats(self):
+		response = self.client.get('/', follow_redirects=True)
+		self.assertEqual(len(response.json), len(self.workspace.docids_for_ext('.pdf')))
+		self.assertEqual(response.json[0]['count'], 5, f'There should be 5 tokens: {response.json}')
+		self.assertEqual(response.json[0]['corrected'], 1, f'There should be 1 corrected token: {response.json}')
+		self.assertEqual(response.json[0]['corrected_by_model'], 1, f'There should be 1 corrected by model token: {response.json}')
+
+		response = self.client.post('/abc/token-1.json', json={'gold': 'upon'}, follow_redirects=True)
+
+		response = self.client.get('/', follow_redirects=True)
+		self.assertEqual(response.json[0]['corrected'], 2, f'There should be 2 corrected tokens: {response.json}')
+		self.assertEqual(response.json[0]['corrected_by_model'], 1, f'There should be 1 corrected by model token: {response.json}')

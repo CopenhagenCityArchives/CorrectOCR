@@ -45,7 +45,6 @@ class MockWorkspace(object):
 		self.docid = docid
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 		tokens = t.tokenize( MockCorpusFile(contents, self.docid), MockConfig(type='mem'))
-		tokens[0].gold = tokens[0].original
 		self.doc = MockDocument(docid, tokens)
 		self.docs = {docid: self.doc}
 
