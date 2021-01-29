@@ -128,13 +128,17 @@ class Token(abc.ABC):
 		"""
 		Whether the token has been discarded (marked irrelevant by code or annotator).
 		"""
+		#self.__class__.log.debug(f'_is_discarded? {self._is_discarded}')
 		return self._is_discarded
 
 	@is_discarded.setter
 	def is_discarded(self, is_discarded):
-		self._is_discarded = is_discarded
+		#self.__class__.log.debug(f'discarding {self.index}: {is_discarded}')
+		self._is_discarded = True if is_discarded else False
 		self.last_modified = datetime.datetime.now()
-		self.gold = ''
+		if self._is_discarded:
+			#self.__class__.log.debug(f'token {self.index}: discarded {self._is_discarded} set gold to empty')
+			self.gold = ''
 
 	@property
 	def is_hyphenated(self) -> str:
