@@ -205,7 +205,7 @@ class Document(object):
 		
 		self.tokens = TokenList.new(self.workspace.storageconfig, docid=self.docid)
 		self.tokens.load()
-		Document.log.debug(f'Loaded {len(self.tokens)} tokens.')
+		Document.log.debug(f'Loaded {len(self.tokens)} tokens. Stats: {self.tokens.stats}')
 
 	def alignments(self, force=False) -> Tuple[list, dict, list]:
 		"""
