@@ -56,6 +56,9 @@ class Heuristics(object):
 				token_bin = _bin._copy()
 				break
 
+		if token_bin is None:
+			raise ValueError(f'No bin matched for: {token}')
+
 		# return decision and chosen candidate(s)
 		if token_bin.heuristic == 'o':
 			(decision, selection) = ('original', word)
@@ -77,7 +80,8 @@ class Heuristics(object):
 		for token in progressbar.progressbar(ts, max_count=len(tokens)):
 			if token.is_discarded:
 				continue
-			if force or not token.bin:
+			#Heuristics.log.debug(f'binning {token}')
+			if force or token.bin is None:
 				if token.is_hyphenated:
 					next_token = next(ts)
 					next_token.decision = 'annotator'
@@ -85,6 +89,12 @@ class Heuristics(object):
 				else:
 					word = token.normalized
 				token.decision, token.selection, token.bin = self.bin_for_word(word, token.kbest)
+			if token.decision is None or token.bin is None or token.selection is None:
+				raise ValueError(f'Token {token} was not binned!')
+			if token.bin == -1:
+				raise ValueError(f'Token {token} was not binned!')
+			if token.bin.number == -1:
+				raise ValueError(f'Token {token} was not binned!')
 			counts[token.bin.number] += 1
 			if token.decision == 'annotator':
 				annotatorRequired += 1
