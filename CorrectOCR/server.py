@@ -421,7 +421,16 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		#log.debug(f'request.json: {request.json}')
 		#log.debug(f'request.form: {request.form}')
 		if request.json and 'urls' in request.json:
-			thread = Thread(target=add_and_prepare, args=(request.json['urls'], request.json.get('autocrop', True), request.json.get('precache_images', True), request.json.get('force_prepare', True)))
+			thread = Thread(
+				target=add_and_prepare,
+				args=(
+					request.json['urls'],
+					request.json.get('autocrop', True),
+					request.json.get('precache_images', True),
+					request.json.get('force_prepare', True)
+				)
+			)
+			thread.daemon = True
 			thread.start()
 			return json.jsonify({
 				'detail': f'Adding and preparing documents from list of URLs. They will become available once prepared.',
