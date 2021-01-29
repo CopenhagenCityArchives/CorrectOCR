@@ -326,8 +326,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					'detail': f'Invalid hyphenation "{request.json["hyphenate"]}"',
 				}), 400
 		elif 'gold' in request.json:
-			token.gold = request.json['gold']
 			app.logger.debug(f'Received new gold for token: {token}')
+			token.gold = request.json['gold']
+			# since annotator did not specify hyphenation, we set it to False
+			token.is_hyphenated = False
 		elif 'discard' in request.json:
 			app.logger.debug(f'Going to discard token.')
 			token.is_discarded = True
