@@ -85,6 +85,29 @@ class TokenList(collections.abc.MutableSequence):
 		pass
 
 	@property
+	def stats(self):
+		stats = collections.defaultdict(int)
+		skip_next = False
+		for token in self:
+			stats['index_count'] += 1
+			if skip_next:
+				skip_next = False
+				continue
+			if token.is_discarded:
+				stats['discarded_count'] += 1
+				continue
+			stats['token_count'] += 1
+			if token.is_hyphenated:
+				skip_next = True
+			if token.gold is not None:
+				stats['corrected_count'] += 1
+				if token.decision != 'annotator':
+					stats['corrected_by_model_count'] += 1
+				if token.gold == '':
+					stats['empty_gold'] += 1
+		return stats
+
+	@property
 	def corrected_count(self):
 		return len([t for t in self if t.gold])
 
