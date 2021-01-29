@@ -247,10 +247,13 @@ class DBTokenList(TokenList):
 					continue
 				stats['token_count'] += 1
 				if result.hyphenated:
+					stats['hyphenated_count'] += 1
 					skip_next = True
 				if result.gold is not None:
 					stats['corrected_count'] += 1
-					if result.decision != 'annotator':
+					if result.decision == 'annotator':
+						stats['corrected_by_annotator_count'] += 1
+					else:
 						stats['corrected_by_model_count'] += 1
 					if result.gold == '':
 						stats['empty_gold'] += 1

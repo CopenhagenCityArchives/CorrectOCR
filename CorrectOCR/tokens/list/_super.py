@@ -98,10 +98,13 @@ class TokenList(collections.abc.MutableSequence):
 				continue
 			stats['token_count'] += 1
 			if token.is_hyphenated:
+				stats['hyphenated_count'] += 1
 				skip_next = True
 			if token.gold is not None:
 				stats['corrected_count'] += 1
-				if token.decision != 'annotator':
+				if token.decision == 'annotator':
+					stats['corrected_by_annotator_count'] += 1
+				else:
 					stats['corrected_by_model_count'] += 1
 				if token.gold == '':
 					stats['empty_gold'] += 1
