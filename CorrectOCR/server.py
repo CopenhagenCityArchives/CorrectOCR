@@ -96,16 +96,20 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:>jsonarr int discarded: Number of discarded Tokens.
 		:>jsonarr int last_modified: The date/time of the last modified token.
 		"""
-		docindex = [{
-			'docid': docid,
-			'url': url_for('tokens', docid=docid),
-			'info_url': doc['info_url'],
-			'count': len(doc['tokens']),
-			'corrected': doc['tokens'].corrected_count,
-			'corrected_by_model': doc['tokens'].corrected_by_model_count,
-			'discarded': doc['tokens'].discarded_count,
-			'last_modified': doc['tokens'].last_modified.timestamp() if doc['tokens'].last_modified else None,
-		} for docid, doc in g.docs.items() if len(doc['tokens']) > 0]
+		docindex = []
+		for docid, doc in g.docs.items():
+			if len(doc['tokens']) > 0:
+				stats = doc['tokens'].stats
+				docindex.append({
+					'docid': docid,
+					'url': url_for('tokens', docid=docid),
+					'info_url': doc['info_url'],
+					'count': len(doc['tokens']),
+					'corrected': stats['corrected_count'],
+					'corrected_by_model': stats['corrected_by_model_count'],
+					'discarded': stats['discarded_count'],
+					'last_modified': doc['tokens'].last_modified.timestamp() if doc['tokens'].last_modified else None,
+				})
 		return json.jsonify(docindex)
 
 	@app.route('/<string:docid>/tokens.json')
