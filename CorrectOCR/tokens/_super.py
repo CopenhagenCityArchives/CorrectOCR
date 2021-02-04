@@ -213,10 +213,12 @@ class Token(abc.ABC):
 		for k, item in self.kbest.items():
 			output['k-best'][k] = vars(item)
 		if self.bin:
-			output['Bin'] = self.bin.number or -1
+			output['Bin'] = self.bin.number
 			output['Heuristic'] = self.bin.heuristic
-			output['Decision'] = self.decision
-			output['Selection'] = self.selection
+		#else:
+		#	raise ValueError(f'Bin missing in __dict__(): {t}')
+		output['Decision'] = self.decision
+		output['Selection'] = self.selection
 		output['Token type'] = self.__class__.__name__
 		output['Token info'] = json.dumps(self.token_info)
 		output['Annotation info'] = json.dumps(self.annotation_info)
@@ -255,8 +257,10 @@ class Token(abc.ABC):
 			from ..heuristics import Heuristics
 			t.bin = Heuristics.bin(int(d['Bin']))
 			t.bin.heuristic = d['Heuristic']
-			t.decision = d['Decision']
-			t.selection = d['Selection']
+		#else:
+		#	raise ValueError(f'Bin: {d.get("Bin", None)} in from_dict(): {t}')
+		t.decision = d.get('Decision', None)
+		t.selection = d.get('Selection', None)
 		#t.__class__.log.debug(t)
 		return t
 
