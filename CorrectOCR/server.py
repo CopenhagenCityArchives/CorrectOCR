@@ -410,7 +410,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				workspace.docs[doc_id].precache_images()
 			log.info(f'Document {doc_id} is ready.')
 
-	@app.route('/add_docs', methods=['POST'])
+	#@app.route('/add_docs', methods=['POST'])
 	def add_docs():
 		"""
 		Adds a number of documents to the backend.
