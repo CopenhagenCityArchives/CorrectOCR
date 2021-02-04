@@ -53,6 +53,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				'info_url': workspace.docs[docid].info_url,
 			} for docid in workspace.docids_for_ext('.pdf', server_ready=True)
 		} if workspace else {}
+		#app.logger.debug(f'g.docs: {g.docs}')
 		g.discard_filter = lambda t: not t.is_discarded
 
 	@app.route('/health')
@@ -98,8 +99,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		docindex = []
 		for docid, doc in g.docs.items():
+			stats = doc['tokens'].stats
+			#app.logger.debug(f'{docid} stats: {stats}')
 			if len(doc['tokens']) > 0:
-				stats = doc['tokens'].stats
 				docindex.append({
 					'docid': docid,
 					'url': url_for('tokens', docid=docid),
@@ -290,6 +292,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					}), 400
 				token.gold = ''
 				prev_token = g.docs[docid]['tokens'][index-1]
+				#app.logger.debug(f'prev_token before: {prev_token}')
 				gold = request.json.get('gold', None)
 				if gold:
 					if '-' in gold:
@@ -301,6 +304,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 						token.is_discarded = True
 				prev_token.is_hyphenated = True
 				prev_token.drop_cached_image()
+				#app.logger.debug(f'prev_token after: {prev_token}')
 				g.docs[docid]['tokens'].save(token=prev_token)
 			elif request.json['hyphenate'] == 'right':
 				if index == len(g.docs[docid]['tokens'])-1:
@@ -308,6 +312,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 						'detail': f'Cannot hyphenate last token to the right',
 					}), 400
 				next_token = g.docs[docid]['tokens'][index+1]
+				#app.logger.debug(f'next_token before: {next_token}')
 				gold = request.json.get('gold', None)
 				if gold:
 					if '-' in gold:
@@ -320,6 +325,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				token.is_hyphenated = True
 				token.drop_cached_image()
 				next_token.drop_cached_image()
+				#app.logger.debug(f'next_token after: {next_token}')
 				g.docs[docid]['tokens'].save(token=next_token)
 			else:
 				return json.jsonify({

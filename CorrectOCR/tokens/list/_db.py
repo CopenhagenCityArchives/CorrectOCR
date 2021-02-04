@@ -58,7 +58,7 @@ class DBTokenList(TokenList):
 				self.docid,
 			)
 			server_ready = cursor.fetchone()[0] == 0
-			#DBTokenList.log.debug(f'doc {self.docid} ready for server: {server_ready}')
+			DBTokenList.log.debug(f'doc {self.docid} ready for server: {server_ready}')
 			return server_ready
 
 
@@ -84,6 +84,7 @@ class DBTokenList(TokenList):
 			)
 			token_dict = None
 			for result in cursor:
+				#DBTokenList.log.debug(f'result: {result}')
 				# pyodbc workaround
 				# we must reset the doc_id/doc_index in case there are no kbest
 				# because the empty result from the right table (kbest)
