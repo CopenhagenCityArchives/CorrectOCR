@@ -200,7 +200,7 @@ class Token(abc.ABC):
 	@property
 	def __dict__(self):
 		output = {
-			'Gold': self.gold or '',
+			'Gold': self.gold,
 			'Original': self.original,
 			'Doc ID': self.docid,
 			'Index': self.index,
