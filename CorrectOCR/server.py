@@ -100,7 +100,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		docindex = []
 		for docid, doc in g.docs.items():
 			stats = doc['tokens'].stats
-			#app.logger.debug(f'{docid} stats: {stats}')
 			if len(doc['tokens']) > 0:
 				docindex.append({
 					'docid': docid,
@@ -110,6 +109,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					'corrected': stats['corrected_count'],
 					'corrected_by_model': stats['corrected_by_model_count'],
 					'discarded': stats['discarded_count'],
+					'stats': stats,
 					'last_modified': doc['tokens'].last_modified.timestamp() if doc['tokens'].last_modified else None,
 				})
 		return json.jsonify(docindex)
