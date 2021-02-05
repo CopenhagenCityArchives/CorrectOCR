@@ -108,7 +108,18 @@ class TokenList(collections.abc.MutableSequence):
 					stats['corrected_by_model_count'] += 1
 				if token.gold == '':
 					stats['empty_gold'] += 1
+		TokenList.validate_stats(self.docid, stats)
 		return stats
+
+	@classmethod
+	def validate_stats(cls, docid, stats):
+		for key in ('index_count', 'token_count'):
+			if key not in stats:
+				cls.log.warn(f'key {key} missing in stats {stats} for doc {docid}')
+		if stats['token_count'] + stats['discarded_count'] + stats['hyphenated_count'] != stats['index_count']:
+			cls.log.error(f'index counts do not match for stats {stats} for doc {docid}')
+		if stats['corrected_by_annotator_count'] + stats['corrected_by_model_count'] != stats['corrected_count']:
+			cls.log.error(f'correction counts do not match for stats {stats} for doc {docid}')
 
 	@property
 	def server_ready(self):

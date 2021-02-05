@@ -257,6 +257,7 @@ class DBTokenList(TokenList):
 						stats['corrected_by_model_count'] += 1
 					if result.gold == '':
 						stats['empty_gold'] += 1
+		TokenList.validate_stats(self.docid, stats)
 		return stats
 
 	def random_token_index(self, has_gold=False, is_discarded=False):
