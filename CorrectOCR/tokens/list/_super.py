@@ -100,7 +100,9 @@ class TokenList(collections.abc.MutableSequence):
 			if token.is_hyphenated:
 				stats['hyphenated_count'] += 1
 				skip_next = True
-			if token.gold is not None:
+			if token.gold is None:
+				stats['uncorrected_count'] += 1
+			else:
 				stats['corrected_count'] += 1
 				if token.decision == 'annotator':
 					stats['corrected_by_annotator_count'] += 1
@@ -119,6 +121,8 @@ class TokenList(collections.abc.MutableSequence):
 		if stats['token_count'] + stats['discarded_count'] + stats['hyphenated_count'] != stats['index_count']:
 			cls.log.error(f'index counts do not match for stats {stats} for doc {docid}')
 		if stats['corrected_by_annotator_count'] + stats['corrected_by_model_count'] != stats['corrected_count']:
+			cls.log.error(f'correction counts do not match for stats {stats} for doc {docid}')
+		if stats['uncorrected_count'] + stats['corrected_count'] != stats['token_count']:
 			cls.log.error(f'correction counts do not match for stats {stats} for doc {docid}')
 
 	@property

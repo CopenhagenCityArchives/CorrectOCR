@@ -249,7 +249,9 @@ class DBTokenList(TokenList):
 				if result.hyphenated:
 					stats['hyphenated_count'] += 1
 					skip_next = True
-				if result.gold is not None:
+				if result.gold is None:
+					stats['uncorrected_count'] += 1
+				else:
 					stats['corrected_count'] += 1
 					if result.decision == 'annotator':
 						stats['corrected_by_annotator_count'] += 1
