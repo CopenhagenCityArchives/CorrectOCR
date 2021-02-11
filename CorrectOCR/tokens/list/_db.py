@@ -330,7 +330,7 @@ class DBTokenList(TokenList):
 					'doc_id': result.doc_id,
 					'doc_index': result.doc_index,
 					'string': (result.gold or result.original),
-					'is_corrected': (result.gold is not None and result.gold.strip() != ''),
+					'is_corrected': (result.gold is not None),
 					'is_discarded': result.discarded,
 					'requires_annotator': (result.decision == 'annotator'),
 					'last_modified': result.last_modified,
