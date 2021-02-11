@@ -246,6 +246,63 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
 		return json.jsonify(tokendict)
 
+	def hyphenate_token(tokens, index, hyphenation, gold):
+		"""
+			Will return the other side of the hyphenation (prev/next) token, if any.
+			
+			It is the responsibility of the caller to save the token.
+		"""
+		token = tokens[index]
+		if hyphenation == 'left':
+			if index == 0:
+				raise IndexError(f'Cannot hyphenate first token to the left')
+			prev_token = tokens[index-1]
+			#app.logger.debug(f'prev_token before: {prev_token}')
+			if gold:
+				if '-' in gold:
+					a, b = gold.split('-')
+					prev_token.gold = a + '-'
+					token.gold = b
+				else:
+					prev_token.gold = gold
+					token.gold = ''
+					token.is_discarded = True
+			prev_token.is_hyphenated = True
+			prev_token.drop_cached_image()
+			token.drop_cached_image()
+			#app.logger.debug(f'prev_token after: {prev_token}')
+			return prev_token
+		elif hyphenation == 'right':
+			if index == len(tokens)-1:
+				raise IndexError(f'Cannot hyphenate last token to the right')
+			next_token = tokens[index+1]
+			#app.logger.debug(f'next_token before: {next_token}')
+			if gold:
+				if '-' in gold:
+					a, b = gold.split('-')
+					token.gold = a + '-'
+					next_token.gold = b
+				else:
+					token.gold = gold
+					next_token.gold = ''
+					next_token.is_discarded = True
+			token.is_hyphenated = True
+			token.drop_cached_image()
+			next_token.drop_cached_image()
+			#app.logger.debug(f'next_token after: {next_token}')
+			return next_token
+		elif hyphenation == 'split':
+			if token.is_hyphenated:
+				token.is_hyphenated = False
+			else:
+				prev_token = tokens[index-1]
+				if prev_token.is_hyphenated:
+					token.is_hyphenated = False
+				else:
+					raise ValueError(f'Cannot dehyphenate standalone token.')
+		else:
+			raise ValueError(f'Invalid hyphenation direction: "{direction}"')
+
 	@app.route('/<string:docid>/token-<int:index>.json', methods=[ 'POST'])
 	def update_token(docid, index):
 		"""
