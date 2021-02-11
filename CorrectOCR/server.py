@@ -1,6 +1,7 @@
 import io
 import logging
 import random
+import traceback
 from threading import Thread
 from typing import Any
 
@@ -342,51 +343,13 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		token = g.docs[docid]['tokens'][index]
 		if 'hyphenate' in request.json:
 			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')
-			if request.json['hyphenate'] == 'left':
-				if index == 0:
-					return json.jsonify({
-						'detail': f'Cannot hyphenate first token to the left',
-					}), 400
-				token.gold = ''
-				prev_token = g.docs[docid]['tokens'][index-1]
-				#app.logger.debug(f'prev_token before: {prev_token}')
-				gold = request.json.get('gold', None)
-				if gold:
-					if '-' in gold:
-						a, b = gold.split('-')
-						prev_token.gold = a + '-'
-						token.gold = b
-					else:
-						prev_token.gold = gold
-						token.is_discarded = True
-				prev_token.is_hyphenated = True
-				prev_token.drop_cached_image()
-				#app.logger.debug(f'prev_token after: {prev_token}')
-				g.docs[docid]['tokens'].save(token=prev_token)
-			elif request.json['hyphenate'] == 'right':
-				if index == len(g.docs[docid]['tokens'])-1:
-					return json.jsonify({
-						'detail': f'Cannot hyphenate last token to the right',
-					}), 400
-				next_token = g.docs[docid]['tokens'][index+1]
-				#app.logger.debug(f'next_token before: {next_token}')
-				gold = request.json.get('gold', None)
-				if gold:
-					if '-' in gold:
-						a, b = gold.split('-')
-						token.gold = a + '-'
-						next_token.gold = b
-					else:
-						token.gold = gold
-						next_token.is_discarded = True
-				token.is_hyphenated = True
-				token.drop_cached_image()
-				next_token.drop_cached_image()
-				#app.logger.debug(f'next_token after: {next_token}')
-				g.docs[docid]['tokens'].save(token=next_token)
-			else:
+			try:
+				t = hyphenate_token(g.docs[docid]['tokens'], index, request.json['hyphenate'], request.json.get('gold', None))
+				g.docs[docid]['tokens'].save(token=t)
+			except Exception as e:
+				app.logger.error(traceback.format_exc())
 				return json.jsonify({
-					'detail': f'Invalid hyphenation "{request.json["hyphenate"]}"',
+					'detail': str(e),
 				}), 400
 		elif 'gold' in request.json:
 			app.logger.debug(f'Received new gold for token: {token}')
