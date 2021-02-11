@@ -353,9 +353,18 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				}), 400
 		elif 'gold' in request.json:
 			app.logger.debug(f'Received new gold for token: {token}')
-			token.gold = request.json['gold']
-			# since annotator did not specify hyphenation, we set it to False
-			token.is_hyphenated = False
+			if token.is_hyphenated:
+				app.logger.debug(f'The token is hyphenated, will set parts as required.')
+				try:
+					t = hyphenate_token(g.docs[docid]['tokens'], index, 'right', request.json['gold'])
+					g.docs[docid]['tokens'].save(token=t)
+				except Exception as e:
+					app.logger.error(traceback.format_exc())
+					return json.jsonify({
+						'detail': str(e),
+					}), 400
+			else:
+				token.gold = request.json['gold']
 		elif 'discard' in request.json:
 			app.logger.debug(f'Going to discard token.')
 			token.is_discarded = True
