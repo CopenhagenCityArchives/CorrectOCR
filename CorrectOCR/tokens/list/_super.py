@@ -5,6 +5,7 @@ import collections
 import logging
 import random
 
+from ..._util import hyphenRE
 
 class TokenList(collections.abc.MutableSequence):
 	log = logging.getLogger(f'{__name__}.TokenList')
@@ -175,7 +176,7 @@ class TokenList(collections.abc.MutableSequence):
 		count = 0
 		tokens = iter(self.tokens)
 		for token in tokens:
-			if token.original[-1] == '-':
+			if hyphenRE.search(token.original):
 				token.is_hyphenated = True
 				next(tokens).gold = ''
 				count += 1
