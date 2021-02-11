@@ -290,6 +290,9 @@ class Document(object):
 				)
 				if dehyphenate:
 					self.tokens.dehyphenate()
+			else:
+				Document.log.info(f'Document {self.docid} is already tokenized. Use --force to recreate tokens (this will destroy suggestions and corrections).')
+				return
 		elif step == 'align':
 			self.prepare('tokenize', k, dehyphenate)
 			if self.goldFile.is_file():
