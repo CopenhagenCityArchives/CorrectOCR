@@ -55,14 +55,16 @@ class PDFToken(Token):
 		return self.page_n, self.block_n, self.line_n, self.word_n
 
 	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Image.Image]:
-		if not force and self.cached_image_path.is_file():
+		if self.cached_image_path.is_file() and not force:
+			PDFToken.log.debug(f'cached_image_path: {self.cached_image_path}')
 			try:
 				img = Image.open(str(self.cached_image_path))
-				#PDFToken.log.debug(f'{self.cached_image_path}: {img}')
+				PDFToken.log.debug(f'img: {img}')
 				return self.cached_image_path, img
 			except:
 				PDFToken.log.error(f'Error with image file, will attempt regeneration.\n{traceback.format_exc()}')
 				return self.extract_image(workspace, highlight_word, left, right, top, bottom, force=True)
+		PDFToken.log.debug(f'Generating image for {self}')
 		xref, pagerect, pix = workspace._cached_page_image(self.docid, self.page_n) # TODO
 		xscale = pix.width / pagerect.width
 		yscale = pix.height / pagerect.height
