@@ -253,6 +253,7 @@ class Document(object):
 		Possible steps are:
 
 		   -  ``tokenize``: basic tokenizaton
+		   -  ``rehyphenate``: redoes hyphenation
 		   -  ``align``: alignment of original and gold tokens
 		   -  ``kbest`` calculates *k*-best correction candidates for each
 		      token via the HMM
@@ -293,6 +294,8 @@ class Document(object):
 			else:
 				Document.log.info(f'Document {self.docid} is already tokenized. Use --force to recreate tokens (this will destroy suggestions and corrections).')
 				return
+		elif step == 'rehyphenate':
+			self.tokens.dehyphenate()
 		elif step == 'align':
 			self.prepare('tokenize', k, dehyphenate)
 			if self.goldFile.is_file():

@@ -166,7 +166,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group.add_argument('--docid', help='Input document ID (filename without path or extension)')
 	group.add_argument('--all', action='store_true', help='Prepare all original/gold pairs')
 	prepareparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
-	prepareparser.add_argument('--step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
+	prepareparser.add_argument('--step', choices=['tokenize', 'rehyphenate', 'align', 'kbest', 'bin', 'all', 'server'], default='all', help='')
 	prepareparser.add_argument('--autocrop', action='store_true', help='Discard tokens near page edges')
 	prepareparser.add_argument('--precache_images', action='store_true', help='Create images for the server API')
 	prepareparser.set_defaults(func=commands.do_prepare, **defaults)
