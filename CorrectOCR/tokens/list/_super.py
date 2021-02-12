@@ -5,6 +5,8 @@ import collections
 import logging
 import random
 
+import progressbar
+
 from ..._util import hyphenRE
 
 class TokenList(collections.abc.MutableSequence):
@@ -175,7 +177,7 @@ class TokenList(collections.abc.MutableSequence):
 		TokenList.log.debug(f'Going to dehyphenate {len(self.tokens)} tokens')
 		count = 0
 		tokens = iter(self.tokens)
-		for token in tokens:
+		for token in progressbar.progressbar(tokens, max_value=len(self.tokens)):
 			if hyphenRE.search(token.original):
 				token.is_hyphenated = True
 				next(tokens).gold = ''
