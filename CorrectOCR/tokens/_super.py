@@ -249,7 +249,7 @@ class Token(abc.ABC):
 
 		t.last_modified = d['Last Modified'] if 'Last Modified' in d else None
 		if 'k-best' in d:
-			kbest = dict()
+			kbest = collections.defaultdict(KBestItem)
 			for k, b in d['k-best'].items():
 				kbest[k] = KBestItem(b['candidate'], b['probability'])
 			t.kbest = kbest
