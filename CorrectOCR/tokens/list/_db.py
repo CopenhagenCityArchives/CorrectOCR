@@ -111,10 +111,11 @@ class DBTokenList(TokenList):
 						'k-best': dict(),
 					}
 				# then set k-best from all rows
-				token_dict['k-best'][result.k] = {
-					'candidate': result.candidate,
-					'probability': result.probability,
-				}
+				if result.k:
+					token_dict['k-best'][result.k] = {
+						'candidate': result.candidate,
+						'probability': result.probability,
+					}
 			#DBTokenList.log.debug(f'token_dict: {token_dict}')
 			if token_dict:
 				return Token.from_dict(token_dict)
