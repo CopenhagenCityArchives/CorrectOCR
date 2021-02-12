@@ -331,9 +331,11 @@ class Document(object):
 	def precache_images(self, complete=False):
 		Document.log.info(f'Precaching images for {self.docid}')
 		if complete:
+			Document.log.info(f'Generating ALL images.')
 			for token in progressbar.progressbar(self.tokens):
 				_, _ = token.extract_image(self.workspace)
 		else:
+			Document.log.info(f'Generating images for annotation.')
 			for l, token, r in progressbar.progressbar(list(window(self.tokens))):
 				if token.decision == 'annotator' and not token.is_discarded:
 					_, _ = l.extract_image(self.workspace)
