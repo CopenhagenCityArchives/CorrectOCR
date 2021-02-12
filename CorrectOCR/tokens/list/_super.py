@@ -176,7 +176,7 @@ class TokenList(collections.abc.MutableSequence):
 	def dehyphenate(self):
 		TokenList.log.debug(f'Going to dehyphenate {len(self.tokens)} tokens')
 		count = 0
-		tokens = iter(self.tokens)
+		tokens = iter(self)
 		for token in progressbar.progressbar(tokens, max_value=len(self.tokens)):
 			if hyphenRE.search(token.original):
 				token.is_hyphenated = True
