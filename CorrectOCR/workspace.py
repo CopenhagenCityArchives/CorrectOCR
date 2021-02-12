@@ -339,11 +339,14 @@ class Document(object):
 				_, _ = token.extract_image(self.workspace)
 		else:
 			Document.log.info(f'Generating images for annotation.')
+			count = 0
 			for l, token, r in progressbar.progressbar(list(window(self.tokens))):
 				if token.decision == 'annotator' and not token.is_discarded:
 					_, _ = l.extract_image(self.workspace)
 					_, _ = token.extract_image(self.workspace)
 					_, _ = r.extract_image(self.workspace)
+					count += 1
+			Document.log.info(f'Generated images for {count} tokens.')
 
 
 class CorpusFile(object):
