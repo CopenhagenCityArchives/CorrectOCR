@@ -1,5 +1,6 @@
 import io
 import logging
+import os
 import random
 import traceback
 from threading import Thread
@@ -46,8 +47,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		from werkzeug.middleware.profiler import ProfilerMiddleware
 		app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
 
+	pid = os.getpid()
+
 	@app.before_request
 	def before_request():
+		app.logger.debug(f'BEGIN process {pid} handling request ID {id(request)}')
 		g.docs = {
 			docid: {
 				'tokens': workspace.docs[docid].tokens,
@@ -56,6 +60,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		} if workspace else {}
 		#app.logger.debug(f'g.docs: {g.docs}')
 		g.discard_filter = lambda t: not t.is_discarded
+
+	@app.after_request
+	def after_request(response):
+		app.logger.debug(f'END process {pid} handling request ID {id(request)}')
+		return response
 
 	@app.route('/health')
 	def health():
