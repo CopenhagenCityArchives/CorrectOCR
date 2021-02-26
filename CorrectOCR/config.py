@@ -34,6 +34,7 @@ class EnvOverride(configparser.BasicInterpolation):
 
 def setup(configfiles, args):
 	progressbar.streams.wrap_stderr()
+	progressbar.streams.wrap_stdout()
 
 	config = configparser.RawConfigParser(interpolation=EnvOverride())
 	config.optionxform = lambda option: option
