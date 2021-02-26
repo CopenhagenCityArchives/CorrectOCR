@@ -51,7 +51,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 
 	@app.before_request
 	def before_request():
-		app.logger.debug(f'BEGIN process {pid} handling request ID {id(request)}')
+		app.logger.debug(f'BEGIN process {pid} handling request: {request.environ}')
 		g.docs = {
 			docid: {
 				'tokens': workspace.docs[docid].tokens,
@@ -63,7 +63,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 
 	@app.after_request
 	def after_request(response):
-		app.logger.debug(f'END process {pid} handling request ID {id(request)}')
+		app.logger.debug(f'END process {pid} handling request: {request.environ}')
 		return response
 
 	@app.route('/health')
