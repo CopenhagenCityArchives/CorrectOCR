@@ -46,8 +46,8 @@ class PDFToken(Token):
 			int(token_info[7]),
 			int(token_info[8]),
 		)
-		self.cached_image_path = FileIO.cachePath('pdf').joinpath(
-			f'{self.docid}-{self.index}.png'
+		self.cached_image_path = FileIO.cachePath(f'pdf/{self.docid}').joinpath(
+			f'{self.index}.png'
 		)
 
 	@property
