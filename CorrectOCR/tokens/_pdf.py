@@ -51,7 +51,7 @@ class PDFToken(Token):
 	def ordering(self):
 		return self.page_n, self.block_n, self.line_n, self.word_n
 
-	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Image.Image]:
+	def extract_image(self, workspace, force=False) -> Tuple[Path, Image.Image]:
 		if self.cached_image_path.is_file() and not force:
 			PDFToken.log.debug(f'cached_image_path: {self.cached_image_path}')
 			try:
@@ -60,7 +60,8 @@ class PDFToken(Token):
 				return self.cached_image_path, img
 			except:
 				PDFToken.log.error(f'Error with image file, will attempt regeneration.\n{traceback.format_exc()}')
-				return self.extract_image(workspace, highlight_word, left, right, top, bottom, force=True)
+				return self.extract_image(workspace, force=True)
+		left, right, top, bottom = workspace.config.image_padding
 		PDFToken.log.debug(f'Generating image for {self}')
 		xref, pagerect, pix = workspace._cached_page_image(self.docid, self.page_n) # TODO
 		xscale = pix.width / pagerect.width
@@ -73,7 +74,7 @@ class PDFToken(Token):
 		if workspace.config.combine_hyphenated_images and self.is_hyphenated:
 			next_token = workspace.docs[self.docid].tokens[self.index+1]
 			PDFToken.log.debug(f'Going to create combined image for {self} and {next_token}')
-			_, next_token_img = next_token.extract_image(workspace, highlight_word=False, left=0, right=right, top=top, bottom=bottom, force=True)
+			_, next_token_img = next_token.extract_image(workspace, force=True)
 			#PDFToken.log.debug(f'next_token_img ({self.index}): {next_token_img}')
 			centering_offset = int((tokenrect.height - next_token_img.height)/2)
 			#PDFToken.log.debug(f'centering_offset: ({tokenrect.height} - {next_token_img.height})/2 = {centering_offset}')
@@ -88,7 +89,7 @@ class PDFToken(Token):
 			min(pix.height, tokenrect.y1 + bottom),
 		)
 		#PDFToken.log.debug(f'extract_image ({self.index}): {croprect}')
-		if highlight_word:
+		if workspace.config.image_highlight:
 			draw = ImageDraw.Draw(image)
 			if self.gold:
 				color = (0x28, 0xa7, 0x45) # bootstrap green #28a745

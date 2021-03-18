@@ -23,6 +23,10 @@ def str2bool(v):
 	else:
 		raise argparse.ArgumentTypeError('Boolean value expected.')
 
+def str2intlist(v):
+	if isinstance(v, str):
+		return [int(item) for item in v.split(',')]
+
 
 def get_workspace_argparser():
 	workspaceparser = argparse.ArgumentParser()
@@ -35,6 +39,9 @@ def get_workspace_argparser():
 	workspaceparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus headers')
 	workspaceparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
 	workspaceparser.add_argument('--combine_hyphenated_images', type=str2bool, nargs='?', help='Generate joined images for hyphenated tokens')
+	workspaceparser.add_argument('--dynamic_images', type=str2bool, help='Should images be generated dynamically?')
+	workspaceparser.add_argument('--image_highlight', type=str2bool, help='Whether to highlight the token in images')
+	workspaceparser.add_argument('--image_padding', type=str2intlist, help='How much padding to use around images (L, R, T, B)')
 
 	return workspaceparser
 
@@ -61,7 +68,7 @@ def get_storage_argparser():
 	storageparser.add_argument('--db_host', type=str, help='Database hostname')
 	storageparser.add_argument('--db_user', type=str, help='Database username')
 	storageparser.add_argument('--db_password', type=str, help='Database user password')
-	storageparser.add_argument('--db', type=str, help='Database name')
+	storageparser.add_argument('--db_name', type=str, help='Database name')
 
 	return storageparser
 
