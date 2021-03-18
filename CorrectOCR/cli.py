@@ -34,6 +34,7 @@ def get_workspace_argparser():
 	workspaceparser.add_argument('--docInfoBaseURL', metavar='URL', type=str, help='Base URL that serves info about documents')
 	workspaceparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus headers')
 	workspaceparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
+	workspaceparser.add_argument('--combine_hyphenated_images', type=str2bool, nargs='?', help='Generate joined images for hyphenated tokens')
 
 	return workspaceparser
 

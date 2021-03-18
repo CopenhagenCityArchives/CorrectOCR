@@ -70,7 +70,7 @@ class PDFToken(Token):
 		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)
 		#PDFToken.log.debug(f'tokenrect ({self.index}): {tokenrect}')
 		#PDFToken.log.debug(f'word_image ({self.index}): {image} token {self} filename {self.cached_image_path}')
-		if self.is_hyphenated:
+		if workspace.config.combine_hyphenated_images and self.is_hyphenated:
 			next_token = workspace.docs[self.docid].tokens[self.index+1]
 			PDFToken.log.debug(f'Going to create combined image for {self} and {next_token}')
 			_, next_token_img = next_token.extract_image(workspace, highlight_word=False, left=0, right=right, top=top, bottom=bottom, force=True)
