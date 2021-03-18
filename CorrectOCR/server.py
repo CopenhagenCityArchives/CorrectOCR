@@ -280,8 +280,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					token.gold = ''
 					token.is_discarded = True
 			prev_token.is_hyphenated = True
-			prev_token.drop_cached_image()
-			token.drop_cached_image()
+			if config.dynamic_images:
+				prev_token.drop_cached_image()
+				token.drop_cached_image()
 			#app.logger.debug(f'prev_token after: {prev_token}')
 			return prev_token
 		elif hyphenation == 'right':
@@ -299,8 +300,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					next_token.gold = ''
 					next_token.is_discarded = True
 			token.is_hyphenated = True
-			token.drop_cached_image()
-			next_token.drop_cached_image()
+			if config.dynamic_images:
+				token.drop_cached_image()
+				next_token.drop_cached_image()
 			#app.logger.debug(f'next_token after: {next_token}')
 			return next_token
 		elif hyphenation == 'split':
@@ -411,7 +413,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
 		token: PDFToken = g.docs[docid]['tokens'][index]
-		if request.json:
+		if config.dynamic_images and request.json:
 			(docname, image) = token.extract_image(
 				workspace,
 				left=request.json.get('leftmargin'),
@@ -419,14 +421,15 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				top=request.json.get('topmargin'),
 				bottom=request.json.get('bottommargin')
 			)
-		elif token.cached_image_path.is_file():
+			with io.BytesIO() as output:
+				image.save(output, format="PNG")
+				return Response(output.getvalue(), mimetype='image/png')
+		elif token.cached_image_path.exists():
 			return send_file(token.cached_image_path)
 		else:
-			(docname, image) = token.extract_image(workspace)
-
-		with io.BytesIO() as output:
-			image.save(output, format="PNG")
-			return Response(output.getvalue(), mimetype='image/png')
+			return json.jsonify({
+				'detail': f'Token {index} in document "{docid}" does not have a an image.',
+			}), 404
 
 	@app.route('/random')
 	def rand():
