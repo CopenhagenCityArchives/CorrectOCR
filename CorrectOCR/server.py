@@ -3,6 +3,7 @@ import logging
 import os
 import random
 import traceback
+from pprint import pformat
 from threading import Thread
 from typing import Any
 
@@ -22,6 +23,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	:param config: TODO
 	"""
 	log = logging.getLogger(f'{__name__}.server')
+	log.info(f'Server configuration:\n{pformat(vars(config))}')
 
 	# create and configure the app
 	app = Flask(progname,
