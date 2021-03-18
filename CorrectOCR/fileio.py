@@ -8,9 +8,6 @@ from typing import Any, List
 
 from bs4.dammit import UnicodeDammit
 
-from ._codecs import COCRJSONCodec
-from .tokens.list import TokenList
-
 
 def _open_for_reading(file: Path, binary=False):
 	if binary:
@@ -30,7 +27,7 @@ class FileIO(object):
 
 	@classmethod
 	def cachePath(cls, name: str = ''):
-		path = Path('./workspace/__COCRcache__/').joinpath(name)
+		path = Path('/app/workspace/__COCRcache__/').joinpath(name) # TODO
 		cls.ensure_directories(path)
 		return path
 
@@ -125,6 +122,8 @@ class FileIO(object):
 		:param path: The path to save to.
 		:param backup: Whether to move existing files out of the way via :meth:`ensure_new_file`
 		"""
+		from ._codecs import COCRJSONCodec
+		from .tokens.list import TokenList
 		binary = False
 		if path.suffix == '.pickle':
 			binary = True
@@ -169,6 +168,7 @@ class FileIO(object):
 		:param default: If file doesn't exist, return default instead.
 		:return: The data from the file, or the default.
 		"""
+		from ._codecs import COCRJSONCodec
 		binary = False
 		if path.suffix == '.pickle':
 			binary = True

@@ -14,6 +14,7 @@ import nltk
 
 from .list import TokenList
 from .._util import punctuation_splitter, punctuationRE
+from ..fileio import FileIO
 from ..heuristics import Bin
 from ..model.kbest import KBestItem
 
@@ -71,6 +72,10 @@ class Token(abc.ABC):
 
 		self.annotation_info = {} #: An arbitrary key/value store of information about the annotations
 		self.last_modified = None #: When the ``gold`` property was last updated.
+
+		self.cached_image_path = FileIO.cachePath(f'images/{self.docid}').joinpath(
+			f'{self.index}.png'
+		) #: Where the image file should be cached. Is not guaranteed to exist, but can be generated via extract_image()
 
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')

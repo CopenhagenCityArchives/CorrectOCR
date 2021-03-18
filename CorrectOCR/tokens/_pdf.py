@@ -46,9 +46,6 @@ class PDFToken(Token):
 			int(token_info[7]),
 			int(token_info[8]),
 		)
-		self.cached_image_path = FileIO.cachePath(f'pdf/{self.docid}').joinpath(
-			f'{self.index}.png'
-		)
 
 	@property
 	def ordering(self):
