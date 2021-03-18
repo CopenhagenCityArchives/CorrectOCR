@@ -49,7 +49,7 @@ class ServerTests(unittest.TestCase):
 
 		response = self.client.get('/abc/token-1.json', follow_redirects=True)
 		self.assertEqual(response.json['Original'], 'upen', f'key "Original" should be "upen": {response.json}')
-		self.assertEqual(response.json['Gold'], '', f'key "Gold" should be blank: {response.json}')
+		self.assertIsNone(response.json['Gold'], f'key "Gold" should be None: {response.json}')
 
 	def test_token_update(self):
 		response = self.client.get('/', follow_redirects=True)
@@ -57,7 +57,7 @@ class ServerTests(unittest.TestCase):
 	
 		response = self.client.get('/abc/token-1.json', follow_redirects=True)
 		self.assertEqual(response.json['Original'], 'upen', f'key "Original" should be "upen": {response.json}')
-		self.assertEqual(response.json['Gold'], '', f'key "Gold" should be blank: {response.json}')
+		self.assertIsNone(response.json['Gold'], f'key "Gold" should be None: {response.json}')
 
 		response = self.client.post('/abc/token-1.json', json={'gold': 'upon'}, follow_redirects=True)
 		self.assertEqual(response.json['Original'], 'upen', f'key "Original" should be "upen": {response.json}')
