@@ -101,14 +101,6 @@ class PDFToken(Token):
 		image = image.crop(croprect)
 		image.save(self.cached_image_path)
 		return self.cached_image_path, image
-
-	def drop_cached_image(self):
-		if self.cached_image_path.is_file():
-			self.cached_image_path.unlink()
-
-	def drop_cached_image(self):
-		if self.cached_image_path.is_file():
-			self.cached_image_path.unlink()
 		
 	@staticmethod
 	def register(cls):

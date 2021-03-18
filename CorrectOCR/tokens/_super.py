@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 import string
+import traceback
 from pathlib import Path
 from typing import Any, DefaultDict, List, NamedTuple, Optional, Tuple
 
@@ -265,7 +266,11 @@ class Token(abc.ABC):
 		return t
 
 	def drop_cached_image(self):
-		pass
+		if self.cached_image_path.is_file():
+			try:
+				self.cached_image_path.unlink()
+			except:
+				self.__class__.log.error(f'Could not delete image:\n{traceback.format_exc()}')
 
 	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Any]:
 		pass
