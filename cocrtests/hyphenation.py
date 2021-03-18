@@ -7,9 +7,13 @@ import sys
 from .mocks import *
 
 from CorrectOCR.tokens import Tokenizer
-
+from CorrectOCR._util import hyphenRE
 
 class TestHyphenation(unittest.TestCase):
+	def test_hyphenation_regex(self):
+		self.assertTrue(hyphenRE.search('abc-'), '"abc-" should match.')
+		self.assertFalse(hyphenRE.search('abc-def'), '"abc-def" should NOT match.')
+
 	def test_auto_dehyphenation(self):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
