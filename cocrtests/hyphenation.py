@@ -17,11 +17,11 @@ class TestHyphenation(unittest.TestCase):
 	def test_auto_dehyphenation(self):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
-		f = MockCorpusFile('Str- ing')
+		f = MockCorpusFile('Str- ing Te-st')
 		tokens = t.tokenize(f, MockConfig(type='fs'))
 		tokens.dehyphenate()
 
-		self.assertEqual(str(tokens), 'String', f'Resulting string should be dehyphenated.')
+		self.assertEqual(str(tokens), 'String Te-st', f'Resulting string should be dehyphenated in {tokens}.')
 
 	def test_manual_dehyphenation(self):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
