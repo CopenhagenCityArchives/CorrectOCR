@@ -234,10 +234,6 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	cleanupparser.add_argument('--full', action='store_true', help='Also delete the most recent files (without .nnn. in suffix)')
 	cleanupparser.set_defaults(func=commands.do_cleanup, **defaults)
 
-	extractparser = subparsers.add_parser('extract', help='Various extraction methods')
-	extractparser.add_argument('--docid', help='Input document ID (filename without path or extension)', required=True)
-	extractparser.set_defaults(func=commands.do_extract, **defaults)
-
 	serverparser = subparsers.add_parser('server', help='Run basic JSON-dispensing Flask server')
 	serverparser.add_argument('--host', help='The host address')
 	serverparser.add_argument('--debug', action='store_true', help='Runs the server in debug mode (see Flask docs)')

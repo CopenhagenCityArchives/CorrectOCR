@@ -439,22 +439,6 @@ def do_cleanup(workspace: Workspace, config):
 ##########################################################################################
 
 
-def do_extract(workspace: Workspace, config):
-	log = logging.getLogger(f'{__name__}.do_extract')
-
-	doc = workspace.docs[config.docid]
-	doc.prepare('bin', k=config.k)
-
-
-	tokens = [t for t in doc.tokens if t.decision == 'annotator']
-
-	for token in progressbar.progressbar(tokens):
-		_, _ = token.extract_image(workspace)
-
-
-##########################################################################################
-
-
 def run_server(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.run_server')
 
