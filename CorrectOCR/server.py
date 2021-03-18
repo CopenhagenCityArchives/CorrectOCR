@@ -194,7 +194,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		
 		Returns ``404`` if the document or token cannot be found, otherwise ``200``.
 		
-		**Note**: If the token is the second part of a hyphenated token, a ``302``-redirect to the previous token will be returned.
+		**Note**: If the token is the second part of a hyphenated token, and the server is configured for it, a ``302``-redirect to the previous token will be returned.
 
 		**Note**: The data is not escaped; care must be taken when displaying in a browser.
 		
@@ -248,7 +248,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			return json.jsonify({
 				'detail': f'Document "{docid}" does not have a token at {index}.',
 			}), 404
-		if index > 0:
+		if config.redirect_hyphenated and index > 0:
 			prev_token = g.docs[docid]['tokens'][index-1]
 			if prev_token.is_hyphenated:
 				return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))

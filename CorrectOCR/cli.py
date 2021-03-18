@@ -238,6 +238,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	serverparser.add_argument('--host', help='The host address')
 	serverparser.add_argument('--debug', action='store_true', help='Runs the server in debug mode (see Flask docs)')
 	serverparser.add_argument('--profile', type=str2bool, nargs='?', help='Use Werkzeug profiler middleware')
+	serverparser.add_argument('--redirect_hyphenated', type=str2bool, help='Redirect requests for hyphenated tokens to "head"')
 	serverparser.set_defaults(func=commands.run_server, **serverdefaults)
 
 	return rootparser
