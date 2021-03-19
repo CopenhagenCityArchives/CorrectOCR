@@ -9,3 +9,10 @@ from .model import *
 from .pdf import *
 from .punctuation import *
 from .server import *
+
+
+import pathlib
+
+from CorrectOCR.fileio import FileIO
+
+FileIO.cacheRoot = pathlib.Path('/tmp/').joinpath('__COCRCache__')
