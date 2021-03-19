@@ -426,6 +426,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				return Response(output.getvalue(), mimetype='image/png')
 		elif token.cached_image_path.exists():
 			return send_file(token.cached_image_path)
+		elif config.dynamic_images:
+			(docname, image) = token.extract_image(workspace)
+			with io.BytesIO() as output:
+				image.save(output, format="PNG")
+				return Response(output.getvalue(), mimetype='image/png')
 		else:
 			return json.jsonify({
 				'detail': f'Token {index} in document "{docid}" does not have a an image.',
