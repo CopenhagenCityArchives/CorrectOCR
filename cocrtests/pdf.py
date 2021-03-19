@@ -1,9 +1,4 @@
 import unittest
-from unittest.mock import mock_open
-
-import logging
-import pathlib
-import sys
 
 from .mocks import *
 

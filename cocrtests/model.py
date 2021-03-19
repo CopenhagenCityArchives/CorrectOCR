@@ -1,14 +1,10 @@
 import unittest
-from unittest.mock import mock_open
-
-import logging
-import sys
 
 from .mocks import *
 
-from CorrectOCR.model.kbest import KBestItem
 from CorrectOCR.model.hmm import HMM, HMMBuilder
-from CorrectOCR.tokens import Tokenizer, Token
+from CorrectOCR.tokens import Tokenizer
+
 
 class TestModel(unittest.TestCase):
 	def test_kbest(self):

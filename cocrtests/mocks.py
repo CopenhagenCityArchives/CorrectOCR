@@ -1,5 +1,3 @@
-from unittest.mock import Mock
-
 import pathlib
 
 from CorrectOCR.tokens import Tokenizer

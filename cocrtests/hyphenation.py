@@ -1,13 +1,10 @@
 import unittest
-from unittest.mock import mock_open
-
-import logging
-import sys
 
 from .mocks import *
 
-from CorrectOCR.tokens import Tokenizer
 from CorrectOCR._util import hyphenRE
+from CorrectOCR.tokens import Tokenizer
+
 
 class TestHyphenation(unittest.TestCase):
 	def test_hyphenation_regex(self):

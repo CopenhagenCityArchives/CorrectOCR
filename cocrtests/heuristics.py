@@ -1,14 +1,11 @@
 import unittest
-from unittest.mock import mock_open
-
-import logging
-import sys
 
 from .mocks import *
 
 from CorrectOCR.heuristics import Heuristics
 from CorrectOCR.model.kbest import KBestItem
-from CorrectOCR.tokens import Tokenizer, Token
+from CorrectOCR.tokens import Tokenizer
+
 
 class TestHeuristics(unittest.TestCase):
 	def test_auto_dehyphenation(self):

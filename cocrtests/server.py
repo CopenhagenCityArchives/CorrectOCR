@@ -1,15 +1,11 @@
 import unittest
 
-import logging
-import pathlib
 import re
-import sys
 
 from .mocks import *
 
-from CorrectOCR.__main__ import setup
 from CorrectOCR.server import create_app
-from CorrectOCR.tokens import Tokenizer
+
 
 class ServerTests(unittest.TestCase):
 	def setUp(self):
@@ -43,7 +39,6 @@ class ServerTests(unittest.TestCase):
 
 	def test_token_view(self):
 		response = self.client.get('/abc/token-0.json', follow_redirects=True)
-		logging.debug(f'response: {response.json}')
 		self.assertEqual(response.json['Original'], 'Once', f'key "Original" should be "Once": {response.json}')
 		self.assertEqual(response.json['Gold'], 'Once', f'key "Gold" should be "Once": {response.json}')
 

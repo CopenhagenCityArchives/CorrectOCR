@@ -1,8 +1,4 @@
 import unittest
-from unittest.mock import mock_open
-
-import logging
-import sys
 
 from .mocks import *
 
