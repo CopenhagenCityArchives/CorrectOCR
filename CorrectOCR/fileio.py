@@ -24,10 +24,13 @@ class FileIO(object):
 	Various file IO helper methods.
 	"""
 	log = logging.getLogger(f'{__name__}.FileIO')
+	cacheRoot = None
 
 	@classmethod
 	def cachePath(cls, name: str = ''):
-		path = Path('/app/workspace/__COCRcache__/').joinpath(name) # TODO
+		if cls.cacheRoot is None:
+			raise ValueError('FileIO.cacheRoot must be set before using FileIO.cachePath()!')
+		path = cls.cacheRoot.joinpath(name)
 		cls.ensure_directories(path)
 		return path
 

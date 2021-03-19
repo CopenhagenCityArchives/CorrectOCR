@@ -40,6 +40,7 @@ class Workspace(object):
 		self.config = workspaceconfig
 		self.storageconfig = storageconfig
 		self.root = self.config.rootPath.resolve()
+		FileIO.cacheRoot = self.root.joinpath('__COCRCache__')
 		self.storageconfig.trainingPath = self.root.joinpath(self.config.trainingPath) # hacky...
 		self._originalPath = self.root.joinpath(self.config.originalPath)
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(self.config))} at {self.root}')
