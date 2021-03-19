@@ -7,7 +7,7 @@ from pprint import pformat
 from threading import Thread
 from typing import Any
 
-from flask import Flask, Response, g, json, redirect, request, url_for
+from flask import Flask, Response, g, json, redirect, request, send_file, url_for
 from flask_cors import CORS
 import requests
 
@@ -419,6 +419,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				top=request.json.get('topmargin'),
 				bottom=request.json.get('bottommargin')
 			)
+		elif token.cached_image_path.is_file():
+			return send_file(token.cached_image_path)
 		else:
 			(docname, image) = token.extract_image(workspace)
 
