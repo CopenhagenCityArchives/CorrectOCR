@@ -25,6 +25,8 @@ class MockConfig(object):
 		self.debug = True
 		self.auth_endpoint = None
 		self.profile = False
+		self.redirect_hyphenated = True
+		self.dynamic_images = True
 
 
 class MockDocument(object):
