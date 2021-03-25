@@ -54,6 +54,7 @@ class DBTokenList(TokenList):
 				FROM token
 				WHERE doc_id = ?
 				AND decision IS NULL
+				AND discarded != 1
 				""",
 				self.docid,
 			)

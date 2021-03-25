@@ -130,7 +130,7 @@ class TokenList(collections.abc.MutableSequence):
 
 	@property
 	def server_ready(self):
-		return all(t.decision is not None for t in self.tokens)
+		return all(t.decision is not None and not t.is_discarded for t in self.tokens)
 
 	def random_token_index(self, has_gold=False, is_discarded=False):
 		return self.random_token(has_gold, is_discarded).index
