@@ -38,7 +38,7 @@ class Heuristics(object):
 		self.oversegmented = 0
 		self.undersegmented = 0
 
-	def bin_for_word(self, word, kbest):
+	def bin_for_word(self, word, original, kbest):
 		# k best candidates which are in dictionary
 		filtids = [n for n, item in kbest.items() if item.normalized in self.dictionary]
 
@@ -61,7 +61,7 @@ class Heuristics(object):
 
 		# return decision and chosen candidate(s)
 		if token_bin.heuristic == 'o':
-			(decision, selection) = ('original', word)
+			(decision, selection) = ('original', original)
 		elif token_bin.heuristic == 'k':
 			(decision, selection) = ('kbest', 1)
 		elif token_bin.heuristic == 'd':
@@ -88,7 +88,7 @@ class Heuristics(object):
 					word = token.normalized[:-1] + next_token.normalized
 				else:
 					word = token.normalized
-				token.decision, token.selection, token.bin = self.bin_for_word(word, token.kbest)
+				token.decision, token.selection, token.bin = self.bin_for_word(word, token.original, token.kbest)
 			if token.decision is None or token.bin is None or token.selection is None:
 				raise ValueError(f'Token {token} was not binned!')
 			if token.bin == -1:
