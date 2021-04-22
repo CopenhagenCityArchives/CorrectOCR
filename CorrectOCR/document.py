@@ -179,7 +179,7 @@ class Document(object):
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
 		Document.log.info(f'Cropping tokens for {self.docid}')
-		Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens)
+		Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens, edge_left, edge_right)
 		self.tokens.save()
 
 	def precache_images(self, complete=False):
