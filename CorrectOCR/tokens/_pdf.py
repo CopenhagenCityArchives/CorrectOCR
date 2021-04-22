@@ -187,13 +187,14 @@ class PDFTokenizer(Tokenizer):
 			page_width = page.rect.x1
 			filtered_tokens = filter(page_filter, tokens)
 			page_tokens = list(filtered_tokens)
-			if edge_left is None and edge_right is None:
-				edge_left, edge_right = PDFTokenizer.calculate_crop_area(page_tokens, page_width)
-			elif edge_left is None:
-				edge_left = 0
-			elif edge_right is None:
-				edge_right = page_width
-			PDFTokenizer.crop_tokens_to_edges(page_tokens, edge_left, edge_right)
+			(left, right) = (edge_left, edge_right) # reset for each page
+			if left is None and right is None:
+				left, right = PDFTokenizer.calculate_crop_area(page_tokens, page_width)
+			elif left is None:
+				left = 0
+			elif right is None:
+				right = page_width
+			PDFTokenizer.crop_tokens_to_edges(page_tokens, left, right)
 			
 	@staticmethod
 	def crop_tokens_to_edges(tokens, edge_left, edge_right):
@@ -207,7 +208,7 @@ class PDFTokenizer(Tokenizer):
 		PDFTokenizer.log.info(f'Total tokens marked as discarded: {discard_count}')
 
 	@staticmethod
-	def calculate_crop_area(tokens, width, tolerance=.1, edge_percentage=20, show_histogram=False):
+	def calculate_crop_area(tokens, width, tolerance=.1, edge_percentage=20, show_histogram=True):
 		PDFTokenizer.log.info(f'Going to calculate crop area for {len(tokens)} tokens')
 		x_values = []
 		for token in tokens:
