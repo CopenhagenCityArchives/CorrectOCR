@@ -11,6 +11,7 @@ WORKDIR /app
 # Install requirements
 COPY ./requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
+RUN python -m nltk.downloader punkt
 
 # Copy code and its config
 COPY ./CorrectOCR ./CorrectOCR

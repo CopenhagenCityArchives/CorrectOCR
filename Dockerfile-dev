@@ -12,9 +12,16 @@ RUN /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/bin/myodbc-install
 
 WORKDIR /app
 
+# Install requirements
 COPY ./requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
+RUN python -m nltk.downloader punkt
 
-COPY ./uwsgi.py uwsgi.py
+# Copy code and its config
+COPY ./CorrectOCR ./CorrectOCR
+COPY ./CorrectOCR.ini ./
+COPY ./uwsgi.py ./
 
 EXPOSE 5000
+
+ENTRYPOINT uwsgi --socket /tmp/correctocr.sock --http :5000 --wsgi-file uwsgi.py --callable app --processes 8 --http-timeout 300 --uid nobody --gid nogroup --master --logger file:logfile=/tmp/uwsgi.log,maxsize=200000 
