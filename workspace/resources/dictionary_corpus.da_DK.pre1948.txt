@@ -26,7 +26,3 @@ https://repository.clarin.dk/repository/xmlui/handle/20.500.12115/31/allzip	grun
 # Bjerring-Hansen, Jens, 2019, Georg Brandes: Main Currents (1872-90), CLARIN-DK-UCPH Centre Repository
 # http://hdl.handle.net/20.500.12115/37
 https://repository.clarin.dk/repository/xmlui/handle/20.500.12115/37/allzip	brandes.zip
-
-### Gold standard files ###
-# contents of paths ending in a slash are copied to the corpus directory
-gold/
