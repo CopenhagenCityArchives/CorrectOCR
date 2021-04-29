@@ -55,7 +55,7 @@ class FileIO(object):
 		"""
 		with open(str(file), 'rb') as f:
 			dammit = UnicodeDammit(f.read(1024*500), ['utf-8', 'Windows-1252'])
-			cls.log.debug(f'detected {dammit.original_encoding} for {file}')
+			#cls.log.debug(f'detected {dammit.original_encoding} for {file}')
 			return dammit.original_encoding
 
 	@classmethod
@@ -133,11 +133,9 @@ class FileIO(object):
 		if backup:
 			cls.ensure_new_file(path)
 		if binary:
-			def fopen():
-				return open(str(path), 'wb')
+			fopen = lambda: open(str(path), 'wb')
 		else:
-			def fopen():
-				return open(str(path), 'w', encoding='utf-8')
+			fopen = lambda: open(str(path), 'w', encoding='utf-8')
 		with fopen() as f:
 			if path.suffix == '.pickle':
 				pickle.dump(data, f)
