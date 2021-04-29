@@ -256,7 +256,7 @@ class ResourceManager(object):
 		self.correctionTracking = JSONResource(self.root.joinpath(config.correctionTrackingFile).resolve())
 		self.memoizedCorrections = JSONResource(self.root.joinpath(config.memoizedCorrectionsFile).resolve())
 		self.multiCharacterError = JSONResource(self.root.joinpath(config.multiCharacterErrorFile).resolve())
-		self.dictionary = Dictionary(self.root.joinpath(config.dictionaryFile).resolve(), config.ignoreCase)
+		self.dictionary = Dictionary(self.root.joinpath(config.dictionaryPath).resolve(), config.ignoreCase)
 		self.hmm = HMM(self.root.joinpath(config.hmmParamsFile).resolve(), self.multiCharacterError)
 		self.reportFile = self.root.joinpath(config.reportFile).resolve()
 		self.heuristics = Heuristics(JSONResource(self.root.joinpath(config.heuristicSettingsFile).resolve()), self.dictionary)

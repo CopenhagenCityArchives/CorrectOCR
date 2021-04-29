@@ -1,4 +1,5 @@
 import collections
+import hashlib
 import logging
 import random
 import string
@@ -34,6 +35,9 @@ def build_dictionary(workspace: Workspace, config):
 	corpusPath = config.corpusPath or FileIO.cachePath('dictionary/')
 	FileIO.ensure_directories(corpusPath)
 
+	def md5(data):
+		return hashlib.md5(str(data).encode('utf-8')).hexdigest()
+
 	if config.corpusFile:
 		for line in _open_for_reading(config.corpusFile).readlines():
 			line = line.strip()
@@ -44,15 +48,16 @@ def build_dictionary(workspace: Workspace, config):
 			elif line[:4] == 'http':
 				if '\t' in line:
 					(url, filename) = line.split('\t')
-					filename = corpusPath.joinpath(Path(filename).name)
+					filename = corpusPath.joinpath(md5(url)).joinpath(Path(filename).name)
 				else:
 					url = line
-					filename = corpusPath.joinpath(Path(line).name)
+					filename = corpusPath.joinpath(md5(url)).joinpath(Path(line).name)
 				if filename.is_file():
 					log.info('Download cached, will not download again.')
 					continue
 				r = requests.get(url)
 				if r.status_code == 200:
+					FileIO.ensure_directories(filename.parent)
 					with open(filename, 'wb') as f:
 						f.write(r.content)
 				else:
@@ -60,27 +65,31 @@ def build_dictionary(workspace: Workspace, config):
 				time.sleep(random.uniform(0.5, 1.5))
 			elif line[-1] == '/':
 				for file in Path(line).iterdir():
-					outfile = corpusPath.joinpath(file.name)
+					outfile = corpusPath.joinpath(md5(line)).joinpath(file.name)
 					if outfile.is_file():
 						log.info(f'File already copied: {file.name}')
 						continue
 					log.info(f'Copying {file.name} to corpus.')
 					FileIO.copy(file, outfile)
 
+	# TODO use ame destination for all contents of top level zip?
 	def unzip_recursive(_zip):
+		destination = corpusPath.joinpath(md5(_zip))
+		if destination.is_dir():
+			log.debug(f'Already unzipped, skipping: {_zip}')
+			return
 		for member in _zip.namelist():
 			if member[-4:] == '.zip':
-				log.info(f'Unzipping internal {member}')
+				log.debug(f'Unzipping internal {member}')
 				with zipfile.ZipFile(_zip.open(member)) as _zf:
 					unzip_recursive(_zf)
 			else:
-				_zip.extract(member, corpusPath)
+				_zip.extract(member, destination)
 
-	for file in corpusPath.iterdir():
-		if file.suffix == '.zip':
-			log.info(f'Unzipping {file}')
-			with zipfile.ZipFile(file) as zf:
-				unzip_recursive(zf)
+	for file in corpusPath.rglob('*.zip'):
+		log.info(f'Unzipping {file}')
+		with zipfile.ZipFile(file) as zf:
+			unzip_recursive(zf)
 
 	ignore: Set[str] = {
 		# extraneous files in Joh. V. Jensen zip:
@@ -91,38 +100,45 @@ def build_dictionary(workspace: Workspace, config):
 		'1817_9.xml', # in German
 	}
 
-	for file in corpusPath.glob('**/*'):
-		if file.name[0] == '.' or file.name in ignore:
+	existing_groups = set(workspace.resources.dictionary.groups.keys())
+	for group_path in corpusPath.iterdir():
+		log.info(f'Checking corpus {group_path}')
+		group = group_path.stem
+		if group in existing_groups:
+			log.info(f'Skipping {group}, it is already in dictionary')
 			continue
-		log.info(f'Getting words from {file}')
-		if file.suffix == '.pdf':
-			doc = fitz.open(str(file))
-
-			for page in progressbar.progressbar(doc):
-				for word_info in page.getTextWords():
-					workspace.resources.dictionary.add(word_info[4])
-		elif file.suffix == '.xml':
-			try:
-				reader = TeiReader()
-				corpora = reader.read_file(file)
-			except etree.XMLSyntaxError:
-				log.error(f'XML error in {file}')
+		for file in group_path.rglob('*.*'):
+			if file.name[0] == '.' or file.name in ignore:
 				continue
-			# TODO broken...
-			# approved = {'corpus', 'document', 'div', 'part', 'p', 'l', 'w'}
-			# text = corpora.tostring(lambda e, t: t if e.tag in approved else '')
-			# above didn't work. Instead insert extra space, see issue
-			# https://github.com/UUDigitalHumanitieslab/tei_reader/issues/6
-			text = corpora.tostring(lambda e, t: f'{t} ')
-			for word in tokenize_str(text, workspace.config.language.name):
-				workspace.resources.dictionary.add(word)
-		elif file.suffix == '.txt':
-			with _open_for_reading(file) as f:
-				for word in tokenize_str(f.read(), workspace.config.language.name):
-					workspace.resources.dictionary.add(word)
-		else:
-			log.error(f'Unrecognized filetype:{file}')
-		log.info(f'Wordcount {len(workspace.resources.dictionary)}')
+			log.info(f'Getting words from {file.resolve()}')
+			if file.suffix == '.pdf':
+				doc = fitz.open(str(file))
+
+				for page in progressbar.progressbar(doc):
+					for word_info in page.getTextWords():
+						workspace.resources.dictionary.add(group, word_info[4])
+			elif file.suffix == '.xml':
+				try:
+					reader = TeiReader()
+					corpora = reader.read_file(file)
+				except etree.XMLSyntaxError:
+					log.error(f'XML error in {file}')
+					continue
+				# TODO broken...
+				# approved = {'corpus', 'document', 'div', 'part', 'p', 'l', 'w'}
+				# text = corpora.tostring(lambda e, t: t if e.tag in approved else '')
+				# above didn't work. Instead insert extra space, see issue
+				# https://github.com/UUDigitalHumanitieslab/tei_reader/issues/6
+				text = corpora.tostring(lambda e, t: f'{t} ')
+				for word in tokenize_str(text, workspace.config.language.name):
+					workspace.resources.dictionary.add(group, word)
+			elif file.suffix == '.txt':
+				with _open_for_reading(file) as f:
+					for word in tokenize_str(f.read(), workspace.config.language.name):
+						workspace.resources.dictionary.add(group, word)
+			else:
+				log.error(f'Unrecognized filetype: {file}')
+		workspace.resources.dictionary.save_group(group)
 
 	if config.add_annotator_gold:
 		for docid, doc in workspace.items():
