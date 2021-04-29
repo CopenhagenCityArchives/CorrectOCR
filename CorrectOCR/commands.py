@@ -141,13 +141,22 @@ def build_dictionary(workspace: Workspace, config):
 		workspace.resources.dictionary.save_group(group)
 
 	if config.add_annotator_gold:
-		for docid, doc in workspace.items():
-			log.info('Adding gold words from annotated tokens in document {docid}')
-			for token in doc.tokens:
+		for docid in workspace.docids_for_ext('.pdf', server_ready=True):
+			doc = workspace.docs[docid]
+			log.info(f'Adding gold words from annotated tokens in document {docid}')
+			tokens = iter(doc.tokens)
+			for token in progressbar.progressbar(tokens, max_value=len(doc.tokens)):
+				#print([token, token.decision, token.gold, token.is_discarded])
 				if token.decision == 'annotator' and token.gold is not None and not token.is_discarded:
-					if token.gold not in workspace.resources.dictionary:
-						log.info(f'Adding {token.gold}')
-						workspace.resources.dictionary.add(token.gold)
+					#print(token)
+					gold = token.gold
+					if token.is_hyphenated:
+						gold = next(tokens).gold
+					if gold not in workspace.resources.dictionary:
+						log.info(f'Adding {gold}')
+						workspace.resources.dictionary.add('annotator_gold', gold)
+					else:
+						log.debug(f'{gold} is already in dictionary')
 
 	workspace.resources.dictionary.save()
 
