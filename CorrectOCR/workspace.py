@@ -115,14 +115,6 @@ class Workspace(object):
 				continue
 			yield docid
 
-	def original_tokens(self) -> Iterator[Tuple[str, 'TokenList']]:
-		"""
-		Yields an iterator of (docid, list of tokens).
-		"""
-		for docid, doc in self.docs.items():
-			Workspace.log.debug(f'Getting original tokens from {docid}')
-			yield docid, doc.tokens
-
 	def cleanup(self, dryrun=True, full=False):
 		"""
 		Cleans out the backup files in the ``trainingPath``.
