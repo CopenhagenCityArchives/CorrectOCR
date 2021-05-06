@@ -50,9 +50,6 @@ class Document(object):
 		if not self.originalFile.exists():
 			raise ValueError(f'Cannot create Document with non-existing original file: {self.originalFile}')
 		self.tokenFile = training.joinpath(f'{self.docid}.csv')  #: Path to token file (CSV format).
-		self.fullAlignmentsFile = training.joinpath(f'{self.docid}.fullAlignments.json')  #: Path to full letter-by-letter alignments (JSON format).
-		self.wordAlignmentsFile = training.joinpath(f'{self.docid}.wordAlignments.json')  #: Path to word-by-word alignments (JSON format).
-		self.readCountsFile = training.joinpath(f'{self.docid}.readCounts.json')  #: Path to letter read counts (JSON format).
 		
 		self.tokens = TokenList.new(self.workspace.storageconfig, docid=self.docid)
 		self.tokens.load()
@@ -62,44 +59,9 @@ class Document(object):
 	def is_done(self):
 		return self.tokens.stats['done']
 
-	def alignments(self, force=False) -> Tuple[list, dict, list]:
-		"""
-		Uses the :class:`Aligner<CorrectOCR.aligner.Aligner>` to generate alignments for a given
-		original, gold pair of docs.
-
-		Caches its results in the ``trainingPath``.
-
-		:param force: Back up existing alignment docs and create new ones.
-		"""
-		faPath = self.fullAlignmentsFile
-		waPath = self.wordAlignmentsFile
-		mcPath = self.readCountsFile
-		
-		if not force and (faPath.is_file() and waPath.is_file() and mcPath.is_file()):
-			Document.log.info(f'Alignments for {self.docid} exist and are presumed correct, will read and return. Use --force or delete alignments to rerun a subset.')
-			return (
-				FileIO.load(faPath),
-				{o: {int(k): v for k, v in i.items()} for o, i in FileIO.load(waPath).items()},
-				FileIO.load(mcPath)
-			)
-		Document.log.info(f'Creating alignments for {self.docid}')
-		
-		if self.originalFile.body == self.goldFile.body:
-			Document.log.critical(f'Original and gold are identical for {self.docid}!')
-			raise SystemExit(-1)
-		
-		(fullAlignments, wordAlignments, readCounts) = Aligner().alignments(
-			tokenize_str(self.originalFile.body, self.workspace.config.language.name),
-			tokenize_str(self.goldFile.body, self.workspace.config.language.name)
-		)
-		
-		FileIO.save(fullAlignments, faPath)
-		FileIO.save(wordAlignments, waPath)
-		FileIO.save(readCounts, mcPath)
-
-		#Document.log.debug(f'wordAlignments: {wordAlignments}')
-		
-		return fullAlignments, wordAlignments, readCounts
+	@property
+	def alignments(self):
+		return Aligner().alignments(self.tokens)
 
 	def prepare(self, step: str, k: int, dehyphenate=False, force=False):
 		"""
@@ -153,14 +115,8 @@ class Document(object):
 			self.tokens.dehyphenate()
 		elif step == 'align':
 			self.prepare('tokenize', k, dehyphenate)
-			if self.goldFile.is_file():
-				(_, wordAlignments, _) = self.alignments()
-				for i, token in enumerate(self.tokens): # TODO force
-					if not token.gold and token.original in wordAlignments:
-						wa = wordAlignments[token].items()
-						closest = sorted(wa, key=lambda x: abs(x[0]-i))
-						#Document.log.debug(f'{wa} {i} {token.original} {closest}')
-						token.gold = closest[0][1]
+			if self.is_done:
+				_ = self.alignments
 		elif step == 'kbest':
 			if self.goldFile.is_file():
 				self.prepare('align', k, dehyphenate, force)

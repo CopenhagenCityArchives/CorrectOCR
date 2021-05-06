@@ -128,8 +128,8 @@ class Workspace(object):
 		Yields an iterator of (docid, list of gold-aligned tokens).
 		"""
 		for docid, doc in self.docs.items():
-			if doc.goldFile.is_file():
-				doc.prepare('align', self.config.k)
+			if doc.is_done:
+				doc.prepare('align', doc.tokens[0].k) # hacky way to get k...
 				Workspace.log.debug(f'Getting gold tokens from {docid}')
 				yield docid, [t for t in doc.tokens if t.gold is not None]
 

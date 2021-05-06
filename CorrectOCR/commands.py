@@ -192,11 +192,16 @@ def build_model(workspace: Workspace, config):
 	# Select the gold docs which correspond to the read count files.
 	readCounts = collections.defaultdict(collections.Counter)
 	gold_words = []
-	for docid, tokens in workspace.gold_tokens():
-		(_, _, counts) = workspace.alignments(docid)
+	for docid in workspace.docids_for_ext('.pdf', is_done=True):
+		doc = workspace.docs[docid]
+		(_, _, counts) = doc.alignments
 		readCounts.update(counts)
-		gold_words.extend([t.gold for t in tokens])
-		log.debug(f'{docid}: {gold_words[-1]}')
+		tokens = iter(doc.tokens)
+		for token in tokens:
+			gold = token.gold
+			if token.is_hyphenated:
+				gold += next(tokens).gold
+			gold_words.append(gold)
 
 	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, config.characterSet, readCounts, remove_chars, gold_words)
 
