@@ -123,16 +123,6 @@ class Workspace(object):
 			Workspace.log.debug(f'Getting original tokens from {docid}')
 			yield docid, doc.tokens
 
-	def gold_tokens(self) -> Iterator[Tuple[str, 'TokenList']]:
-		"""
-		Yields an iterator of (docid, list of gold-aligned tokens).
-		"""
-		for docid, doc in self.docs.items():
-			if doc.is_done:
-				doc.prepare('align', doc.tokens[0].k) # hacky way to get k...
-				Workspace.log.debug(f'Getting gold tokens from {docid}')
-				yield docid, [t for t in doc.tokens if t.gold is not None]
-
 	def cleanup(self, dryrun=True, full=False):
 		"""
 		Cleans out the backup files in the ``trainingPath``.

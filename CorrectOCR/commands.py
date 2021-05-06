@@ -141,7 +141,7 @@ def build_dictionary(workspace: Workspace, config):
 		workspace.resources.dictionary.save_group(group)
 
 	if config.add_annotator_gold:
-		for docid in workspace.docids_for_ext('.pdf', server_ready=True):
+		for docid in workspace.docids_for_ext('.pdf', is_done=True):
 			group = f'gold-{docid}'
 			if group in existing_groups:
 				log.info(f'Skipping {group}, it is already in dictionary')
@@ -287,9 +287,10 @@ def do_stats(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_stats')
 
 	if config.make_report:
-		for docid, tokens in workspace.gold_tokens():
+		for docid in workspace.docids_for_ext('.pdf', is_done=True):
 			log.info(f'Collecting stats from {docid}')
-			for t in progressbar.progressbar(tokens):
+			doc = workspace.docs[docid]
+			for t in progressbar.progressbar(doc.tokens):
 				workspace.resources.heuristics.add_to_report(t)
 
 		log.info(f'Saving report to {workspace.resources.reportFile}')
