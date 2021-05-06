@@ -58,6 +58,10 @@ class Document(object):
 		self.tokens.load()
 		Document.log.debug(f'Loaded {len(self.tokens)} tokens. Stats: {self.tokens.stats}')
 
+	@property
+	def is_done(self):
+		return self.tokens.stats['done']
+
 	def alignments(self, force=False) -> Tuple[list, dict, list]:
 		"""
 		Uses the :class:`Aligner<CorrectOCR.aligner.Aligner>` to generate alignments for a given
