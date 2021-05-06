@@ -127,6 +127,11 @@ class TokenList(collections.abc.MutableSequence):
 			cls.log.error(f'correction counts do not match for stats {stats} for doc {docid}')
 		if stats['uncorrected_count'] + stats['corrected_count'] != stats['token_count']:
 			cls.log.error(f'correction counts do not match for stats {stats} for doc {docid}')
+		if stats['corrected_count'] == stats['token_count']:
+			cls.log.info(f'Marking as done: doc {docid}')
+			stats['done'] = True
+		else:
+			stats['done'] = False
 
 	@property
 	def server_ready(self):
