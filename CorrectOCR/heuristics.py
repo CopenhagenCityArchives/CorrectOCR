@@ -11,6 +11,7 @@ from ._util import punctuationRE
 if TYPE_CHECKING:
 	from .dictionary import Dictionary
 	from .tokens import Token
+	from .tokens.list import TokenList
 
 
 class Heuristics(object):
@@ -72,23 +73,16 @@ class Heuristics(object):
 		
 		return decision, selection, token_bin
 
-	def bin_tokens(self, tokens: List['Token'], force = False):
+	def bin_tokens(self, tokens: TokenList, force = False):
 		Heuristics.log.info('Running heuristics on tokens to determine annotator workload.')
 		counts = Counter()
 		annotatorRequired = 0
 		ts = iter(tokens)
-		for token in progressbar.progressbar(ts, max_count=len(tokens)):
-			if token.is_discarded:
-				continue
+		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
 			#Heuristics.log.debug(f'binning {token}')
 			if force or token.bin is None:
-				if token.is_hyphenated:
-					next_token = next(ts)
-					next_token.decision = 'annotator'
-					word = token.normalized[:-1] + next_token.normalized
-				else:
-					word = token.normalized
-				token.decision, token.selection, token.bin = self.bin_for_word(word, token.original, token.kbest)
+				word = token.normalized
+				token.decision, token.selection, token.bin = self.bin_for_word(word, original, token.kbest)
 			if token.decision is None or token.bin is None or token.selection is None:
 				raise ValueError(f'Token {token} was not binned!')
 			if token.bin == -1:
