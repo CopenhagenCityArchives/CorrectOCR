@@ -4,6 +4,7 @@ import abc
 import collections
 import logging
 import random
+from typing import Tuple
 
 import progressbar
 
@@ -132,6 +133,27 @@ class TokenList(collections.abc.MutableSequence):
 			stats['done'] = True
 		else:
 			stats['done'] = False
+
+	@property
+	def consolidated(self) -> Tuple[str, str, Token]:
+		"""
+			A consolidated iterator of tokens, where discarded tokens are skipped,
+			and hyphenated original/gold are included.
+			
+			:returns original, gold, token
+		"""
+		tokens = iter(self)
+		for token in tokens:
+			if token.is_discarded:
+				continue
+			original = token.original
+			gold = token.gold
+			if token.is_hyphenated:
+				n = next(tokens)
+				original += n.original
+				if gold:
+					gold += n.gold
+			yield original, gold, token
 
 	@property
 	def server_ready(self):
