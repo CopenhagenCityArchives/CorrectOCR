@@ -206,9 +206,12 @@ class TokenList(collections.abc.MutableSequence):
 		tokens = iter(self)
 		for token in progressbar.progressbar(tokens, max_value=len(self.tokens)):
 			if hyphenRE.search(token.original):
-				token.is_hyphenated = True
-				next(tokens).gold = ''
-				count += 1
+				try:
+					token.is_hyphenated = True
+					next(tokens).gold = ''
+					count += 1
+				except StopIteration:
+					TokenList.log.warning(f'Final token appears to end in a hyphen. Will ignore! {token}')
 		TokenList.log.debug(f'Dehyphenated {count} tokens')
 
 
