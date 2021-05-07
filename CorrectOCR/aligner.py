@@ -31,9 +31,9 @@ class Aligner(object):
 		self._readCounts: DefaultDict[str, Counter[str]] = collections.defaultdict(collections.Counter)
 		
 		Aligner.log.info(f'Aligning {len(tokens)} tokens')
-		for token in progressbar.progressbar(tokens):
-			self._wordAlignments[token.original][token.index] = token.gold
-			for leftChar, rightChar in zip(token.original, token.gold):
+		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
+			self._wordAlignments[original][token.index] = gold
+			for leftChar, rightChar in zip(original, gold):
 				self._fullAlignments.append((leftChar, rightChar))
 				self._readCounts[leftChar][rightChar] += 1
 
