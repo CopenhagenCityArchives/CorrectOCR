@@ -151,14 +151,9 @@ def build_dictionary(workspace: Workspace, config):
 				log.info(f'Skipping {docid}, it is not done')
 				continue
 			log.info(f'Adding gold words from annotated tokens in document {docid}')
-			tokens = iter(doc.tokens)
-			for token in progressbar.progressbar(tokens, max_value=len(doc.tokens)):
+			for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
 				#print([token, token.decision, token.gold, token.is_discarded])
-				if token.decision == 'annotator' and token.gold is not None and not token.is_discarded:
-					#print(token)
-					gold = token.gold
-					if token.is_hyphenated:
-						gold += next(tokens).gold
+				if token.decision == 'annotator' and gold is not None:
 					if gold not in workspace.resources.dictionary:
 						log.info(f'Adding {gold}')
 						workspace.resources.dictionary.add(group, gold)
@@ -196,11 +191,7 @@ def build_model(workspace: Workspace, config):
 		doc = workspace.docs[docid]
 		(_, _, counts) = doc.alignments
 		readCounts.update(counts)
-		tokens = iter(doc.tokens)
-		for token in tokens:
-			gold = token.gold
-			if token.is_hyphenated:
-				gold += next(tokens).gold
+		for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
 			gold_words.append(gold)
 
 	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, config.characterSet, readCounts, remove_chars, gold_words)
@@ -290,8 +281,8 @@ def do_stats(workspace: Workspace, config):
 		for docid in workspace.docids_for_ext('.pdf', is_done=True):
 			log.info(f'Collecting stats from {docid}')
 			doc = workspace.docs[docid]
-			for t in progressbar.progressbar(doc.tokens):
-				workspace.resources.heuristics.add_to_report(t)
+			for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
+				workspace.resources.heuristics.add_to_report(token)
 
 		log.info(f'Saving report to {workspace.resources.reportFile}')
 		FileIO.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
@@ -348,8 +339,8 @@ def do_correct(workspace: Workspace, config):
 			workspace.resources.memoizedCorrections.save()
 	elif config.gold_ready:
 		missing_gold_count = 0
-		for token in doc.tokens:
-			if not token.gold:
+		for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
+			if not gold:
 				missing_gold_count += 1
 
 		if missing_gold_count == 0:
@@ -403,11 +394,11 @@ def do_index(workspace: Workspace, config):
 		log.info(f'Searching for terms')
 		matches = []
 		run = []
-		for token in progressbar.progressbar(doc.tokens):
+		for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
 			tt = TaggedToken(token, [])
 			matched = False
 			for tag, terms in taggedTerms.items():
-				key = token.gold if token.gold and token.gold != '' else token.normalized
+				key = gold if token.gold and gold != '' else token.normalized
 				key = key.lstrip(string.punctuation).rstrip(string.punctuation)
 				log.debug(f'token: {token} key: {key}')
 				if key != '' and key.lower() in terms:
