@@ -72,6 +72,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	def health():
 		return 'OK', 200
 
+	# for sorting docindex to bring unfinished docs to the top
+	sort_key = lambda d: (not d['stats']['done'], d['stats']['uncorrected_count'])
+
 	@app.route('/')
 	def indexpage():
 		"""
@@ -124,7 +127,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					'stats': stats,
 					'last_modified': doc['tokens'].last_modified.timestamp() if doc['tokens'].last_modified else None,
 				})
-		return json.jsonify(docindex)
+		return json.jsonify(sorted(docindex, key=sort_key, reverse=True))
 
 	@app.route('/<string:docid>/tokens.json')
 	def tokens(docid):
