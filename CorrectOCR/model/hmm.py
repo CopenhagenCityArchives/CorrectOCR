@@ -248,11 +248,9 @@ class HMM(object):
 			raise SystemExit(-1)
 
 		HMM.log.info(f'Generating {k}-best suggestions for each token')
-		for token in progressbar.progressbar(tokens):
-			if token.is_discarded:
-				continue
+		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
 			if force or not token.kbest or len(token.kbest) != k:
-				token.kbest = self.kbest_for_word(token.original, k)
+				token.kbest = self.kbest_for_word(original, k)
 
 		HMM.log.debug(f'Generated for {len(tokens)} tokens, first 10: {tokens[:10]}')
 
