@@ -26,11 +26,37 @@ def tokenize_str(data: str, language='english') -> List[str]:
 ##########################################################################################
 
 
+class UpdateModifiedAccess:
+	def __set_name__(self, owner, name):
+		self.public_name = name
+		self.private_name = '_' + name
+		self.post_effect_name = '_post_' + name
+
+	def __get__(self, obj, objtype=None):
+		return getattr(obj, self.private_name)
+
+	def __set__(self, obj, value):
+		obj.last_modified = datetime.datetime.now()
+		setattr(obj, self.private_name, value)
+		if hasattr(obj, self.post_effect_name):
+			getattr(obj, self.post_effect_name)(value)
+
+
+##########################################################################################
+
+
 class Token(abc.ABC):
 	"""
 	Abstract base class. Tokens handle single words. ...
 	"""
 	_subclasses = dict()
+	gold = UpdateModifiedAccess()
+	is_hyphenated = UpdateModifiedAccess()
+	is_discarded = UpdateModifiedAccess()
+
+	def _post_is_discarded(self, value):
+		if value is True:
+			self.gold = ''
 
 	@staticmethod
 	def register(cls):
@@ -71,7 +97,7 @@ class Token(abc.ABC):
 		self.is_discarded = False #: (documented in @property methods below)
 
 		self.annotation_info = {} #: An arbitrary key/value store of information about the annotations
-		self.last_modified = None #: When the ``gold`` property was last updated.
+		self.last_modified = None #: When one of the ``gold``, ``ìs_hyphenated``, or ``is_discarded`` properties were last updated.
 
 		self.cached_image_path = FileIO.cachePath(f'images/{self.docid}').joinpath(
 			f'{self.index}.png'
@@ -116,47 +142,6 @@ class Token(abc.ABC):
 		:return: The frame coordinates.
 		"""
 		return None
-
-	@property
-	def gold(self) -> str:
-		"""
-		The corrected spelling of the Token.
-		"""
-		return self._gold
-
-	@gold.setter
-	def gold(self, gold):
-		self._gold = gold
-		self.last_modified = datetime.datetime.now()
-
-	@property
-	def is_discarded(self) -> str:
-		"""
-		Whether the token has been discarded (marked irrelevant by code or annotator).
-		"""
-		#self.__class__.log.debug(f'_is_discarded? {self._is_discarded}')
-		return self._is_discarded
-
-	@is_discarded.setter
-	def is_discarded(self, is_discarded):
-		#self.__class__.log.debug(f'discarding {self.index}: {is_discarded}')
-		self._is_discarded = True if is_discarded else False
-		self.last_modified = datetime.datetime.now()
-		if self._is_discarded:
-			#self.__class__.log.debug(f'token {self.index}: discarded {self._is_discarded} set gold to empty')
-			self.gold = ''
-
-	@property
-	def is_hyphenated(self) -> str:
-		"""
-		Whether the token is hyphenated to the following token.
-		"""
-		return self._is_hyphenated
-
-	@is_hyphenated.setter
-	def is_hyphenated(self, is_hyphenated):
-		self._is_hyphenated = is_hyphenated
-		self.last_modified = datetime.datetime.now()
 
 	@property
 	def k(self) -> int:
