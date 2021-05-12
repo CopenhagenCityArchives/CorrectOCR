@@ -6,6 +6,7 @@ logging.debug(f'If this text is visible, debug logging is active. Change it in {
 from .aligner import *
 from .heuristics import *
 from .hyphenation import *
+from .last_modified import *
 from .model import *
 from .pdf import *
 from .punctuation import *
