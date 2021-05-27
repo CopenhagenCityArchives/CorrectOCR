@@ -244,6 +244,8 @@ def do_prepare(workspace: Workspace, config):
 		docs = [(config.docid, workspace.docs[config.docid])]
 	elif config.all:
 		docs = filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items())
+	elif config.skip_done:
+		docs = workspace.documents(is_done=False)
 	else:
 		docs = []
 
