@@ -141,12 +141,11 @@ def build_dictionary(workspace: Workspace, config):
 		workspace.resources.dictionary.save_group(group)
 
 	if config.add_annotator_gold:
-		for docid in workspace.docids_for_ext('.pdf', is_done=True):
+		for docid, doc in workspace.documents(is_done=True):
 			group = f'gold-{docid}'
 			if group in existing_groups:
 				log.info(f'Skipping {group}, it is already in dictionary')
 				continue
-			doc = workspace.docs[docid]
 			if not doc.tokens.stats['done']:
 				log.info(f'Skipping {docid}, it is not done')
 				continue
@@ -187,8 +186,7 @@ def build_model(workspace: Workspace, config):
 	# Select the gold docs which correspond to the read count files.
 	readCounts = collections.defaultdict(collections.Counter)
 	gold_words = []
-	for docid in workspace.docids_for_ext('.pdf', is_done=True):
-		doc = workspace.docs[docid]
+	for docid, doc in workspace.documents(is_done=True):
 		(_, _, counts) = doc.alignments
 		readCounts.update(counts)
 		for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
@@ -278,9 +276,8 @@ def do_stats(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_stats')
 
 	if config.make_report:
-		for docid in workspace.docids_for_ext('.pdf', is_done=True):
+		for docid, doc in workspace.documents(is_done=True):
 			log.info(f'Collecting stats from {docid}')
-			doc = workspace.docs[docid]
 			for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
 				workspace.resources.heuristics.add_to_report(token)
 

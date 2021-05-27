@@ -56,9 +56,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		app.logger.debug(f'BEGIN process {pid} handling request: {request.environ}')
 		g.docs = {
 			docid: {
-				'tokens': workspace.docs[docid].tokens,
-				'info_url': workspace.docs[docid].info_url,
-			} for docid in workspace.docids_for_ext('.pdf', server_ready=True)
+				'tokens': doc.tokens,
+				'info_url': doc.info_url,
+			} for docid, doc in workspace.documents(server_ready=True)
 		} if workspace else {}
 		#app.logger.debug(f'g.docs: {g.docs}')
 		g.discard_filter = lambda t: not t.is_discarded
@@ -460,8 +460,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.route('/doc_stats')
 	def stats():
 		docindex = []
-		for docid in workspace.docids_for_ext('.pdf'):
-			doc = workspace.docs[docid]
+		for docid, doc in workspace.documents():
 			stats = doc.tokens.stats
 			if len(doc.tokens) > 0:
 				docindex.append({

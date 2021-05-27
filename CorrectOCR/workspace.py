@@ -99,21 +99,22 @@ class Workspace(object):
 		
 		return document.docid
 
-	def docids_for_ext(self, ext: str, server_ready=False, is_done=False) -> List[str]:
+	def documents(self, ext: str=None, server_ready=False, is_done=False) -> List[str]:
 		"""
-		Returns a list of IDs for documents with the given extension.
+		Yields documents filtered by the given criteria.
 		
 		:param: ext Only include docs with this extension.
 		:param: server_ready Only include documents that are ready (prepared).
+		:param: is_done Only include documents that are done (all tokens have gold).
 		"""
 		for docid, doc in self.docs.items():
-			if doc.ext != ext:
+			if ext and doc.ext != ext:
 				continue
 			if server_ready and not doc.tokens.server_ready:
 				continue
 			if is_done and not doc.is_done:
 				continue
-			yield docid
+			yield docid, doc
 
 	def cleanup(self, dryrun=True, full=False):
 		"""
