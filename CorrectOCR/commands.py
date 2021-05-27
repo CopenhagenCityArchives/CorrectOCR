@@ -64,13 +64,14 @@ def build_dictionary(workspace: Workspace, config):
 					log.error(f'Unable to save file: {r}')
 				time.sleep(random.uniform(0.5, 1.5))
 			elif line[-1] == '/':
+				destination = corpusPath.joinpath(md5(line))
+				FileIO.ensure_directories(destination)
 				for file in Path(line).iterdir():
-					outfile = corpusPath.joinpath(md5(line)).joinpath(file.name)
-					if outfile.is_file():
+					if destination.joinpath(file.name).is_file():
 						log.info(f'File already copied: {file.name}')
 						continue
 					log.info(f'Copying {file.name} to corpus.')
-					FileIO.copy(file, outfile)
+					FileIO.copy(file, destination.joinpath(file.name))
 
 	# TODO use ame destination for all contents of top level zip?
 	def unzip_recursive(_zip):
