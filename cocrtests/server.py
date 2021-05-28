@@ -4,7 +4,7 @@ import re
 
 from .mocks import *
 
-from CorrectOCR.server import create_app
+from CorrectOCR.server.backend import create_app
 
 
 class ServerTests(unittest.TestCase):

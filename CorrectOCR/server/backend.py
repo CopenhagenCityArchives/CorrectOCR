@@ -11,9 +11,9 @@ from flask import Flask, Response, g, json, redirect, request, send_file, url_fo
 from flask_cors import CORS
 import requests
 
-from . import progname
-from .tokens._pdf import PDFToken
-from .workspace import Workspace
+from .. import progname
+from ..tokens._pdf import PDFToken
+from ..workspace import Workspace
 
 def create_app(workspace: Workspace = None, config: Any = None):
 	"""
@@ -23,7 +23,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	:param config: TODO
 	"""
 	if workspace is None:
-		from .__main__ import setup
+		from ..__main__ import setup
 		workspace, config = setup(['server'])
 	log = logging.getLogger(f'{__name__}.server')
 	log.info(f'Server configuration:\n{pformat(vars(config))}')

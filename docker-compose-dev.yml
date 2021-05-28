@@ -4,11 +4,13 @@ services:
     container_name: backend
     depends_on:
       - db
+      - celery
+      - redis
     build:
       dockerfile: Dockerfile
       context: .
     working_dir: /app
-    entrypoint: uwsgi --socket /tmp/correctocr.sock --http :5000 --module 'CorrectOCR.server:create_app()' --processes 2 --http-timeout 300 --uid nobody --gid nogroup --master
+    entrypoint: uwsgi --socket /tmp/correctocr.sock --http :5000 --module 'CorrectOCR.server.backend:create_app()' --processes 2 --http-timeout 300 --uid nobody --gid nogroup --master
     ports:
       - "5000:5000"
       - "80:5000"
@@ -41,3 +43,21 @@ services:
       - "./docker/initdb.d:/docker-entrypoint-initdb.d"
     ports:
       - "3306:3306"
+  celery:
+    container_name: celery
+    build:
+      dockerfile: Dockerfile
+      context: .
+    working_dir: /app
+    depends_on:
+      - redis
+    volumes:
+      - "./workspace:/app/workspace"
+      - "./CorrectOCR:/app/CorrectOCR"
+      - "./cocrtests:/app/cocrtests"
+      - "./CorrectOCR.ini:/app/CorrectOCR.ini"
+    command: celery -A app.celery worker --loglevel=info
+  redis:
+    image: redis
+    ports:
+      - '6379:6379'
