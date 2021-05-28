@@ -22,6 +22,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	:param workspace: TODO
 	:param config: TODO
 	"""
+	if workspace is None:
+		from .__main__ import setup
+		workspace, config = setup(['server'])
 	log = logging.getLogger(f'{__name__}.server')
 	log.info(f'Server configuration:\n{pformat(vars(config))}')
 

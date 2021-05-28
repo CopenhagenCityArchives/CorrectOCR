@@ -32,7 +32,7 @@ class EnvOverride(configparser.BasicInterpolation):
 			return super().before_get(parser, section, option, value, defaults)
 
 
-def setup(configfiles, args):
+def setup(args, configfiles=['CorrectOCR.ini']):
 	progressbar.streams.wrap_stderr()
 	progressbar.streams.wrap_stdout()
 
