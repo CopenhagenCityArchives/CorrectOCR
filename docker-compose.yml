@@ -1,43 +1,13 @@
-version: "2"
+version: '3.3'
 services:
   backend:
     container_name: backend
-    depends_on:
-      - db
-    build:
-      dockerfile: Dockerfile-dev
-      context: .
+    image: 282251075226.dkr.ecr.eu-west-1.amazonaws.com/correct-ocr-backend:latest
     working_dir: /app
     entrypoint: uwsgi --socket /tmp/correctocr.sock --http :5000 --wsgi-file uwsgi.py --callable app --processes 2 --http-timeout 300 --uid nobody --gid nogroup --master
     ports:
-      - "5000:5000"
       - "80:5000"
+    env_file: 
+      - .env       
     volumes:
       - "./workspace:/app/workspace"
-      - "./CorrectOCR:/app/CorrectOCR"
-      - "./cocrtests:/app/cocrtests"
-      - "./CorrectOCR.ini:/app/CorrectOCR.ini"
-    environment:
-      - CORRECTOCR_STORAGE_TYPE=db
-      - CORRECTOCR_STORAGE_DB_DRIVER=MySQL ODBC 8.0 Unicode Driver
-      - CORRECTOCR_STORAGE_DB_HOST=db
-      - CORRECTOCR_STORAGE_DB_USER=correctocr
-      - CORRECTOCR_STORAGE_DB_PASS=123abc
-      - CORRECTOCR_STORAGE_DB_NAME=correctocr
-      - CORRECTOCR_SERVER_PROFILE=true
-      - CORRECTOCR_WORKSPACE_ROOTPATH=/app/workspace/
-      - PROGRESSBAR_IS_TERMINAL=false
-      - PROGRESSBAR_MINIMUM_UPDATE_INTERVAL=5
-  db:
-    container_name: db
-    image: mysql:latest
-    command: --default-authentication-plugin=mysql_native_password
-    environment:
-      MYSQL_ROOT_PASSWORD: 123456   
-      MYSQL_USER: correctocr   
-      MYSQL_PASSWORD: 123abc
-      MYSQL_DATABASE: correctocr
-    volumes:
-      - "./docker/initdb.d:/docker-entrypoint-initdb.d"
-    ports:
-      - "3306:3306"
