@@ -33,3 +33,4 @@ docs/*.png
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 workspace/__COCRcache__
+.env
