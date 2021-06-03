@@ -1,4 +1,5 @@
 import collections
+import difflib
 import logging
 from typing import Counter, DefaultDict, Dict, List, Optional, Tuple
 
@@ -42,3 +43,35 @@ class Aligner(object):
 		Aligner.log.debug(f'readCounts: {len(self._readCounts)}')
 
 		return self._fullAlignments, self._wordAlignments, self._readCounts
+
+	def apply_as_gold(self, left: TokenList, right: TokenList):
+		"""
+		Sets gold on the left tokens based on originals from the right tokens.
+		
+		Will attempt to handle cases where tokens have been deleted.
+
+		:param left: A TokenList
+		:param right: A TokenList
+		"""
+		
+		#junk_check = lambda t: t.is_discarded
+		matcher = difflib.SequenceMatcher(a=left, b=right)
+		opcodes = matcher.get_opcodes()
+		
+		for tag, i1, i2, j1, j2 in opcodes:
+			if tag == 'equal':
+				for token in left[i1:i2]:
+					self.log.info(f'Setting gold on {token} to original')
+					token.gold = token.original
+			elif tag == 'replace':
+				for original_token, gold_token in zip(left[i1:i2], right[j1:j2]):
+					self.log.info(f'Setting gold on {original_token} to original from {gold_token}')
+					original_token.gold = gold_token.original
+			elif tag == 'delete':
+				for token in left[i1:i2]:
+					self.log.info(f'Marking {token} as discarded')
+					token.is_discarded = True
+			elif tag == 'insert':
+				raise ValueError(f'Cannot insert tokens!')
+		
+				
