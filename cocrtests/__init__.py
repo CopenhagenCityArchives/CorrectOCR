@@ -1,3 +1,17 @@
+import sys
+
+from unittest.mock import MagicMock
+
+myprogressbar = MagicMock()
+
+def progressbar_mock(iterator, **kwargs):
+	for result in iterator:
+		yield result
+
+myprogressbar.progressbar = progressbar_mock
+
+sys.modules['progressbar'] = myprogressbar
+
 import logging
 
 logging.disable(logging.WARN)
