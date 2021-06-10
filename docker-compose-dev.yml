@@ -18,6 +18,7 @@ services:
       - "./cocrtests:/app/cocrtests"
       - "./CorrectOCR.ini:/app/CorrectOCR.ini"
     environment:
+      - CORRECTOCR_CONFIGURATION_LOGLEVEL=DEBUG
       - CORRECTOCR_STORAGE_TYPE=db
       - CORRECTOCR_STORAGE_DB_DRIVER=MySQL ODBC 8.0 Unicode Driver
       - CORRECTOCR_STORAGE_DB_HOST=db
