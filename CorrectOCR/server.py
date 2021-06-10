@@ -12,6 +12,7 @@ from flask_cors import CORS
 import requests
 
 from . import progname
+from .fileio import FileIO
 from .tokens._pdf import PDFToken
 from .workspace import Workspace
 
@@ -28,9 +29,16 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	log = logging.getLogger(f'{__name__}.server')
 	log.info(f'Server configuration:\n{pformat(vars(config))}')
 
+	static_folder = str(FileIO.imageCache().resolve())
+	log.info(f'static_folder: {static_folder}')
+	static_url_path = '/images' # TODO config
+	log.info(f'static_url_path: {static_url_path}')
+
 	# create and configure the app
 	app = Flask(progname,
 		instance_path = workspace.root if workspace else None,
+		static_url_path = static_url_path,
+		static_folder = static_folder,
 	)
 	CORS(app)
 
@@ -77,6 +85,18 @@ def create_app(workspace: Workspace = None, config: Any = None):
 
 	# for sorting docindex to bring unfinished docs to the top
 	sort_key = lambda d: (not d['stats']['done'], d['stats']['uncorrected_count'])
+
+	def image_url(docid, index):
+		if config.dynamic_images:
+			token = g.docs[docid]['tokens'][index]
+			app.logger.debug(f'Checking if image exists for: {token}')
+			if not token.cached_image_path.exists():
+				app.logger.debug(f'Generating image for: {token}')
+				try:
+					_ = token.extract_image(workspace)
+				except PermissionError as e:
+					app.logger.error(f'Could not generate image for {token}: {e}')
+		return f'{app.static_url_path}/{docid}/{index}.png'
 
 	@app.route('/')
 	def indexpage():
@@ -190,7 +210,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			}), 404
 		tokenindex = [{
 			'info_url': url_for('tokeninfo', docid=docid, index=n),
-			'image_url': url_for('tokenimage', docid=docid, index=n),
+			'image_url': image_url(docid, n),
 			'string': tv['string'],
 			'is_corrected': tv['is_corrected'],
 			'is_discarded': tv['is_discarded'],
@@ -267,7 +287,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		token = g.docs[docid]['tokens'][index]
 		tokendict = vars(token)
 		if 'image_url' not in tokendict:
-			tokendict['image_url'] = url_for('tokenimage', docid=docid, index=index)
+			tokendict['image_url'] = image_url(docid, index)
 		return json.jsonify(tokendict)
 
 	def hyphenate_token(tokens, index, hyphenation, gold):
