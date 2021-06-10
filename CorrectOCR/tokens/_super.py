@@ -99,7 +99,7 @@ class Token(abc.ABC):
 		self.annotation_info = {} #: An arbitrary key/value store of information about the annotations
 		self.last_modified = None #: When one of the ``gold``, ``ìs_hyphenated``, or ``is_discarded`` properties were last updated.
 
-		self.cached_image_path = FileIO.cachePath(f'images/{self.docid}').joinpath(
+		self.cached_image_path = FileIO.imageCache().joinpath(f'{self.docid}').joinpath(
 			f'{self.index}.png'
 		) #: Where the image file should be cached. Is not guaranteed to exist, but can be generated via extract_image()
 
