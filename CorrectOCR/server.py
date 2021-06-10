@@ -83,6 +83,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		Get an overview of the documents available for correction.
 		
+		The list will not include documents that the backend considers 'done',
+		but they can still be accesses via the other endpoints.
+		
 		.. :quickref: 1 Main; Get list of documents
 
 		**Example response**:
@@ -119,6 +122,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		for docid, doc in g.docs.items():
 			stats = doc['tokens'].stats
 			if len(doc['tokens']) > 0:
+				if stats['done']:
+					#app.logger.debug(f'Skipping document marked done: {docid}')
+					continue
 				docindex.append({
 					'docid': docid,
 					'url': url_for('tokens', docid=docid),
