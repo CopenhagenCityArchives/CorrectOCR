@@ -65,19 +65,31 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	@app.before_request
 	def before_request():
 		app.logger.debug(f'BEGIN process {pid} handling request: {request.environ}')
-		g.docs = {
-			docid: {
-				'tokens': doc.tokens,
-				'info_url': doc.info_url,
-			} for docid, doc in workspace.documents(server_ready=True)
-		} if workspace else {}
+		g.docs = workspace.documents(server_ready=True)
 		#app.logger.debug(f'g.docs: {g.docs}')
 		g.discard_filter = lambda t: not t.is_discarded
+		if g.doc_id is not None:
+			if g.doc_id not in g.docs:
+				return json.jsonify({
+					'detail': f'Document "{g.doc_id}" not found.',
+				}), 404
+			if g.doc_index is not None:
+				if g.doc_index >= len(g.docs[g.doc_id].tokens):
+					return json.jsonify({
+						'detail': f'Document "{g.doc_id}" does not have a token at {g.doc_index}.',
+					}), 404
+				g.token = g.docs[g.doc_id].tokens[g.doc_index]
 
 	@app.after_request
 	def after_request(response):
 		app.logger.debug(f'END process {pid} handling request: {request.environ}')
 		return response
+
+	@app.url_value_preprocessor
+	def get_token(endpoint, values):
+		g.doc_id = values.pop('doc_id', None)
+		g.doc_index = values.pop('doc_index', None)
+		app.logger.debug(f'Using doc_id {g.doc_id} and doc_index {g.doc_index}')
 
 	@app.route('/health')
 	def health():
@@ -86,17 +98,16 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	# for sorting docindex to bring unfinished docs to the top
 	sort_key = lambda d: (not d['stats']['done'], d['stats']['uncorrected_count'])
 
-	def image_url(docid, index):
-		if config.dynamic_images:
-			token = g.docs[docid]['tokens'][index]
-			app.logger.debug(f'Checking if image exists for: {token}')
-			if not token.cached_image_path.exists():
-				app.logger.debug(f'Generating image for: {token}')
+	def image_url(should_generate=False):
+		if should_generate:
+			app.logger.debug(f'Checking if image exists for: {g.token}')
+			if not g.token.cached_image_path.exists():
+				app.logger.debug(f'Generating image for: {g.token}')
 				try:
-					_ = token.extract_image(workspace)
+					_ = g.token.extract_image(workspace)
 				except PermissionError as e:
-					app.logger.error(f'Could not generate image for {token}: {e}')
-		return f'{app.static_url_path}/{docid}/{index}.png'
+					app.logger.error(f'Could not generate image for {g.token}: {e}')
+		return f'{app.static_url_path}/{g.doc_id}/{g.doc_index}.png'
 
 	@app.route('/')
 	def indexpage():
@@ -140,26 +151,26 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		docindex = []
 		for docid, doc in g.docs.items():
-			stats = doc['tokens'].stats
-			if len(doc['tokens']) > 0:
+			stats = doc.tokens.stats
+			if len(doc.tokens) > 0:
 				if stats['done']:
 					#app.logger.debug(f'Skipping document marked done: {docid}')
 					continue
 				docindex.append({
 					'docid': docid,
-					'url': url_for('tokens', docid=docid),
-					'info_url': doc['info_url'],
+					'url': url_for('tokens', doc_id=docid),
+					'info_url': doc.info_url,
 					'count': stats['token_count'],
 					'corrected': stats['corrected_count'],
 					'corrected_by_model': stats['corrected_by_model_count'],
 					'discarded': stats['discarded_count'],
 					'stats': stats,
-					'last_modified': doc['tokens'].last_modified.timestamp() if doc['tokens'].last_modified else None,
+					'last_modified': doc.tokens.last_modified.timestamp() if doc.tokens.last_modified else None,
 				})
 		return json.jsonify(sorted(docindex, key=sort_key, reverse=True))
 
-	@app.route('/<string:docid>/tokens.json')
-	def tokens(docid):
+	@app.route('/<string:doc_id>/tokens.json')
+	def tokens():
 		"""
 		Get information about the :class:`Tokens<CorrectOCR.tokens.Token>` in a given document.
 		
@@ -204,23 +215,19 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:>jsonarr bool is_discarded: Whether the Token has been discarded at the moment.
 		:>jsonarr bool last_modified: The date/time when the token was last modified.
 		"""
-		if docid not in g.docs:
-			return json.jsonify({
-				'detail': f'Document "{docid}" not found.',
-			}), 404
 		tokenindex = [{
-			'info_url': url_for('tokeninfo', docid=docid, index=n),
-			'image_url': image_url(docid, n),
+			'info_url': url_for('tokeninfo', doc_id=g.doc_id, doc_index=n),
+			'image_url': image_url(),
 			'string': tv['string'],
 			'is_corrected': tv['is_corrected'],
 			'is_discarded': tv['is_discarded'],
 			'requires_annotator': tv['requires_annotator'],
 			'last_modified': tv['last_modified'].timestamp() if tv['last_modified'] else None,
-		} for n, tv in enumerate(g.docs[docid]['tokens'].overview)]
+		} for n, tv in enumerate(g.docs[g.doc_id].tokens.overview)]
 		return json.jsonify(tokenindex)
 
-	@app.route('/<string:docid>/token-<int:index>.json')
-	def tokeninfo(docid, index):
+	@app.route('/<string:doc_id>/token-<int:doc_index>.json')
+	def tokeninfo():
 		"""
 		Get information about a specific :class:`Token<CorrectOCR.tokens.Token>`.
 		
@@ -265,29 +272,20 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     "Last Modified": 1605255523
 		   }
 		
-		:param string docid: The ID of the requested document.
-		:param int index: The placement of the requested Token in the document.
+		:param string doc_id: The ID of the requested document.
+		:param int doc_index: The placement of the requested Token in the document.
 		:return: A JSON dictionary of information about the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		    Relevant keys for frontend display include
 		    `original` (uncorrected OCR result),
 		    `gold` (corrected version, if available). For further information, see the Token class.
 		"""
-		if docid not in g.docs:
-			return json.jsonify({
-				'detail': f'Document "{docid}" not found.',
-			}), 404
-		if index >= len(g.docs[docid]['tokens']) or index < 0:
-			return json.jsonify({
-				'detail': f'Document "{docid}" does not have a token at {index}.',
-			}), 404
-		if config.redirect_hyphenated and index > 0:
-			prev_token = g.docs[docid]['tokens'][index-1]
+		if config.redirect_hyphenated and g.doc_index > 0:
+			prev_token = g.docs[g.doc_id].tokens[g.doc_index-1]
 			if prev_token.is_hyphenated:
-				return redirect(url_for('tokeninfo', docid=prev_token.docid, index=prev_token.index))
-		token = g.docs[docid]['tokens'][index]
-		tokendict = vars(token)
+				return redirect(url_for('tokeninfo', doc_id=prev_token.docid, doc_index=prev_token.index))
+		tokendict = vars(g.token)
 		if 'image_url' not in tokendict:
-			tokendict['image_url'] = image_url(docid, index)
+			tokendict['image_url'] = image_url(should_generate=config.dynamic_images)
 		return json.jsonify(tokendict)
 
 	def hyphenate_token(tokens, index, hyphenation, gold):
@@ -349,8 +347,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		else:
 			raise ValueError(f'Invalid hyphenation direction: "{direction}"')
 
-	@app.route('/<string:docid>/token-<int:index>.json', methods=[ 'POST'])
-	def update_token(docid, index):
+	@app.route('/<string:doc_id>/token-<int:doc_index>.json', methods=[ 'POST'])
+	def update_token():
 		"""
 		Update a given token with a `gold` transcription and/or hyphenation info.
 		
@@ -377,50 +375,41 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`. *NB*: If the hyphenation is set to ``left``, a redirect to the new "head" token will be returned.
 		"""
 		#app.logger.debug(f'request: {request} request.data: {request.data} request.json: {request.json}')
-		if docid not in g.docs:
-			return json.jsonify({
-				'detail': f'Document "{docid}" not found.',
-			}), 404
-		if index >= len(g.docs[docid]['tokens']) or index < 0:
-			return json.jsonify({
-				'detail': f'Document "{docid}" does not have a token at {index}.',
-			}), 404
-		token = g.docs[docid]['tokens'][index]
 		if 'hyphenate' in request.json:
 			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')
 			try:
-				t = hyphenate_token(g.docs[docid]['tokens'], index, request.json['hyphenate'], request.json.get('gold', None))
-				g.docs[docid]['tokens'].save(token=t)
+				t = hyphenate_token(g.docs[g.doc_id].tokens, g.doc_index, request.json['hyphenate'], request.json.get('gold', None))
+				g.docs[g.doc_id].tokens.save(token=t)
 			except Exception as e:
 				app.logger.error(traceback.format_exc())
 				return json.jsonify({
 					'detail': str(e),
 				}), 400
 		elif 'gold' in request.json:
-			app.logger.debug(f'Received new gold for token: {token}')
-			if token.is_hyphenated:
+			app.logger.debug(f'Received new gold for token: {g.token}')
+			if g.token.is_hyphenated:
 				app.logger.debug(f'The token is hyphenated, will set parts as required.')
 				try:
-					t = hyphenate_token(g.docs[docid]['tokens'], index, 'right', request.json['gold'])
-					g.docs[docid]['tokens'].save(token=t)
+					t = hyphenate_token(g.docs[g.doc_id].tokens, g.doc_index, 'right', request.json['gold'])
+					g.docs[g.doc_id].tokens.save(token=t)
 				except Exception as e:
 					app.logger.error(traceback.format_exc())
 					return json.jsonify({
 						'detail': str(e),
 					}), 400
 			else:
-				token.gold = request.json['gold']
+				g.token.gold = request.json['gold']
 		elif 'discard' in request.json:
 			app.logger.debug(f'Going to discard token.')
-			token.is_discarded = True
+			g.token.is_discarded = True
 		if 'annotation_info' in request.json:
 			app.logger.debug(f"Received annotation_info: {request.json['annotation_info']}")	
-			token.annotation_info = request.json['annotation_info']
-		g.docs[docid]['tokens'].save(token=token)
-		return tokeninfo(docid, index)
+			g.token.annotation_info = request.json['annotation_info']
+		g.docs[g.doc_id].tokens.save(token=g.token)
+		return tokeninfo()
 
-	@app.route('/<string:docid>/token-<int:index>.png')
-	def tokenimage(docid, index):
+	@app.route('/<string:doc_id>/token-<int:doc_index>.png')
+	def tokenimage():
 		"""
 		Returns a snippet of the original document as an image, for comparing with the OCR result.
 		
@@ -436,17 +425,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:query int bottommargin: Optional bottom margin.
 		:return: A PNG image of the requested :class:`Token<CorrectOCR.tokens.Token>`.
 		"""
-		if docid not in g.docs:
-			return json.jsonify({
-				'detail': f'Document "{docid}" not found.',
-			}), 404
-		if index >= len(g.docs[docid]['tokens']) or index < 0:
-			return json.jsonify({
-				'detail': f'Document "{docid}" does not have a token at {index}.',
-			}), 404
-		token: PDFToken = g.docs[docid]['tokens'][index]
 		if config.dynamic_images and request.json:
-			(docname, image) = token.extract_image(
+			(docname, image) = g.token.extract_image(
 				workspace,
 				left=request.json.get('leftmargin'),
 				right=request.json.get('rightmargin'),
@@ -456,8 +436,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			with io.BytesIO() as output:
 				image.save(output, format="PNG")
 				return Response(output.getvalue(), mimetype='image/png')
-		elif token.cached_image_path.exists():
-			return send_file(token.cached_image_path)
+		elif g.token.cached_image_path.exists():
+			return send_file(g.token.cached_image_path)
 		elif config.dynamic_images:
 			(docname, image) = token.extract_image(workspace)
 			with io.BytesIO() as output:
@@ -465,7 +445,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				return Response(output.getvalue(), mimetype='image/png')
 		else:
 			return json.jsonify({
-				'detail': f'Token {index} in document "{docid}" does not have a an image.',
+				'detail': f'Token {index} in document "{doc_id}" does not have a an image.',
 			}), 404
 
 	@app.route('/random')
@@ -483,8 +463,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		   Location: /<docid>/token-<index>.json
 		"""
 		docid = random.choice(list(g.docs.keys()))
-		index = g.docs[docid]['tokens'].random_token_index(has_gold=False, is_discarded=False)
-		return redirect(url_for('tokeninfo', docid=docid, index=index))
+		index = g.docs[docid].tokens.random_token_index(has_gold=False, is_discarded=False)
+		return redirect(url_for('tokeninfo', doc_id=docid, doc_index=index))
 
 	@app.route('/doc_stats')
 	def stats():
