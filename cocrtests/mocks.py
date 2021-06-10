@@ -48,5 +48,5 @@ class MockWorkspace(object):
 		self.doc = MockDocument(docid, tokens)
 		self.docs = {docid: self.doc}
 
-	def docids_for_ext(self, ext, server_ready=None):
-		return [self.docid]
+	def documents(self, ext: str=None, server_ready=False, is_done=False):
+		return {self.docid: self.doc}

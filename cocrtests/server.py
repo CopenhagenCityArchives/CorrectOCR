@@ -26,7 +26,7 @@ class ServerTests(unittest.TestCase):
 
 	def test_index(self):
 		response = self.client.get('/', follow_redirects=True)
-		self.assertEqual(len(response.json), len(self.workspace.docids_for_ext('.pdf')))
+		self.assertEqual(len(response.json), len(self.workspace.documents(ext='.pdf')))
 		self.assertEqual(response.json[0]['count'], 5, f'There should be 5 tokens: {response.json}')
 		self.assertEqual(response.json[0]['corrected'], 1, f'There should be 1 corrected token: {response.json}')
 		self.assertEqual(response.json[0]['corrected_by_model'], 1, f'There should be 1 corrected by model token: {response.json}')
@@ -94,7 +94,7 @@ class ServerTests(unittest.TestCase):
 
 	def test_stats(self):
 		response = self.client.get('/', follow_redirects=True)
-		self.assertEqual(len(response.json), len(self.workspace.docids_for_ext('.pdf')))
+		self.assertEqual(len(response.json), len(self.workspace.documents(ext='.pdf')))
 		self.assertEqual(response.json[0]['count'], 5, f'There should be 5 tokens: {response.json}')
 		self.assertEqual(response.json[0]['corrected'], 1, f'There should be 1 corrected token: {response.json}')
 		self.assertEqual(response.json[0]['corrected_by_model'], 1, f'There should be 1 corrected by model token: {response.json}')
