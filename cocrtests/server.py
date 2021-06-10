@@ -42,6 +42,12 @@ class ServerTests(unittest.TestCase):
 		self.assertEqual(response.json['Original'], 'Once', f'key "Original" should be "Once": {response.json}')
 		self.assertEqual(response.json['Gold'], 'Once', f'key "Gold" should be "Once": {response.json}')
 
+		response = self.client.get('/abc/token-100.json', follow_redirects=True)
+		self.assertEqual(response.status_code, 404, f'Response should be 404: {response.json}')
+
+		response = self.client.get('/xyz/token-0.json', follow_redirects=True)
+		self.assertEqual(response.status_code, 404, f'Response should be 404: {response.json}')
+
 		response = self.client.get('/abc/token-1.json', follow_redirects=True)
 		self.assertEqual(response.json['Original'], 'upen', f'key "Original" should be "upen": {response.json}')
 		self.assertIsNone(response.json['Gold'], f'key "Gold" should be None: {response.json}')
