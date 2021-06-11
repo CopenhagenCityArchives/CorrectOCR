@@ -338,16 +338,12 @@ def do_correct(workspace: Workspace, config):
 			workspace.resources.correctionTracking.save()
 			workspace.resources.memoizedCorrections.save()
 	elif config.gold_ready:
-		missing_gold_count = 0
-		for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
-			if not gold:
-				missing_gold_count += 1
-
-		if missing_gold_count == 0:
+		if doc.tokens.stats['done']:
 			log.info(f'Document {docid} is fully corrected! Applying corrections in new gold file.')
 			corrected = doc.tokens
 		else:
-			log.info(f'Document {docid} has {missing_gold_count} tokens without gold')
+			log.info(f'Document {docid} has is not done: {doc.tokens.stats}')
+			return
 	else:
 		log.critical('This shouldn''t happen!')
 		raise SystemExit(-1)
