@@ -107,6 +107,7 @@ class Workspace(object):
 		:param: server_ready Only include documents that are ready (prepared).
 		:param: is_done Only include documents that are done (all tokens have gold).
 		"""
+		docs = dict()
 		for docid, doc in self.docs.items():
 			if ext and doc.ext != ext:
 				continue
@@ -114,7 +115,8 @@ class Workspace(object):
 				continue
 			if is_done and not doc.is_done:
 				continue
-			yield docid, doc
+			docs[docid] = doc
+		return docs
 
 	def cleanup(self, dryrun=True, full=False):
 		"""
