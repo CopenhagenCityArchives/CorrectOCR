@@ -87,6 +87,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 
 	@app.url_value_preprocessor
 	def get_token(endpoint, values):
+		if values is None:
+			values = {}
 		g.doc_id = values.pop('doc_id', None)
 		g.doc_index = values.pop('doc_index', None)
 		app.logger.debug(f'Using doc_id {g.doc_id} and doc_index {g.doc_index}')
