@@ -87,6 +87,14 @@ class ServerTests(unittest.TestCase):
 		response = self.client.post('/abc/token-3.json', json={'gold': 'ti-me', 'hyphenate': 'right'}, follow_redirects=True)
 		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
 		self.assertEqual(response.json['Gold'], 'ti-', f'Token should have first part of hyphenated word: {response.json}')
+
+	def test_error(self):
+		response = self.client.get('/abc/token-3.json', follow_redirects=True)
+		self.assertIsNone(response.json['Error info'], f'Token should NOT have error info: {response.json}')
+
+		error_info = { 'code': 1, 'description': 'test' }
+		response = self.client.post('/abc/token-3.json', json={'error': error_info}, follow_redirects=True)
+		self.assertEqual(response.json['Error info'], error_info, f'Token should have error info {error_info}: {response.json}')
 	
 	def test_random(self):
 		response = self.client.get('/random', follow_redirects=False)
