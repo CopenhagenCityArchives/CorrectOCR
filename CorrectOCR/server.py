@@ -204,6 +204,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		       "is_corrected": false,
 		       "is_discarded": false,
 		       "requires_annotator": true,
+		       "has_error": false,
 		       "last_modified": null
 		     }
 		   ]
@@ -222,6 +223,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			'is_corrected': tv['is_corrected'],
 			'is_discarded': tv['is_discarded'],
 			'requires_annotator': tv['requires_annotator'],
+			'has_error': tv['has_error'],
 			'last_modified': tv['last_modified'].timestamp() if tv['last_modified'] else None,
 		} for n, tv in enumerate(g.docs[g.doc_id].tokens.overview)]
 		return json.jsonify(tokenindex)
@@ -375,7 +377,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		:return: A JSON dictionary of information about the updated :class:`Token<CorrectOCR.tokens.Token>`. *NB*: If the hyphenation is set to ``left``, a redirect to the new "head" token will be returned.
 		"""
 		#app.logger.debug(f'request: {request} request.data: {request.data} request.json: {request.json}')
-		if 'hyphenate' in request.json:
+		if 'error' in request.json:
+			app.logger.debug(f'Received error for token: {g.token}')
+			g.token.error_info = request.json['error']
+		elif 'hyphenate' in request.json:
 			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')
 			try:
 				t = hyphenate_token(g.docs[g.doc_id].tokens, g.doc_index, request.json['hyphenate'], request.json.get('gold', None))
