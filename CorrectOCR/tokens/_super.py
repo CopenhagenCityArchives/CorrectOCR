@@ -97,6 +97,7 @@ class Token(abc.ABC):
 		self.is_discarded = False #: (documented in @property methods below)
 
 		self.annotation_info = {} #: An arbitrary key/value store of information about the annotations
+		self.error_info: str = None #: Can contain user-reported errors
 		self.last_modified = None #: When one of the ``gold``, ``ìs_hyphenated``, or ``is_discarded`` properties were last updated.
 
 		self.cached_image_path = FileIO.imageCache().joinpath(f'{self.docid}').joinpath(
@@ -213,6 +214,7 @@ class Token(abc.ABC):
 		output['Token type'] = self.__class__.__name__
 		output['Token info'] = json.dumps(self.token_info)
 		output['Annotation info'] = json.dumps(self.annotation_info)
+		output['Error info'] = self.error_info
 		output['Last Modified'] = self.last_modified.timestamp() if self.last_modified else None
 
 		return output
@@ -237,6 +239,7 @@ class Token(abc.ABC):
 		t.is_hyphenated = d.get('Hyphenated', False)
 		t.is_discarded = d.get('Discarded', False)
 		t.annotation_info = json.loads(d['Annotation info'])
+		t.error = d.get('Error', None)
 
 		t.last_modified = d['Last Modified'] if 'Last Modified' in d else None
 		if 'k-best' in d:

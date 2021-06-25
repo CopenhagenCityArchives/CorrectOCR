@@ -45,7 +45,7 @@ class FileIO(object):
 			header += [f'{n}-best', f'{n}-best prob.']
 		header += ['Bin', 'Heuristic', 'Decision', 'Selection']
 		header += ['Token type', 'Token info', 'Doc ID', 'Index']
-		header += ['Annotation info']
+		header += ['Annotation info', 'Error info']
 		cls.log.debug(f'header for k={k}: {header}')
 		return header
 
