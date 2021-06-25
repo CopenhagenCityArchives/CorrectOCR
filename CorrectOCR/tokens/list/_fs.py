@@ -9,7 +9,7 @@ class FSTokenList(TokenList):
 	def load(self):
 		from .. import Token
 		from ...fileio import FileIO
-		self.path = FSTokenList._path(self.config, docid)
+		self.path = FSTokenList._path(self.config, self.docid)
 		if self.path.is_file():
 			self.log.debug(f'Load from {self.path}')
 			for row in FileIO.load(self.path):
