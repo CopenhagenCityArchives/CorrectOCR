@@ -228,11 +228,11 @@ class PDFTokenizer(Tokenizer):
 		PDFTokenizer.log.info(f'Cutoff set to {max(counts)} * {tolerance} = {cutoff}')
 
 		edge_left, edge_right = 0, max(x_values)+1
-		for i, c in enumerate(counts[:edge_percentage]):
+		for i, c in enumerate(counts[:edge_percentage], start=1):
 			#PDFTokenizer.log.debug(f'{i}: {c} < {cutoff} ? => {edge_left}')
 			if c < cutoff:
 				edge_left = (width*i)/100
-		for i, c in enumerate(counts[-edge_percentage:]):
+		for i, c in enumerate(counts[-edge_percentage:], start=1):
 			#PDFTokenizer.log.debug(f'{i}: {c} < {cutoff} ? => {edge_right}')
 			if c < cutoff:
 				edge_right = (width*(100-i))/100
