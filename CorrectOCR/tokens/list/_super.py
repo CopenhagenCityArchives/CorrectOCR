@@ -104,6 +104,8 @@ class TokenList(collections.abc.MutableSequence):
 			if token.is_hyphenated:
 				stats['hyphenated_count'] += 1
 				skip_next = True
+			if token.error_info is not None:
+				stats['error_count'] += 1
 			if token.gold is None:
 				stats['uncorrected_count'] += 1
 			else:
@@ -128,7 +130,9 @@ class TokenList(collections.abc.MutableSequence):
 			cls.log.error(f'correction counts do not match for stats {stats} for doc {docid}')
 		if stats['uncorrected_count'] + stats['corrected_count'] != stats['token_count']:
 			cls.log.error(f'correction counts do not match for stats {stats} for doc {docid}')
-		if stats['corrected_count'] == stats['token_count']:
+		if stats['error_count'] > 0:
+			cls.log.error(f"there are {stats['error_count']} errors in doc {docid}")
+		if stats['corrected_count'] == stats['token_count'] and stats['error_count'] == 0:
 			cls.log.info(f'Marking as done: doc {docid}')
 			stats['done'] = True
 		else:

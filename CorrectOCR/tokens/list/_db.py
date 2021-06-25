@@ -255,6 +255,8 @@ class DBTokenList(TokenList):
 				if result.hyphenated:
 					stats['hyphenated_count'] += 1
 					skip_next = True
+				if result.error_info is not None:
+					stats['error_count'] += 1
 				if result.gold is None:
 					stats['uncorrected_count'] += 1
 				else:
