@@ -10,4 +10,4 @@ services:
     env_file: 
       - .env       
     volumes:
-      - "./workspace:/app/workspace"
+      - "/workspace:/app/workspace"
