@@ -130,7 +130,7 @@ class DBTokenList(TokenList):
 		with get_connection(config).cursor() as cursor:
 			cursor.execute("""
 				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, error_info, last_modified) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				token.docid,
 				token.index,
@@ -204,7 +204,7 @@ class DBTokenList(TokenList):
 		with get_connection(config).cursor() as cursor:
 			cursor.executemany("""
 				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, error_info, last_modified) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				tokendata,
 			)
