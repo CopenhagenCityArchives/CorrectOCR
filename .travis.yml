@@ -32,6 +32,7 @@ script:
 
   # build and push correct-ocr-backend image
   - docker build -t correct-ocr-backend .
+  - docker run --entrypoint python correct-ocr-backend -m unittest cocrtests
   - docker tag correct-ocr-backend 282251075226.dkr.ecr.eu-west-1.amazonaws.com/correct-ocr-backend:latest
   - docker push 282251075226.dkr.ecr.eu-west-1.amazonaws.com/correct-ocr-backend:latest
 
