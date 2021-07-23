@@ -145,7 +145,7 @@ class DBTokenList(TokenList):
 				token.__class__.__name__,
 				json.dumps(token.token_info),
 				json.dumps(token.annotation_info),
-				json.dumps(token.error_info),
+				token.error_info,
 				token.last_modified,
 			)
 			if len(token.kbest) > 0:
@@ -186,7 +186,7 @@ class DBTokenList(TokenList):
 				token.__class__.__name__,
 				json.dumps(token.token_info),
 				json.dumps(token.annotation_info),
-				json.dumps(token.error_info),
+				token.error_info,
 				token.last_modified,
 			])
 			for k, item in token.kbest.items():
