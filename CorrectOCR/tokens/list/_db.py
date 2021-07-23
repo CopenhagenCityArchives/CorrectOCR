@@ -341,7 +341,7 @@ class DBTokenList(TokenList):
 					'string': (result.gold or result.original),
 					'is_corrected': (result.gold is not None),
 					'is_discarded': result.discarded,
-					'has_error': result.error_info is not None,
+					'has_error': (result.error_info is not None and len(result.error_info) > 0),
 					'requires_annotator': (result.decision == 'annotator'),
 					'last_modified': result.last_modified,
 				}
