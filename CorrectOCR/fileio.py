@@ -35,8 +35,11 @@ class FileIO(object):
 		return path
 	
 	@classmethod
-	def imageCache(cls):
-		return cls.cachePath('images')
+	def imageCache(cls, name: str = None):
+		if name:
+			return cls.cachePath(f'images/{name}')
+		else:
+			return cls.cachePath('images')
 
 	@classmethod
 	def _csv_header(cls, k: int) -> List[str]:
