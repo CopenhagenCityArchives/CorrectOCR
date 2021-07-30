@@ -100,7 +100,7 @@ class Token(abc.ABC):
 		self.error_info = None #: Can contain user-reported errors
 		self.last_modified = None #: When one of the ``gold``, ``ìs_hyphenated``, or ``is_discarded`` properties were last updated.
 
-		self.cached_image_path = FileIO.imageCache().joinpath(f'{self.docid}').joinpath(
+		self.cached_image_path = FileIO.imageCache(self.docid).joinpath(
 			f'{self.index}.png'
 		) #: Where the image file should be cached. Is not guaranteed to exist, but can be generated via extract_image()
 
