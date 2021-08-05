@@ -94,7 +94,7 @@ class ServerTests(unittest.TestCase):
 
 		error_info = { 'code': 1, 'description': 'test' }
 		response = self.client.post('/abc/token-3.json', json={'error': error_info}, follow_redirects=True)
-		self.assertEqual(response.json['Error info'], error_info, f'Token should have error info {error_info}: {response.json}')
+		self.assertEqual(response.json['Error info'], str(error_info), f'Token should have error info {error_info}: {response.json}')
 	
 	def test_random(self):
 		response = self.client.get('/random', follow_redirects=False)
