@@ -97,7 +97,7 @@ class Token(abc.ABC):
 		self.is_discarded = False #: (documented in @property methods below)
 
 		self.annotation_info = {} #: An arbitrary key/value store of information about the annotations
-		self.error_info: str = None #: Can contain user-reported errors
+		self.error_info = None #: Can contain user-reported errors
 		self.last_modified = None #: When one of the ``gold``, ``ìs_hyphenated``, or ``is_discarded`` properties were last updated.
 
 		self.cached_image_path = FileIO.imageCache().joinpath(f'{self.docid}').joinpath(
