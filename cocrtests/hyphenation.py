@@ -9,6 +9,8 @@ from CorrectOCR.tokens import Tokenizer
 class TestHyphenation(unittest.TestCase):
 	def test_hyphenation_regex(self):
 		self.assertTrue(hyphenRE.search('abc-'), '"abc-" should match.')
+		self.assertTrue(hyphenRE.search('Politi\u00ad'), '"Politi\u00ad" should match.')
+		self.assertTrue(hyphenRE.search('Politi\xad'), '"Politi\xad" should match.')
 		self.assertFalse(hyphenRE.search('abc-def'), '"abc-def" should NOT match.')
 		self.assertFalse(hyphenRE.search('Nørreherred'), '"Nørreherred" should NOT match.')
 
