@@ -1,5 +1,6 @@
 import unittest
 
+import json
 import re
 
 from .mocks import *
@@ -22,6 +23,9 @@ class ServerTests(unittest.TestCase):
 		self.tokens[3].kbest = {
 			'1': KBestItem(candidate='ti\xadme', probability=1.0), # soft hyphen
 		}
+		self.tokens[0].annotation_info = { 'name': 'John Doe' }
+		self.tokens[1].annotation_info = { 'name': 'Jane Doe' }
+		self.tokens[2].annotation_info = { 'name': 'John Doe' }
 
 		self.config = MockConfig(k=4)
 
@@ -124,6 +128,11 @@ class ServerTests(unittest.TestCase):
 		response = self.client.get('/', follow_redirects=True)
 		self.assertEqual(response.json[0]['stats']['corrected_count'], 2, f'There should be 1 corrected token: {response.json}')
 		self.assertEqual(response.json[0]['stats']['corrected_by_model_count'], 1, f'There should be 1 corrected by model token: {response.json}')
+
+		response = self.client.get('/user_stats', follow_redirects=True)
+		self.assertEqual(response.json[json.dumps({'name': 'John Doe'})], 2, f'There should be 2 annotations by John Doe: {response.json}')
+		self.assertEqual(response.json[json.dumps({'name': 'Jane Doe'})], 1, f'There should be 2 annotations by Jane Doe: {response.json}')
+		self.assertEqual(response.json[json.dumps({})], 2, f'There should be 2 unassigned annotations: {response.json}')
 
 	def test_kbest_hyphens(self):
 		self.assertEqual(self.tokens[3].kbest['1'].candidate, 'ti\xadme', f'Original K-best candidate should have a soft hyphen: {self.tokens[3]}')

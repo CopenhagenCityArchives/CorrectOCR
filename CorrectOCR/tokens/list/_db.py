@@ -417,6 +417,24 @@ class DBTokenList(TokenList):
 				}
 
 	@property
+	def user_stats(self):
+		user_stats = collections.Counter()
+		with get_connection(self.config).cursor() as cursor:
+			cursor.execute("""
+				SELECT
+					annotation_info
+				FROM token
+				WHERE token.doc_id = ?
+				ORDER BY doc_index
+				""",
+				self.docid,
+			)
+			for result in cursor.fetchall():
+				self.log.debug(result.annotation_info)
+				user_stats[result.annotation_info] += 1 # kind of hacky...
+		return user_stats
+
+	@property
 	def last_modified(self):
 		with get_connection(self.config).cursor() as cursor:
 			cursor.execute("""

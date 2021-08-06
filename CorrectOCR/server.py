@@ -1,3 +1,4 @@
+import collections
 import io
 import logging
 import os
@@ -486,22 +487,12 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		index = g.docs[docid].tokens.random_token_index(has_gold=False, is_discarded=False)
 		return redirect(url_for('tokeninfo', doc_id=docid, doc_index=index))
 
-	@app.route('/doc_stats')
-	def stats():
-		docindex = []
-		for docid, doc in workspace.documents():
-			stats = doc.tokens.stats
-			if len(doc.tokens) > 0:
-				docindex.append({
-					'docid': docid,
-					'url': url_for('tokens', docid=docid),
-					'info_url': doc.info_url,
-					'server_ready': doc.tokens.server_ready,
-					'count': len(doc.tokens),
-					'stats': stats,
-					'last_modified': doc.tokens.last_modified.timestamp() if doc.tokens.last_modified else None,
-				})
-		return json.jsonify(docindex)
+	@app.route('/user_stats')
+	def user_stats():
+		user_stats = collections.Counter()
+		for docid, doc in g.docs.items():
+			user_stats.update(doc.tokens.user_stats)
+		return json.jsonify(user_stats)
 
 	def add_and_prepare(uris, autocrop, precache_images, force_prepare):
 		for uri in uris:

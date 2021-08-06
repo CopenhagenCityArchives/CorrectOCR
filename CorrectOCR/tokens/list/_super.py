@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import collections
+import json
 import logging
 import random
 from typing import Tuple
@@ -206,6 +207,13 @@ class TokenList(collections.abc.MutableSequence):
 				'requires_annotator': (token.decision == 'annotator'),
 				'last_modified': token.last_modified,
 			}
+
+	@property
+	def user_stats(self):
+		user_stats = collections.Counter()
+		for token in self.tokens:
+			user_stats[json.dumps(token.annotation_info)] += 1 # kind of hacky...
+		return user_stats
 
 	@property
 	def last_modified(self):
