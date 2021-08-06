@@ -4,7 +4,7 @@ services:
     container_name: backend
     image: 282251075226.dkr.ecr.eu-west-1.amazonaws.com/correct-ocr-backend:latest
     working_dir: /app
-    entrypoint: uwsgi --socket /tmp/correctocr.sock --http :5000 --module 'CorrectOCR.server:create_app()' --processes 2 --http-timeout 300 --uid nobody --gid nogroup --master
+    entrypoint: uwsgi --socket /tmp/correctocr.sock --http :5000 --module 'CorrectOCR.server:create_app()' --processes 2 --http-timeout 300 --uid correctocr --gid correctocr --master
     ports:
       - "80:5000"
     env_file: 

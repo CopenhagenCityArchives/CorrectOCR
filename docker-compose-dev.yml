@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile
       context: .
     working_dir: /app
-    entrypoint: uwsgi --socket /tmp/correctocr.sock --http :5000 --module 'CorrectOCR.server:create_app()' --processes 2 --http-timeout 300 --uid nobody --gid nogroup --master
+    entrypoint: uwsgi --socket /tmp/correctocr.sock --http :5000 --module 'CorrectOCR.server:create_app()' --processes 2 --http-timeout 300 --uid correctocr --gid correctocr --master
     ports:
       - "5000:5000"
       - "80:5000"

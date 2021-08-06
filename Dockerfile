@@ -7,6 +7,10 @@ RUN cp /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/lib/libmyodbc8*
 RUN /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/bin/myodbc-installer -d -a -n "MySQL ODBC 8.0 ANSI Driver" -t "DRIVER=/usr/lib/x86_64-linux-gnu/odbc/libmyodbc8a.so;"
 RUN /opt/mysql-connector-odbc-8.0.19-linux-debian10-x86-64bit/bin/myodbc-installer -d -a -n "MySQL ODBC 8.0 Unicode Driver" -t "DRIVER=/usr/lib/x86_64-linux-gnu/odbc/libmyodbc8w.so;"
 
+RUN groupadd --gid 1000 correctocr
+RUN useradd --gid 1000 --uid 1000 correctocr
+RUN usermod --append --groups www-data correctocr
+
 WORKDIR /app
 COPY ./CorrectOCR /app/CorrectOCR
 COPY ./CorrectOCR.ini /app/CorrectOCR.ini
@@ -18,4 +22,4 @@ RUN pip3 install -r requirements.txt
 RUN python -m nltk.downloader punkt
 
 EXPOSE 5000
-ENTRYPOINT uwsgi --socket /tmp/correctocr.sock --http :5000 --module 'CorrectOCR.server:create_app()' --processes 2 --http-timeout 300 --uid nobody --gid nogroup --master
+ENTRYPOINT uwsgi --socket /tmp/correctocr.sock --http :5000 --module 'CorrectOCR.server:create_app()' --processes 2 --http-timeout 300 --uid correctocr --gid correctocr --master
