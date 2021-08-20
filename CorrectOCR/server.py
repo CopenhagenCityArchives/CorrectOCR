@@ -291,8 +291,12 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			if prev_token.is_hyphenated:
 				return redirect(url_for('tokeninfo', doc_id=prev_token.docid, doc_index=prev_token.index))
 		tokendict = vars(g.token)
+		if tokendict['Original'][-1] == '\xad': # soft hyphen
+			tokendict['Original'] = tokendict['Original'][:-1] + '-'
+		if tokendict['Gold'] and tokendict['Gold'][-1] == '\xad': # soft hyphen
+			tokendict['Gold'] = tokendict['Gold'][:-1] + '-'
 		if g.token.is_hyphenated:
-			# TODO ugly hack....
+			# TODO ugly hack so users see he joined token....
 			next_token = g.docs[g.doc_id].tokens[g.doc_index+1]
 			tokendict['Original'] += next_token.original
 		if 'image_url' not in tokendict:
@@ -314,7 +318,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			if gold:
 				if '-' in gold:
 					a, b = gold.split('-')
-					prev_token.gold = a + '-'
+					prev_token.gold = a + '\xad' # soft hyphen
 					token.gold = b
 				else:
 					prev_token.gold = gold
@@ -334,7 +338,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			if gold:
 				if '-' in gold:
 					a, b = gold.split('-')
-					token.gold = a + '-'
+					token.gold = a + '\xad' # soft hyphen
 					next_token.gold = b
 				else:
 					token.gold = gold
@@ -402,7 +406,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		elif 'gold' in request.json:
 			app.logger.debug(f'Received new gold for token: {g.token}')
 			if g.token.is_hyphenated:
-				app.logger.debug(f'The token is hyphenated, will set parts as required.')
+				app.logger.debug(f'The token is already hyphenated, will set parts as required.')
 				try:
 					t = hyphenate_token(g.docs[g.doc_id].tokens, g.doc_index, 'right', request.json['gold'])
 					g.docs[g.doc_id].tokens.save(token=t)
