@@ -40,6 +40,7 @@ class Dictionary(Set[str]):
 		#return len([len(group) for group in self.groups.values()])
 
 	def __contains__(self, word: str) -> bool:
+		word = word.replace('\xad', '') # strip soft hyphens
 		if word.isnumeric():
 			return True
 		if self.ignoreCase:
