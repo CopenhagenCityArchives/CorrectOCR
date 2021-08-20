@@ -104,7 +104,7 @@ class TokenList(collections.abc.MutableSequence):
 			if token.is_hyphenated:
 				stats['hyphenated_count'] += 1
 				skip_next = True
-			if token.error_info is not None:
+			if token.has_error:
 				stats['error_count'] += 1
 			if token.gold is None:
 				stats['uncorrected_count'] += 1
@@ -196,7 +196,7 @@ class TokenList(collections.abc.MutableSequence):
 				'string': (token.gold or token.original),
 				'is_corrected': (token.gold is not None),
 				'is_discarded': token.is_discarded,
-				'has_error': (token.error_info is not None and len(token.error_info) > 0),
+				'has_error': token.has_error,
 				'requires_annotator': (token.decision == 'annotator'),
 				'last_modified': token.last_modified,
 			}

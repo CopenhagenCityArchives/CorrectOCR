@@ -12,7 +12,7 @@ CREATE TABLE token (
 	token_type VARCHAR(255),
 	token_info TEXT,
 	annotation_info TEXT,
-	error_info TEXT,
+	has_error BOOLEAN,
 	last_modified TIMESTAMP,
 	PRIMARY KEY (doc_id, doc_index)
 );

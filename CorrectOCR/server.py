@@ -381,7 +381,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		#app.logger.debug(f'request: {request} request.data: {request.data} request.json: {request.json}')
 		if 'error' in request.json:
 			app.logger.debug(f'Received error for token: {g.token}')
-			g.token.error_info = str(request.json['error']) # HACK
+			g.token.has_error = True
 		elif 'hyphenate' in request.json:
 			app.logger.debug(f'Going to hyphenate: {request.json["hyphenate"]}')
 			try:

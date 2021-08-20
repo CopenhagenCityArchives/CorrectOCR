@@ -98,7 +98,7 @@ class DBTokenList(TokenList):
 					token_dict = {
 						'Token type': result.token_type,
 						'Token info': result.token_info,
-						'Error info': result.error_info,
+						'Has error': result.has_error,
 						'Annotation info': result.annotation_info,
 						'Last Modified': result.last_modified,
 						'Doc ID': result.doc_id,
@@ -129,7 +129,7 @@ class DBTokenList(TokenList):
 		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
 		with get_connection(config).cursor() as cursor:
 			cursor.execute("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, error_info, last_modified) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, has_error, last_modified) 
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				token.docid,
@@ -145,7 +145,7 @@ class DBTokenList(TokenList):
 				token.__class__.__name__,
 				json.dumps(token.token_info),
 				json.dumps(token.annotation_info),
-				token.error_info,
+				token.has_error,
 				token.last_modified,
 			)
 			if len(token.kbest) > 0:
@@ -186,7 +186,7 @@ class DBTokenList(TokenList):
 				token.__class__.__name__,
 				json.dumps(token.token_info),
 				json.dumps(token.annotation_info),
-				token.error_info,
+				token.has_error,
 				token.last_modified,
 			])
 			for k, item in token.kbest.items():
@@ -203,7 +203,7 @@ class DBTokenList(TokenList):
 			return
 		with get_connection(config).cursor() as cursor:
 			cursor.executemany("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, error_info, last_modified) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, has_error, last_modified) 
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				tokendata,
@@ -237,7 +237,7 @@ class DBTokenList(TokenList):
 					hyphenated,
 					gold,
 					decision,
-					error_info
+					has_error
 				FROM token
 				WHERE token.doc_id = ?
 				""",
@@ -255,7 +255,7 @@ class DBTokenList(TokenList):
 				if result.hyphenated:
 					stats['hyphenated_count'] += 1
 					skip_next = True
-				if result.error_info is not None:
+				if result.has_error:
 					stats['error_count'] += 1
 				if result.gold is None:
 					stats['uncorrected_count'] += 1
@@ -326,7 +326,7 @@ class DBTokenList(TokenList):
 					gold,
 					discarded,
 					decision,
-					error_info,
+					has_error,
 					last_modified
 				FROM token
 				WHERE token.doc_id = ?
@@ -341,7 +341,7 @@ class DBTokenList(TokenList):
 					'string': (result.gold or result.original),
 					'is_corrected': (result.gold is not None),
 					'is_discarded': result.discarded,
-					'has_error': (result.error_info is not None and len(result.error_info) > 0),
+					'has_error': result.has_error,
 					'requires_annotator': (result.decision == 'annotator'),
 					'last_modified': result.last_modified,
 				}

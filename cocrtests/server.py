@@ -90,11 +90,11 @@ class ServerTests(unittest.TestCase):
 
 	def test_error(self):
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
-		self.assertIsNone(response.json['Error info'], f'Token should NOT have error info: {response.json}')
+		self.assertFalse(response.json['Has error'], f'Token should NOT have error info: {response.json}')
 
 		error_info = { 'code': 1, 'description': 'test' }
 		response = self.client.post('/abc/token-3.json', json={'error': error_info}, follow_redirects=True)
-		self.assertEqual(response.json['Error info'], str(error_info), f'Token should have error info {error_info}: {response.json}')
+		self.assertTrue(response.json['Has error'], f'Token should have error info {error_info}: {response.json}')
 	
 	def test_random(self):
 		response = self.client.get('/random', follow_redirects=False)
