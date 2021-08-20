@@ -97,7 +97,7 @@ class Token(abc.ABC):
 		self.is_hyphenated = False # (documented in @property methods below)
 		self.is_discarded = False #: (documented in @property methods below)
 
-		self.annotation_info = {} #: An arbitrary key/value store of information about the annotations
+		self.annotations = [] #: A list of arbitrary key/value info about the annotations
 		self.has_error = False #: Whether the token has an unhandled error
 		self.last_modified = None #: When one of the ``gold``, ``ìs_hyphenated``, ``is_discarded``, or ``has_error`` properties were last updated.
 
@@ -214,7 +214,7 @@ class Token(abc.ABC):
 		output['Selection'] = self.selection
 		output['Token type'] = self.__class__.__name__
 		output['Token info'] = json.dumps(self.token_info)
-		output['Annotation info'] = json.dumps(self.annotation_info)
+		output['Annotations'] = json.dumps(self.annotations)
 		output['Has error'] = self.has_error
 		output['Last Modified'] = self.last_modified.timestamp() if self.last_modified else None
 
@@ -239,7 +239,7 @@ class Token(abc.ABC):
 		t.gold = d.get('Gold', None)
 		t.is_hyphenated = d.get('Hyphenated', False)
 		t.is_discarded = d.get('Discarded', False)
-		t.annotation_info = json.loads(d['Annotation info'])
+		t.annotations = json.loads(d.get('Annotations', []))
 		t.has_error = d.get('Has error', False)
 
 		t.last_modified = d['Last Modified'] if 'Last Modified' in d else None

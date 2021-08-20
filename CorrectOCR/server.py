@@ -409,9 +409,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		elif 'discard' in request.json:
 			app.logger.debug(f'Going to discard token.')
 			g.token.is_discarded = True
-		if 'annotation_info' in request.json:
-			app.logger.debug(f"Received annotation_info: {request.json['annotation_info']}")	
-			g.token.annotation_info = request.json['annotation_info']
+		g.token.annotations.append(request.json)
 		g.docs[g.doc_id].tokens.save(token=g.token)
 		return tokeninfo()
 

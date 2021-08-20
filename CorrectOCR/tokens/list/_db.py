@@ -98,8 +98,8 @@ class DBTokenList(TokenList):
 					token_dict = {
 						'Token type': result.token_type,
 						'Token info': result.token_info,
+						'Annotations': result.annotations,
 						'Has error': result.has_error,
-						'Annotation info': result.annotation_info,
 						'Last Modified': result.last_modified,
 						'Doc ID': result.doc_id,
 						'Index': result.doc_index,
@@ -129,7 +129,7 @@ class DBTokenList(TokenList):
 		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
 		with get_connection(config).cursor() as cursor:
 			cursor.execute("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, has_error, last_modified) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotations, has_error, last_modified) 
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				token.docid,
@@ -144,7 +144,7 @@ class DBTokenList(TokenList):
 				json.dumps(token.selection),
 				token.__class__.__name__,
 				json.dumps(token.token_info),
-				json.dumps(token.annotation_info),
+				json.dumps(token.annotations),
 				token.has_error,
 				token.last_modified,
 			)
@@ -185,7 +185,7 @@ class DBTokenList(TokenList):
 				json.dumps(token.selection),
 				token.__class__.__name__,
 				json.dumps(token.token_info),
-				json.dumps(token.annotation_info),
+				json.dumps(token.annotations),
 				token.has_error,
 				token.last_modified,
 			])
@@ -203,7 +203,7 @@ class DBTokenList(TokenList):
 			return
 		with get_connection(config).cursor() as cursor:
 			cursor.executemany("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotation_info, has_error, last_modified) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotations, has_error, last_modified) 
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				tokendata,
