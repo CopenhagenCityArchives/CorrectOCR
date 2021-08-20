@@ -340,8 +340,8 @@ class DBTokenList(TokenList):
 					'doc_index': result.doc_index,
 					'string': (result.gold or result.original),
 					'is_corrected': (result.gold is not None),
-					'is_discarded': result.discarded,
-					'has_error': result.has_error,
+					'is_discarded': bool(result.discarded),
+					'has_error': bool(result.has_error),
 					'requires_annotator': (result.decision == 'annotator'),
 					'last_modified': result.last_modified,
 				}

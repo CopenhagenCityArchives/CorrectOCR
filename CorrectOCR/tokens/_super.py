@@ -237,10 +237,10 @@ class Token(abc.ABC):
 			d['Index']
 		)
 		t.gold = d.get('Gold', None)
-		t.is_hyphenated = d.get('Hyphenated', False)
-		t.is_discarded = d.get('Discarded', False)
+		t.is_hyphenated = bool(d.get('Hyphenated', False))
+		t.is_discarded = bool(d.get('Discarded', False))
 		t.annotations = json.loads(d.get('Annotations', []))
-		t.has_error = d.get('Has error', False)
+		t.has_error = bool(d.get('Has error', False))
 
 		t.last_modified = d['Last Modified'] if 'Last Modified' in d else None
 		if 'k-best' in d:
