@@ -288,6 +288,10 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			if prev_token.is_hyphenated:
 				return redirect(url_for('tokeninfo', doc_id=prev_token.docid, doc_index=prev_token.index))
 		tokendict = vars(g.token)
+		if g.token.is_hyphenated:
+			# TODO ugly hack....
+			next_token = g.docs[g.doc_id].tokens[g.doc_index+1]
+			tokendict['Original'] += next_token.original
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = image_url(should_generate=config.dynamic_images)
 		return json.jsonify(tokendict)
