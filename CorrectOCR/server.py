@@ -158,6 +158,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 				if stats['done']:
 					#app.logger.debug(f'Skipping document marked done: {docid}')
 					continue
+				if stats['token_count'] == stats['corrected_count'] + stats['error_count'] + stats['discarded_count']:
+					app.logger.debug(f'Skipping document without correctable tokens: {docid}')
+					continue
 				docindex.append({
 					'docid': docid,
 					'url': url_for('tokens', doc_id=docid),
