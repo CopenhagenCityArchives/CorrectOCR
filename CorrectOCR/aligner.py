@@ -3,7 +3,6 @@ import difflib
 import logging
 from typing import Counter, DefaultDict, Dict, List, Optional, Tuple
 
-from ._util import punctuationRE
 from .tokens.list import TokenList
 
 import progressbar
