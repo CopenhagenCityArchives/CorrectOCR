@@ -34,3 +34,4 @@ docs/*.png
 !.elasticbeanstalk/*.global.yml
 workspace/__COCRcache__
 .env
+workspace/resources/dictionary
