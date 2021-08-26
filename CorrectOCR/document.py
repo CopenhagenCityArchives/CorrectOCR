@@ -97,7 +97,7 @@ class Document(object):
 			'all': 'autocorrect',
 		}
 		step = prep_methods.get(step, step)
-		Document.log.info(f'Creating {step} tokens for {self.docid}')
+		Document.log.info(f'Creating {step} tokens for {self.docid} (k = {k}, dehyphenate = {dehyphenate}, force = {force})')
 
 		if step == 'tokenize':
 			if force or len(self.tokens) == 0:
@@ -107,6 +107,7 @@ class Document(object):
 					self.workspace.storageconfig
 				)
 				if dehyphenate:
+					Document.log.info(f'Document {self.docid} will be dehyphenated')
 					self.tokens.dehyphenate()
 			else:
 				Document.log.info(f'Document {self.docid} is already tokenized. Use --force to recreate tokens (this will destroy suggestions and corrections).')
