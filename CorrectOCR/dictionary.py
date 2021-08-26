@@ -67,13 +67,13 @@ class Dictionary(Set[str]):
 		Add a new word (sans punctuation) to the dictionary. Silently drops non-alpha strings.
 
 		:param word: The word to add.
-		:param nowarn: Don't warn about long words (>15 letters).
+		:param nowarn: Don't warn about long words (>20 letters).
 		"""
 		word = self.clean(word)
 		if word == '' or not letterRE.search(word):
 			return
-		if len(word) > 15 and not nowarn:
-			Dictionary.log.warning(f'Added word is more than 15 characters long: {word}')
+		if len(word) > 20 and not nowarn:
+			Dictionary.log.warning(f'Added word is more than 20 characters long: {word}')
 		if self.ignoreCase:
 			word = word.lower()
 		if dirty and word not in self.groups[group]:
