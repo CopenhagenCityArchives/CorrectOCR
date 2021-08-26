@@ -13,7 +13,7 @@ from typing import Any, DefaultDict, List, NamedTuple, Optional, Tuple
 import nltk
 
 from .list import TokenList
-from .._util import punctuation_splitter, punctuationRE
+from .._util import punctuationRE
 from ..fileio import FileIO
 from ..heuristics import Bin
 from ..model.kbest import KBestItem
@@ -81,7 +81,6 @@ class Token(abc.ABC):
 		if index is None:
 			raise ValueError('Tokens must have an index!')
 		self.original = original
-		_, self.normalized, _ = punctuation_splitter(self.original)
 		self.docid = docid  #: The doc with which the Token is associated.
 		self.index = index #: The placement of the Token in the doc.
 		self.gold = None # (documented in @property methods below)
@@ -107,7 +106,7 @@ class Token(abc.ABC):
 
 		if self.is_punctuation():
 			#self.__class__.log.debug(f'{self}: is_punctuation')
-			self._gold = self.normalized
+			self._gold = self.original
 
 	@property
 	@abc.abstractmethod

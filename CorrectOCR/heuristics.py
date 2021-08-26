@@ -7,7 +7,6 @@ from typing import Callable, DefaultDict, Dict, List, TYPE_CHECKING
 
 import progressbar
 
-from ._util import punctuationRE
 if TYPE_CHECKING:
 	from .dictionary import Dictionary
 	from .tokens import Token
@@ -39,9 +38,9 @@ class Heuristics(object):
 		self.oversegmented = 0
 		self.undersegmented = 0
 
-	def bin_for_word(self, word, original, kbest):
+	def bin_for_word(self, original, kbest):
 		# k best candidates which are in dictionary
-		filtids = [n for n, item in kbest.items() if item.normalized in self.dictionary]
+		filtids = [n for n, item in kbest.items() if item.candidate in self.dictionary]
 
 		dcode = None
 		if len(filtids) == 0:
@@ -53,7 +52,7 @@ class Heuristics(object):
 
 		token_bin = None
 		for num, _bin in _bins.items():
-			if _bin.matcher(word, kbest[1].normalized, self.dictionary, dcode):
+			if _bin.matcher(original, kbest[1].candidate, self.dictionary, dcode):
 				token_bin = _bin._copy()
 				break
 
@@ -81,8 +80,7 @@ class Heuristics(object):
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
 			#Heuristics.log.debug(f'binning {token}')
 			if force or token.bin is None:
-				word = token.normalized
-				token.decision, token.selection, token.bin = self.bin_for_word(word, original, token.kbest)
+				token.decision, token.selection, token.bin = self.bin_for_word(token.original, token.kbest)
 			if token.decision is None or token.bin is None or token.selection is None:
 				raise ValueError(f'Token {token} was not binned!')
 			if token.bin == -1:
@@ -117,8 +115,8 @@ class Heuristics(object):
 			self.nogoldCount += 1
 
 		# strip punctuation, which is considered not relevant to evaluation
-		gold = punctuationRE.sub('', token.gold) # gold standard wordform
-		original = punctuationRE.sub('', token.original) # original uncorrected wordform
+		gold = self.dictionary.clean(token.gold) # gold standard wordform
+		original = self.dictionary.clean(token.original) # original uncorrected wordform
 
 		# total number of real tokens - controlled for segmentation errors
 		self.tokenCount += 1
@@ -146,7 +144,7 @@ class Heuristics(object):
 			counts['2 gold == k1'] += 1
 
 		# lower k best candidate words that pass the dictionary check
-		kbest_filtered = [item.candidate for (k, item) in token.kbest if item.normalized in self.dictionary and k > 1]
+		kbest_filtered = [item.candidate for (k, item) in token.kbest if item.candidate in self.dictionary and k > 1]
 
 		if gold in kbest_filtered:
 			counts['3 gold == lower kbest'] += 1
@@ -190,7 +188,7 @@ class Heuristics(object):
 				out += f'\tgold = {example.gold}\n'
 				out += '\tkbest = [\n'
 				for k, item in example.kbest:
-					inDict = ' * is in dictionary' if item.normalized in self.dictionary else ''
+					inDict = ' * is in dictionary' if item.candidate in self.dictionary else ''
 					out += f'\t\t{k}: {item.candidate} ({item.probability:.2e}){inDict}\n'
 				out += '\t]\n'
 			out += '\n\n\n'

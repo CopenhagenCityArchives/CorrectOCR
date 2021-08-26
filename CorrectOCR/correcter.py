@@ -3,7 +3,6 @@ import logging
 from collections import deque
 from typing import List, Iterator, TypeVar, Tuple
 
-from ._util import punctuationRE
 from .tokens import TokenList
 
 '''
@@ -94,13 +93,12 @@ class CorrectionShell(cmd.Cmd):
 		print(f'Selecting {decision} for "{self.token.original}": "{word}"')
 		self.token.gold = word
 		if save:
-			cleanword = punctuationRE.sub('', word)
-			if cleanword not in self.dictionary:
-				self.metrics['newWords'].append(cleanword) # add to suggestions for dictionary review
-			self.dictionary.add(cleanword) # add to current dictionary for subsequent heuristic decisions
-			if f'{self.token.original}\t{cleanword}' not in self.metrics['correctionTracking']:
-				self.metrics['correctionTracking'][f'{self.token.original}\t{cleanword}'] = 0
-			self.metrics['correctionTracking'][f'{self.token.original}\t{cleanword}'] += 1
+			if word not in self.dictionary:
+				self.metrics['newWords'].append(word) # add to suggestions for dictionary review
+			self.dictionary.add(word) # add to current dictionary for subsequent heuristic decisions
+			if f'{self.token.original}\t{word}' not in self.metrics['correctionTracking']:
+				self.metrics['correctionTracking'][f'{self.token.original}\t{word}'] = 0
+			self.metrics['correctionTracking'][f'{self.token.original}\t{word}'] += 1
 		return self._nexttoken()
 
 	def emptyline(self):

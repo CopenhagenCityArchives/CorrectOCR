@@ -394,8 +394,8 @@ def do_index(workspace: Workspace, config):
 			tt = TaggedToken(token, [])
 			matched = False
 			for tag, terms in taggedTerms.items():
-				key = gold if token.gold and gold != '' else token.normalized
-				key = key.lstrip(string.punctuation).rstrip(string.punctuation)
+				key = gold or original
+				key = key.strip(string.punctuation + string.whitespace)
 				log.debug(f'token: {token} key: {key}')
 				if key != '' and key.lower() in terms:
 					tt.tags.append(tag)
@@ -445,7 +445,7 @@ def do_index(workspace: Workspace, config):
 			#log.debug(f'run: {run}')
 			rows.append({
 				'docid': docid,
-				'tokens': [r.token.normalized for r in run],
+				'tokens': [r.token.gold or r.token.original for r in run],
 				'tags': [r.tags for r in run],
 			})
 	if len(rows) > 0:
