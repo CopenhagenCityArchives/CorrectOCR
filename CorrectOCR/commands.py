@@ -187,7 +187,8 @@ def build_model(workspace: Workspace, config):
 	# Select the gold docs which correspond to the read count files.
 	readCounts = collections.defaultdict(collections.Counter)
 	gold_words = []
-	for docid, doc in workspace.documents(is_done=True):
+	for docid, doc in workspace.documents(is_done=True).items():
+		log.info(f'Adding gold tokens from {docid} to model')
 		(_, _, counts) = doc.alignments
 		readCounts.update(counts)
 		for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
