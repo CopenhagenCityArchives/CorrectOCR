@@ -76,7 +76,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	rootparser.add_argument('-k', type=int, default=4, help='Number of k-best candidates to use for tokens (default: 4)')
 	rootparser.add_argument('--force', action='store_true', default=False, help='Force command to run')
 	rootparser.add_argument('--loglevel', type=str, help='Log level', choices=loglevels.keys(), default='INFO')
-	rootparser.add_argument('--dehyphenate', type=str2bool, nargs='?', help='Automatically mark new tokens as hyphenated if they end with a dash')
+	rootparser.add_argument('--dehyphenate', type=str2bool, nargs=1, help='Automatically mark new tokens as hyphenated if they end with a dash')
 	rootparser.set_defaults(**defaults)
 
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command')
