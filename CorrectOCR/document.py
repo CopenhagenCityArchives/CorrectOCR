@@ -33,6 +33,7 @@ class Document(object):
 		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)
 		"""
 		self._server_ready = False
+		self._is_done = False
 		self.workspace = workspace
 		self.docid = doc.stem
 		self.ext = doc.suffix
@@ -58,7 +59,9 @@ class Document(object):
 
 	@property
 	def is_done(self):
-		return self.tokens.stats['done']
+		if not self._is_done:
+			self._is_done = self.tokens.stats['done']
+		return self._is_done
 		
 	@property
 	def server_ready(self):

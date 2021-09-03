@@ -34,6 +34,7 @@ class MockDocument(object):
 		self.docid = docid
 		self.tokens = tokens
 		self.info_url = None
+		self.is_done = False
 
 	def autocorrectedTokens(self, k):
 		return self.tokens
