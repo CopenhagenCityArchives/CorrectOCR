@@ -27,9 +27,9 @@ class ServerTests(unittest.TestCase):
 	def test_index(self):
 		response = self.client.get('/', follow_redirects=True)
 		self.assertEqual(len(response.json), len(self.workspace.documents(ext='.pdf')))
-		self.assertEqual(response.json[0]['count'], 5, f'There should be 5 tokens: {response.json}')
-		self.assertEqual(response.json[0]['corrected'], 1, f'There should be 1 corrected token: {response.json}')
-		self.assertEqual(response.json[0]['corrected_by_model'], 1, f'There should be 1 corrected by model token: {response.json}')
+		self.assertEqual(response.json[0]['stats']['token_count'], 5, f'There should be 5 tokens: {response.json}')
+		self.assertEqual(response.json[0]['stats']['corrected_count'], 1, f'There should be 1 corrected token: {response.json}')
+		self.assertEqual(response.json[0]['stats']['corrected_by_model_count'], 1, f'There should be 1 corrected by model token: {response.json}')
 
 	def test_doc_view(self):
 		response = self.client.get('/abc/tokens.json', follow_redirects=True)
@@ -54,7 +54,7 @@ class ServerTests(unittest.TestCase):
 
 	def test_token_update(self):
 		response = self.client.get('/', follow_redirects=True)
-		self.assertEqual(response.json[0]['corrected'], 1, f'There should be 1 corrected token: {response.json}')
+		self.assertEqual(response.json[0]['stats']['corrected_count'], 1, f'There should be 1 corrected token: {response.json}')
 	
 		response = self.client.get('/abc/token-1.json', follow_redirects=True)
 		self.assertEqual(response.json['Original'], 'upen', f'key "Original" should be "upen": {response.json}')
@@ -65,7 +65,7 @@ class ServerTests(unittest.TestCase):
 		self.assertEqual(response.json['Gold'], 'upon', f'key "Original" should be "upon": {response.json}')
 
 		response = self.client.get('/', follow_redirects=True)
-		self.assertEqual(response.json[0]['corrected'], 2, f'There should be 2 corrected tokens: {response.json}')
+		self.assertEqual(response.json[0]['stats']['corrected_count'], 2, f'There should be 1 corrected token: {response.json}')
 
 	def test_token_hyphenate_left(self):
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
@@ -109,12 +109,12 @@ class ServerTests(unittest.TestCase):
 	def test_stats(self):
 		response = self.client.get('/', follow_redirects=True)
 		self.assertEqual(len(response.json), len(self.workspace.documents(ext='.pdf')))
-		self.assertEqual(response.json[0]['count'], 5, f'There should be 5 tokens: {response.json}')
-		self.assertEqual(response.json[0]['corrected'], 1, f'There should be 1 corrected token: {response.json}')
-		self.assertEqual(response.json[0]['corrected_by_model'], 1, f'There should be 1 corrected by model token: {response.json}')
+		self.assertEqual(response.json[0]['stats']['token_count'], 5, f'There should be 5 tokens: {response.json}')
+		self.assertEqual(response.json[0]['stats']['corrected_count'], 1, f'There should be 1 corrected token: {response.json}')
+		self.assertEqual(response.json[0]['stats']['corrected_by_model_count'], 1, f'There should be 1 corrected by model token: {response.json}')
 
 		response = self.client.post('/abc/token-1.json', json={'gold': 'upon'}, follow_redirects=True)
 
 		response = self.client.get('/', follow_redirects=True)
-		self.assertEqual(response.json[0]['corrected'], 2, f'There should be 2 corrected tokens: {response.json}')
-		self.assertEqual(response.json[0]['corrected_by_model'], 1, f'There should be 1 corrected by model token: {response.json}')
+		self.assertEqual(response.json[0]['stats']['corrected_count'], 2, f'There should be 1 corrected token: {response.json}')
+		self.assertEqual(response.json[0]['stats']['corrected_by_model_count'], 1, f'There should be 1 corrected by model token: {response.json}')

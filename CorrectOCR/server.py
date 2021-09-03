@@ -164,10 +164,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					'docid': docid,
 					'url': url_for('tokens', doc_id=docid),
 					'info_url': doc.info_url,
-					'count': stats['token_count'],
-					'corrected': stats['corrected_count'],
-					'corrected_by_model': stats['corrected_by_model_count'],
-					'discarded': stats['discarded_count'],
 					'stats': stats,
 					'last_modified': doc.tokens.last_modified.timestamp() if doc.tokens.last_modified else None,
 				})
