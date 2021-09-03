@@ -32,6 +32,7 @@ class Document(object):
 		:param training: Directory for storing intermediate files.
 		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)
 		"""
+		self._server_ready = False
 		self.workspace = workspace
 		self.docid = doc.stem
 		self.ext = doc.suffix
@@ -58,6 +59,12 @@ class Document(object):
 	@property
 	def is_done(self):
 		return self.tokens.stats['done']
+		
+	@property
+	def server_ready(self):
+		if not self._server_ready:
+			self._server_ready = self.tokens.server_ready
+		return self._server_ready
 
 	@property
 	def alignments(self):

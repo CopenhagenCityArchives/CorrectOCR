@@ -111,7 +111,7 @@ class Workspace(object):
 		for docid, doc in self.docs.items():
 			if ext and doc.ext != ext:
 				continue
-			if server_ready and not doc.tokens.server_ready:
+			if server_ready and not doc.server_ready:
 				continue
 			if is_done and not doc.is_done:
 				continue
