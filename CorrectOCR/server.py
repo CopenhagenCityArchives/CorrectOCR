@@ -152,11 +152,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		docindex = []
 		for docid, doc in g.docs.items():
-			stats = doc.tokens.stats
 			if len(doc.tokens) > 0:
-				if stats['done']:
+				if doc.is_done:
 					#app.logger.debug(f'Skipping document marked done: {docid}')
 					continue
+				stats = doc.tokens.stats
 				if stats['token_count'] == stats['corrected_count'] + stats['error_count'] + stats['discarded_count']:
 					app.logger.debug(f'Skipping document without correctable tokens: {docid}')
 					continue
