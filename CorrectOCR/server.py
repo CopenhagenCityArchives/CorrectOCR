@@ -67,7 +67,6 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		app.logger.debug(f'BEGIN process {pid} handling request: {request.environ}')
 		g.docs = workspace.documents(server_ready=True)
 		#app.logger.debug(f'g.docs: {g.docs}')
-		g.discard_filter = lambda t: not t.is_discarded
 		if g.doc_id is not None:
 			if g.doc_id not in g.docs:
 				return json.jsonify({
