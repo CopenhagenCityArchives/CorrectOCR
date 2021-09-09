@@ -288,12 +288,21 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		tokendict = vars(g.token)
 		if tokendict['Original'][-1] == '\xad': # soft hyphen
 			tokendict['Original'] = tokendict['Original'][:-1] + '-'
+			for k in tokendict['k-best'].keys():
+				tokendict['k-best'][k]['candidate'] = tokendict['k-best'][k]['candidate'].replace('\xad', '-')
 		if tokendict['Gold'] and tokendict['Gold'][-1] == '\xad': # soft hyphen
 			tokendict['Gold'] = tokendict['Gold'][:-1] + '-'
 		if g.token.is_hyphenated:
 			# TODO ugly hack so users see he joined token....
 			next_token = g.docs[g.doc_id].tokens[g.doc_index+1]
 			tokendict['Original'] += next_token.original
+			if tokendict['Gold']:
+				# even if the first part has gold, the second might not...
+				if next_token.gold:
+					tokendict['Gold'] += next_token.gold
+				else:
+					# if the next token doesn't have gold, we don't consider the joined word as gold
+					tokendict['Gold'] = None
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = image_url(should_generate=config.dynamic_images)
 		return json.jsonify(tokendict)
