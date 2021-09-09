@@ -4,6 +4,7 @@ import re
 
 from .mocks import *
 
+from CorrectOCR.model.kbest import KBestItem
 from CorrectOCR.server import create_app
 
 
@@ -12,12 +13,15 @@ class ServerTests(unittest.TestCase):
 		self.workspace = MockWorkspace(
 			root=pathlib.Path('.').resolve(),
 			docid='abc',
-			contents='Once upen a ti- me'
+			contents='Once upen a ti\xad me'
 		)
-		tokens = self.workspace.docs['abc'].tokens
-		tokens[0].gold = tokens[0].original
-		tokens[0].decision = 'original'
-		tokens[1].decision = 'annotator'
+		self.tokens = self.workspace.docs['abc'].tokens
+		self.tokens[0].gold = self.tokens[0].original
+		self.tokens[0].decision = 'original'
+		self.tokens[1].decision = 'annotator'
+		self.tokens[3].kbest = {
+			'1': KBestItem(candidate='ti\xadme', probability=1.0), # soft hyphen
+		}
 
 		self.config = MockConfig(k=4)
 
@@ -78,7 +82,8 @@ class ServerTests(unittest.TestCase):
 		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
 		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
-		self.assertEqual(response.json['Gold'], 'ti-', f'Token should have first part of hyphenated word: {response.json}')
+		self.assertEqual(self.tokens[3].gold, 'ti\xad', f'Token should have first part of hyphenated word: {self.tokens[3]}')
+		self.assertEqual(self.tokens[4].gold, 'me', f'Token should have second part of hyphenated word: {self.tokens[4]}')
 
 	def test_token_hyphenate_right(self):
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
@@ -86,7 +91,8 @@ class ServerTests(unittest.TestCase):
 
 		response = self.client.post('/abc/token-3.json', json={'gold': 'ti-me', 'hyphenate': 'right'}, follow_redirects=True)
 		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
-		self.assertEqual(response.json['Gold'], 'ti-', f'Token should have first part of hyphenated word: {response.json}')
+		self.assertEqual(self.tokens[3].gold, 'ti\xad', f'Token should have first part of hyphenated word: {self.tokens[3]}')
+		self.assertEqual(self.tokens[4].gold, 'me', f'Token should have second part of hyphenated word: {self.tokens[4]}')
 
 	def test_error(self):
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
@@ -118,3 +124,10 @@ class ServerTests(unittest.TestCase):
 		response = self.client.get('/', follow_redirects=True)
 		self.assertEqual(response.json[0]['stats']['corrected_count'], 2, f'There should be 1 corrected token: {response.json}')
 		self.assertEqual(response.json[0]['stats']['corrected_by_model_count'], 1, f'There should be 1 corrected by model token: {response.json}')
+
+	def test_kbest_hyphens(self):
+		self.assertEqual(self.tokens[3].kbest['1'].candidate, 'ti\xadme', f'Original K-best candidate should have a soft hyphen: {self.tokens[3]}')
+
+		response = self.client.get('/abc/token-3.json', follow_redirects=True)
+		self.assertEqual(response.json['k-best']['1']['candidate'], 'ti-me', f'Server K-best candidate should have a hard hyphen: {response.json}')
+		
