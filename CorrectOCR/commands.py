@@ -158,7 +158,8 @@ def build_dictionary(workspace: Workspace, config):
 						log.info(f'Adding {gold}')
 						workspace.resources.dictionary.add(group, gold)
 					else:
-						log.debug(f'{gold} is already in dictionary')
+						#log.debug(f'{gold} is already in dictionary')
+						pass
 			workspace.resources.dictionary.save_group(group)
 
 	workspace.resources.dictionary.save()
