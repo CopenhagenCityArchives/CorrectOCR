@@ -72,6 +72,11 @@ class Dictionary(Set[str]):
 		word = self.clean(word)
 		if word == '' or not letterRE.search(word):
 			return
+		if ' ' in word:
+			Dictionary.log.info(f'Splitting word with spaces: {word}')
+			for w in word.split(' '):
+				self.add(group, w, nowarn, dirty)
+			return
 		if len(word) > 20 and not nowarn:
 			Dictionary.log.warning(f'Added word is more than 20 characters long: {word}')
 		if self.ignoreCase:
