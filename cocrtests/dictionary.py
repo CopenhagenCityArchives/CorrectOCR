@@ -43,4 +43,23 @@ class TestDictionary(unittest.TestCase):
 		
 		for w in words_notok:
 			self.assertFalse(w in d, f'{d} should NOT contain "{w}"')
+
+	def test_spaces(self):
+		d = Dictionary()
 		
+		d.add(None, 'test testing')
+		
+		words_ok = [
+			'test',
+			'testing',
+		]
+		
+		for w in words_ok:
+			self.assertTrue(w in d, f'{d} should contain "{w}"')
+
+		words_notok = [
+			'test´testing',
+		]
+		
+		for w in words_notok:
+			self.assertFalse(w in d, f'{d} should NOT contain "{w}"')
