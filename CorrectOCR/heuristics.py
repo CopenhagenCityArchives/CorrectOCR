@@ -81,6 +81,9 @@ class Heuristics(object):
 			#Heuristics.log.debug(f'binning {token}')
 			if force or token.bin is None:
 				token.decision, token.selection, token.bin = self.bin_for_word(token.original, token.kbest)
+				if token.is_hyphenated:
+					# ugly...
+					tokens[token.index+1].decision = token.decision
 			if token.decision is None or token.bin is None or token.selection is None:
 				raise ValueError(f'Token {token} was not binned!')
 			if token.bin == -1:
