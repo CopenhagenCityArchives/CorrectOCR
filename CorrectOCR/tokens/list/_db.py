@@ -16,13 +16,13 @@ def close_connection(connection):
 	connection.close()
 
 def get_connection(config):
-	log = logging.getLogger(f'{__name__}.get_connection')
-	con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
-	#log.debug(f'Connection string: {con_str}')
-	connection = pyodbc.connect(con_str)
-	#setattr(config, '_finalize', weakref.finalize(config, close_connection, connection))
-	return connection
-
+	if not hasattr(config, '_connection'):
+		log = logging.getLogger(f'{__name__}.get_connection')
+		con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
+		#log.debug(f'Connection string: {con_str}')
+		setattr(config, '_connection', pyodbc.connect(con_str))
+		setattr(config, '_finalize', weakref.finalize(config, close_connection, config._connection))
+	return config._connection
 
 @TokenList.register('db')
 class DBTokenList(TokenList):
