@@ -33,44 +33,23 @@ class TestModel(unittest.TestCase):
 
 
 	def test_kbest_regular(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
-
-		f = MockCorpusFile('Slring')
-		tokens = t.tokenize(f, MockConfig(type='fs'))
-
-		self.hmm.generate_kbest(tokens)
-
-		self.assertEqual(tokens[0].kbest[1].candidate, 'String', f'The first candidate should be "String": {tokens[0]}')
+		kbest = self.hmm.kbest_for_word('Slring', 4)
+		self.assertEqual(kbest[1].candidate, 'String', f'The first candidate should be "String": {kbest}')
 
 
 	def test_kbest_hyphenated(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
-
-		f = MockCorpusFile('Str-ing')
-		tokens = t.tokenize(f, MockConfig(type='fs'))
-
-		self.hmm.generate_kbest(tokens)
-
-		self.assertEqual(tokens[0].kbest[1].candidate, 'Str-ing', f'The first candidate should be "Str-ing": {tokens[0]}')
+		kbest = self.hmm.kbest_for_word('Str-ing', 4)
+		self.assertEqual(kbest[1].candidate, 'Str-ing', f'The first candidate should be "Str-ing": {kbest}')
 
 
 	def test_kbest_soft_hyphen(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
-
-		f = MockCorpusFile('Str\xading')
-		tokens = t.tokenize(f, MockConfig(type='fs'))
-
-		self.hmm.generate_kbest(tokens)
-
-		self.assertEqual(tokens[0].kbest[1].candidate, 'Str\xading', f'The first candidate should be "Str\xading": {tokens[0]}')
+		kbest = self.hmm.kbest_for_word('Str\xading', 4)
+		self.assertEqual(kbest[1].candidate, 'Str\xading', f'The first candidate should be "Str\xading": {kbest}')
 
 
 	def test_kbest_parens(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
+		kbest = self.hmm.kbest_for_word('(String)', 4)
+		self.assertEqual(kbest[1].candidate, '(String)', f'The first candidate should be "(String)": {kbest}')
 
-		f = MockCorpusFile('(String)')
-		tokens = t.tokenize(f, MockConfig(type='fs'))
 
-		self.hmm.generate_kbest(tokens)
 
-		self.assertEqual(tokens[0].kbest[1].candidate, '(String)', f'The first candidate should be "(String)": {tokens[0]}')
