@@ -7,6 +7,7 @@ import traceback
 import weakref
 
 import pyodbc
+import progressbar
 import random
 
 from ._super import TokenList
@@ -46,6 +47,11 @@ class DBTokenList(TokenList):
 			self.tokens = [None] * result[0]
 			DBTokenList.log.debug(f'doc {self.docid} has {len(self.tokens)} tokens')
 
+	def preload(self):
+		DBTokenList.log.info(f'Preloading tokens for doc {self.docid}')
+		self.tokens = DBTokenList._get_all_tokens(self.config, self.docid, self.tokens)
+		DBTokenList.log.debug(f'Preloaded {len(self.tokens)} tokens, first 10: {self.tokens[:10]}')
+
 	@property
 	def server_ready(self):
 		with get_connection(self.config).cursor() as cursor:
@@ -64,8 +70,8 @@ class DBTokenList(TokenList):
 
 
 	def __getitem__(self, key):
-		#DBTokenList.log.debug(f'Getting token at index {key} in {len(self.tokens)} tokens')
 		if self.tokens[key] is None:
+			#DBTokenList.log.debug(f'Getting token at index {key} in {len(self.tokens)} tokens')
 			self.tokens[key] = DBTokenList._get_token(self.config, self.docid, key)
 		return self.tokens[key]
 
@@ -123,6 +129,66 @@ class DBTokenList(TokenList):
 				return Token.from_dict(token_dict)
 			else:
 				return None
+
+	@staticmethod
+	def _get_all_tokens(config, docid, tokens):
+		from .. import Token
+		with get_connection(config).cursor() as cursor:
+			cursor.execute("""
+				SELECT *
+				FROM token
+				LEFT JOIN kbest
+				ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
+				WHERE token.doc_id = ?
+				ORDER BY token.doc_id, token.doc_index
+				""",
+				docid,
+			)
+			token_dict = None
+			for result in progressbar.progressbar(cursor, max_value=cursor.rowcount):
+				#DBTokenList.log.debug(f'result: {result}')
+				# pyodbc workaround
+				# we must reset the doc_id/doc_index in case there are no kbest
+				# because the empty result from the right table (kbest)
+				# will overwrite the left table (token)
+				# resulting in None when accessed as properties (but not as indexes!)
+				result.doc_id = result[0]
+				result.doc_index = result[1]
+				if token_dict and token_dict['Index'] != result.doc_index:
+					#DBTokenList.log.debug(f'token_dict: {token_dict}')
+					token = Token.from_dict(token_dict)
+					tokens[token.index] = token
+					token_dict = None
+				if not token_dict:
+					# init new token
+					token_dict = {
+						'Token type': result.token_type,
+						'Token info': result.token_info,
+						'Annotations': result.annotations,
+						'Has error': result.has_error,
+						'Last Modified': result.last_modified,
+						'Doc ID': result.doc_id,
+						'Index': result.doc_index,
+						'Gold': result.gold,
+						'Bin': result.bin,
+						'Heuristic': result.heuristic,
+						'Selection': json.loads(result.selection),
+						'Decision': result.decision,
+						'Hyphenated': result.hyphenated,
+						'Discarded': result.discarded,
+						'k-best': dict(),
+					}
+				# set k-best from all rows
+				if result.k:
+					token_dict['k-best'][result.k] = {
+						'candidate': result.candidate,
+						'probability': result.probability,
+					}
+			if token_dict:
+				# remember the last token!
+				token = Token.from_dict(token_dict)
+				tokens[token.index] = token
+		return tokens
 
 	@staticmethod
 	def _save_token(config, token: 'Token'):
