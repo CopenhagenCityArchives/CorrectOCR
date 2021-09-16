@@ -88,6 +88,9 @@ class TokenList(collections.abc.MutableSequence):
 	def save(self, token: 'Token' = None):
 		pass
 
+	def preload(self):
+		pass
+
 	@property
 	def stats(self):
 		stats = collections.defaultdict(int)
