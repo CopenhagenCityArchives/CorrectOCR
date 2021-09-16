@@ -8,13 +8,15 @@ from CorrectOCR.tokens import Tokenizer
 
 class TestModel(unittest.TestCase):
 	def setUp(self):
-		dictionary = set(["String"])
+		gold_words = ['String', 'Stræng']
+		dictionary = set(gold_words)
 
 		readCounts = {
 			"S": { "S": 1000},
 			"t": { "t": 999, "l": 1},
 			"r": { "r": 1000},
 			"i": { "i": 1000},
+			"æ": { "æ": 1000},
 			"n": { "n": 1000},
 			"g": { "g": 1000},
 			"-": { "-": 1000},
@@ -22,7 +24,6 @@ class TestModel(unittest.TestCase):
 			"(": { ")": 1000},
 			"(": { ")": 1000},
 		}
-		gold_words = ["String"]
 
 		builder = HMMBuilder(dictionary, 0.0001, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()-\xad', readCounts, [], gold_words)
 
@@ -52,4 +53,13 @@ class TestModel(unittest.TestCase):
 		self.assertEqual(kbest[1].candidate, '(String)', f'The first candidate should be "(String)": {kbest}')
 
 
+	def test_multichars(self):
+		self.hmm.multichars = {
+			'ce': ['æ'],
+		}
 
+		kbest = self.hmm.kbest_for_word('Strceng', 4)
+		self.assertEqual(kbest[1].candidate, 'Stræng', f'The first candidate should be "Stræng": {kbest}')
+		
+		# reset to avoid touching other tests
+		self.hmm.multichars = None
