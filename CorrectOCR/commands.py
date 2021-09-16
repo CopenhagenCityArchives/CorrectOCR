@@ -253,6 +253,7 @@ def do_prepare(workspace: Workspace, config):
 		docs = []
 
 	for docid, doc in docs:
+		doc.tokens.preload()
 		doc.prepare(config.step, k=config.k, dehyphenate=config.dehyphenate, force=config.force)
 		if config.autocrop:
 			doc.crop_tokens()
