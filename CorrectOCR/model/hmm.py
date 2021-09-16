@@ -60,9 +60,7 @@ class HMM(object):
 		:param path: Path for loading and saving.
 		:param multichars: A dictionary of possible multicharacter substitutions (eg. 'cr': 'æ' or vice versa).
 		"""
-		if multichars is None:
-			multichars = {}
-		self.multichars = multichars
+		self.multichars = multichars or {}
 		self.path = path
 		self.cache = None
 
@@ -212,13 +210,14 @@ class HMM(object):
 		for sub in self.multichars:
 			if sub in word:
 				variant_words = HMM._multichar_variants(word, sub, self.multichars[sub])
-				for v in variant_words:
-					if v != word:
-						k_best.extend(self._k_best_beam(v, k))
+				for variant in variant_words:
+					if variant != word:
+						more_kbest = self._k_best_beam(variant, k)
+						k_best.extend(more_kbest)
 				# Keep the k best
 				k_best = sorted(k_best, key=lambda x: x[1], reverse=True)[:k]
 
-		return defaultdict(KBestItem, {i: KBestItem(''.join(seq), prob) for (i, (seq, prob)) in enumerate(k_best[:k], 1)})
+		return defaultdict(KBestItem, {i: KBestItem(seq, prob) for (i, (seq, prob)) in enumerate(k_best[:k], 1)})
 
 	@classmethod
 	def _multichar_variants(cls, word: str, original: str, replacements: List[str]):
