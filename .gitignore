@@ -1,4 +1,4 @@
-__COCRcacke__
+__COCRCache__
 __pycache__
 corrected
 gold
@@ -35,3 +35,4 @@ docs/*.png
 workspace/__COCRcache__
 .env
 workspace/resources/dictionary
+workspace/resources/multicharacter_errors.json
