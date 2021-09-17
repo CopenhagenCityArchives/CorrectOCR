@@ -452,7 +452,7 @@ def do_index(workspace: Workspace, config):
 			for run in matches:
 				for tagged_token in run:
 					token: PDFToken = tagged_token.token
-					page = pdf[token.ordering[0]]
+					page = pdf[token.page]
 					annotation = page.addRectAnnot(token.rect)
 					annotation.setColors({'fill': red, 'stroke': red})
 					annotation.setOpacity(0.5)

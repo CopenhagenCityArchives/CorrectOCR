@@ -19,37 +19,28 @@ class PDFToken(Token):
 	log = logging.getLogger(f'{__name__}.PDFToken')
 
 	@property
-	def token_info(self):
-		return self.page_n, self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.original, self.block_n, self.line_n, self.word_n
+	def page(self):
+		return int(self.token_info[0])
 
 	@property
-	def page(self):
-		return self.token_info[0]
+	def block(self):
+		return int(self.token_info[6])
+
+	@property
+	def line(self):
+		return int(self.token_info[7])
+
+	@property
+	def word(self):
+		return int(self.token_info[8])
 
 	@property
 	def frame(self):
 		return (self.token_info[1], self.token_info[2], self.token_info[3], self.token_info[4])
 
 	def __init__(self, token_info, docid, index):
-		original = token_info[5]
-		super().__init__(original, docid, index)
-		self.page_n = int(token_info[0])
-		self.rect = fitz.Rect(
-			float(token_info[1]),
-			float(token_info[2]),
-			float(token_info[3]),
-			float(token_info[4]),
-		)
-		self.rect.normalize()
-		(self.block_n, self.line_n, self.word_n) = (
-			int(token_info[6]),
-			int(token_info[7]),
-			int(token_info[8]),
-		)
-
-	@property
-	def ordering(self):
-		return self.page_n, self.block_n, self.line_n, self.word_n
+		super().__init__(token_info[5], docid, index)
+		self.token_info = token_info
 
 	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False) -> Tuple[Path, Image.Image]:
 		if self.cached_image_path.is_file() and not force:
@@ -62,12 +53,14 @@ class PDFToken(Token):
 				PDFToken.log.error(f'Error with image file, will attempt regeneration.\n{traceback.format_exc()}')
 				return self.extract_image(workspace, highlight_word, left, right, top, bottom, force=True)
 		PDFToken.log.debug(f'Generating image for {self}')
-		xref, pagerect, pix = workspace._cached_page_image(self.docid, self.page_n) # TODO
+		xref, pagerect, pix = workspace._cached_page_image(self.docid, self.page) # TODO
 		xscale = pix.width / pagerect.width
 		yscale = pix.height / pagerect.height
 		#PDFToken.log.debug(f'extract_image ({self.index}): {tokenrect} {xscale} {yscale}')
 		image = Image.frombytes('RGB', (pix.width, pix.height), pix.samples)
-		tokenrect = self.rect.irect * fitz.Matrix(xscale, yscale)
+		_rect = fitz.Rect(*self.frame)
+		_rect.normalize()
+		tokenrect = _rect.irect * fitz.Matrix(xscale, yscale)
 		#PDFToken.log.debug(f'tokenrect ({self.index}): {tokenrect}')
 		#PDFToken.log.debug(f'word_image ({self.index}): {image} token {self} filename {self.cached_image_path}')
 		if workspace.config.combine_hyphenated_images and self.is_hyphenated:
@@ -145,7 +138,7 @@ class PDFTokenizer(Tokenizer):
 		red = fitz.utils.getColor('red')
 
 		PDFTokenizer.log.info('Inserting tokens in corrected PDF')
-		for token in sorted(tokens, key=lambda x: x.ordering):
+		for token in sorted(tokens, key=lambda x: (x.page, x.block, x.line, x.word)):
 			if token.is_discarded:
 				continue
 

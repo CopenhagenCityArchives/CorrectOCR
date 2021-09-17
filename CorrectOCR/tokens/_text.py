@@ -11,10 +11,6 @@ class StringToken(Token):
 	log = logging.getLogger(f'{__name__}.StringToken')
 
 	@property
-	def token_info(self):
-		return self._string
-
-	@property
 	def page(self):
 		return 0
 
@@ -22,9 +18,9 @@ class StringToken(Token):
 	def frame(self):
 		return (0, 0, 0, 0)
 
-	def __init__(self, original, docid, index):
-		self._string = original
-		super().__init__(original, docid, index)
+	def __init__(self, token_info, docid, index):
+		self.token_info = token_info
+		super().__init__(token_info, docid, index)
 
 	def extract_image(self, workspace, highlight_word=True, left=300, right=300, top=15, bottom=15, force=False):
 		# It doesn't make sense to show an image for a pure text token.

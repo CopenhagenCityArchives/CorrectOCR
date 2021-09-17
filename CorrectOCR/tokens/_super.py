@@ -7,6 +7,7 @@ import json
 import logging
 import string
 import traceback
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, DefaultDict, List, NamedTuple, Optional, Tuple
 
@@ -26,38 +27,61 @@ def tokenize_str(data: str, language='english') -> List[str]:
 ##########################################################################################
 
 
-class UpdateModifiedAccess:
-	def __set_name__(self, owner, name):
-		self.public_name = name
-		self.private_name = '_' + name
-		self.post_effect_name = '_post_' + name
-
-	def __get__(self, obj, objtype=None):
-		return getattr(obj, self.private_name)
-
-	def __set__(self, obj, value):
-		obj.last_modified = datetime.datetime.now()
-		setattr(obj, self.private_name, value)
-		if hasattr(obj, self.post_effect_name):
-			getattr(obj, self.post_effect_name)(value)
-
-
-##########################################################################################
-
-
+@dataclass
 class Token(abc.ABC):
 	"""
 	Abstract base class. Tokens handle single words. ...
 	"""
 	_subclasses = dict()
-	gold = UpdateModifiedAccess()
-	is_hyphenated = UpdateModifiedAccess()
-	is_discarded = UpdateModifiedAccess()
-	has_error = UpdateModifiedAccess()
+	original: str #: Original spelling of the token.
+	docid: str #: The document with which the Token is associated.
+	index: int #: The token's index in the document.
+	gold: str = None #: The corrected spelling of the token.
+	is_hyphenated: bool = False #: Whether the token is hyphenated to the following token.
+	is_discarded: bool = False #: Whether the token has been discarded.
+	has_error:bool = False #: Whether the token currently has an unhandled error.
 
-	def _post_is_discarded(self, value):
-		if value is True:
+	token_info: Any = None #: An opaque bit of data that the various token types may use internally.
+
+	"""
+	Dictionary of *k*-best suggestions for the Token. They are keyed
+	with a numerical index starting at 1, and the values are instances
+	of :class:`KBestItem`.
+	"""
+	kbest: DefaultDict[int, KBestItem] = field(default_factory=lambda: collections.defaultdict(KBestItem))
+	
+	#heuristics:
+	bin: Bin = None  #: Heuristics bin.
+	heuristic: str = None #: The heuristic that was was determined by the bin.
+	selection: Any = None #: The selected automatic correction for the :attr:`heuristic`.
+
+	annotations: List[Any] = field(default_factory=list) #: A list of arbitrary key/value info about the annotations
+	last_modified: datetime.datetime = None #: When one of the ``gold``, ``ìs_hyphenated``, ``is_discarded``, or ``has_error`` properties was last updated.
+
+
+	def __post_init__(self):
+		#print(self.__class__)
+		#print(self.__class__.__bases__)
+		#print(sorted(self.__dir__()))
+		#print(sorted(super().__dir__()))
+		#print(vars(self))
+		self.cached_image_path = FileIO.imageCache(self.docid).joinpath(
+			f'{self.index}.png'
+		) #: Where the image file should be cached. Is not guaranteed to exist, but can be generated via extract_image()
+
+		if self.is_punctuation():
+			#self.__class__.log.debug(f'{self}: is_punctuation')
+			self._gold = self.original
+
+	def __setattr__(self, attr, value):
+		super().__setattr__(attr, value)
+		if attr in ('gold', 'is_hyphenated', 'is_discarded', 'has_error'):
+			self.last_modified = datetime.datetime.now()
+		if attr == 'is_discarded' and value is True:
 			self.gold = ''
+
+	def __repr__(self):
+		return f'{self.__class__.__name__}({vars(self)})'
 
 	@staticmethod
 	def register(cls):
@@ -68,54 +92,6 @@ class Token(abc.ABC):
 		"""
 		Token._subclasses[cls.__name__] = cls
 		return cls
-
-	def __init__(self, original: str, docid: str, index: int):
-		"""
-		:param original: Original spelling of the token.
-		:param docid: The doc with which the Token is associated.
-		"""
-		if type(self) is Token:
-			raise TypeError("Token base class cannot not be directly instantiated")
-		if docid is None:
-			raise ValueError('Tokens must have a docid!')
-		if index is None:
-			raise ValueError('Tokens must have an index!')
-		self.original = original
-		self.docid = docid  #: The doc with which the Token is associated.
-		self.index = index #: The placement of the Token in the doc.
-		self.gold = None # (documented in @property methods below)
-		self.bin: Optional[Bin] = None  #: Heuristics bin.
-		self.kbest: DefaultDict[int, KBestItem] = collections.defaultdict(KBestItem)
-		"""
-		Dictionary of *k*-best suggestions for the Token. They are keyed
-		with a numerical index starting at 1, and the values are instances
-		of :class:`KBestItem`.
-		"""
-		self.heuristic: Optional[str] = None #: The heuristic that was was determined by the bin.
-		self.selection: Any = None #: The selected automatic correction for the :attr:`heuristic`.
-		self.is_hyphenated = False # (documented in @property methods below)
-		self.is_discarded = False #: (documented in @property methods below)
-
-		self.annotations = [] #: A list of arbitrary key/value info about the annotations
-		self.has_error = False #: Whether the token has an unhandled error
-		self.last_modified = None #: When one of the ``gold``, ``ìs_hyphenated``, ``is_discarded``, or ``has_error`` properties were last updated.
-
-		self.cached_image_path = FileIO.imageCache(self.docid).joinpath(
-			f'{self.index}.png'
-		) #: Where the image file should be cached. Is not guaranteed to exist, but can be generated via extract_image()
-
-		if self.is_punctuation():
-			#self.__class__.log.debug(f'{self}: is_punctuation')
-			self._gold = self.original
-
-	@property
-	@abc.abstractmethod
-	def token_info(self) -> Any:
-		"""
-
-		:return:
-		"""
-		return None
 
 	@property
 	@abc.abstractmethod
@@ -150,28 +126,6 @@ class Token(abc.ABC):
 		The number of *k*-best suggestions for the Token.
 		"""
 		return len(self.kbest)
-
-	def __str__(self):
-		return f'<{self.__class__.__name__} {vars(self)}>'
-
-	def __repr__(self):
-		return self.__str__()
-
-	def __eq__(self, other):
-		if isinstance(other, self.__class__):
-			return self.original.__eq__(other.original)
-		elif isinstance(other, str):
-			return self.original.__eq__(other)
-		else:
-			return NotImplemented
-
-	def __lt__(self, other):
-		if isinstance(other, self.__class__):
-			return self.original.__lt__(other.original)
-		elif isinstance(other, str):
-			return self.original.__lt__(other)
-		else:
-			return NotImplemented
 
 	def __hash__(self):
 		return self.original.__hash__()
@@ -218,6 +172,7 @@ class Token(abc.ABC):
 
 		return output
 
+	# https://stackoverflow.com/questions/68417319/initialize-python-dataclass-from-dictionary
 	@classmethod
 	def from_dict(cls, d: dict) -> Token:
 		"""
