@@ -60,7 +60,7 @@ def get_storage_argparser():
 	storageparser.add_argument('--db_host', type=str, help='Database hostname')
 	storageparser.add_argument('--db_user', type=str, help='Database username')
 	storageparser.add_argument('--db_password', type=str, help='Database user password')
-	storageparser.add_argument('--db', type=str, help='Database name')
+	storageparser.add_argument('--db_name', type=str, help='Database name')
 
 	return storageparser
 
