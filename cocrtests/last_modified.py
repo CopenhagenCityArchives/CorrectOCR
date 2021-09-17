@@ -10,7 +10,7 @@ class TestLastModified(unittest.TestCase):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('test')
-		tokens = t.tokenize(f, MockConfig(type='mem'))
+		tokens = t.tokenize(f, MockConfig())
 		token = tokens[0]
 		
 		token.gold = token.original

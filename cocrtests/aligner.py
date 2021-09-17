@@ -11,7 +11,7 @@ class TestAligner(unittest.TestCase):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('This is a t3st')
-		tokens = t.tokenize(f, MockConfig(type='mem'))
+		tokens = t.tokenize(f, MockConfig())
 		
 		tokens[0].gold = tokens[0].original
 		tokens[1].gold = tokens[1].original
@@ -31,8 +31,8 @@ class TestAligner(unittest.TestCase):
 	def test_align_gold(self):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
-		left = t.tokenize(MockCorpusFile('This is a t3st'), MockConfig(type='mem'))
-		right = t.tokenize(MockCorpusFile('This is a test'), MockConfig(type='mem'))
+		left = t.tokenize(MockCorpusFile('This is a t3st'), MockConfig())
+		right = t.tokenize(MockCorpusFile('This is a test'), MockConfig())
 		
 		aligner = Aligner()
 		

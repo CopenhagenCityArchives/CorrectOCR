@@ -18,8 +18,8 @@ class MockLang(object):
 
 
 class MockConfig(object):
-	def __init__(self, type=None, k=None):
-		self.type = type
+	def __init__(self, k=None):
+		self.type = 'mock'
 		self.k = k
 		self.host = 'localhost'
 		self.debug = True
@@ -45,9 +45,24 @@ class MockWorkspace(object):
 		self.root = root
 		self.docid = docid
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
-		tokens = t.tokenize( MockCorpusFile(contents, self.docid), MockConfig(type='mem'))
+		tokens = t.tokenize( MockCorpusFile(contents, self.docid), MockConfig())
 		self.doc = MockDocument(docid, tokens)
 		self.docs = {docid: self.doc}
 
 	def documents(self, ext: str=None, server_ready=False, is_done=False):
 		return {self.docid: self.doc}
+
+
+from CorrectOCR.tokens.list import TokenList
+
+@TokenList.register('mock')
+class MockTokenList(TokenList):
+	"""
+		This is a TokenList that cannot load or save, ie. it exists only in memory. Its purpose is to facilitate testing, and should not be used for anything important.
+	"""
+	def load(self):
+		pass
+
+	def save(self, token: 'Token' = None):
+		if token:
+			self[token.index] = token
