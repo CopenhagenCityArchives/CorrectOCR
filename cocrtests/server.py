@@ -98,9 +98,8 @@ class ServerTests(unittest.TestCase):
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
 		self.assertFalse(response.json['Has error'], f'Token should NOT have error info: {response.json}')
 
-		error_info = { 'code': 1, 'description': 'test' }
-		response = self.client.post('/abc/token-3.json', json={'error': error_info}, follow_redirects=True)
-		self.assertTrue(response.json['Has error'], f'Token should have error info {error_info}: {response.json}')
+		response = self.client.post('/abc/token-3.json', json={'error': 'User reported an error.'}, follow_redirects=True)
+		self.assertTrue(response.json['Has error'], f'Token should have error: {response.json}')
 	
 	def test_random(self):
 		response = self.client.get('/random', follow_redirects=False)
