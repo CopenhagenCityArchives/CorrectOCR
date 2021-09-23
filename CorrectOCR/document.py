@@ -71,6 +71,7 @@ class Document(object):
 
 	@property
 	def alignments(self):
+		self.tokens.preload()
 		return Aligner().alignments(self.tokens)
 
 	def prepare(self, step: str, k: int, dehyphenate=False, force=False):
