@@ -6,7 +6,7 @@ from CorrectOCR.tokens import Tokenizer
 
 
 class TestLastModified(unittest.TestCase):
-	def test_punctuation(self):
+	def test_last_modified(self):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('test')
