@@ -143,6 +143,7 @@ def build_dictionary(workspace: Workspace, config):
 
 	if config.add_annotator_gold:
 		for docid, doc in workspace.documents(is_done=True).items():
+			doc.tokens.preload()
 			group = f'gold-{docid}'
 			if group in existing_groups:
 				log.info(f'Skipping {group}, it is already in dictionary')
