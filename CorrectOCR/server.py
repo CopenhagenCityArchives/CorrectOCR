@@ -99,8 +99,8 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	# for sorting docindex to bring unfinished docs to the top
 	sort_key = lambda d: (d['stats']['done'], d['docid'])
 
-	def image_url(should_generate=False):
-		if should_generate:
+	def image_url():
+		if config.dynamic_images:
 			app.logger.debug(f'Checking if image exists for: {g.token}')
 			if not g.token.cached_image_path.exists():
 				app.logger.debug(f'Generating image for: {g.token}')
@@ -304,7 +304,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					# if the next token doesn't have gold, we don't consider the joined word as gold
 					tokendict['Gold'] = None
 		if 'image_url' not in tokendict:
-			tokendict['image_url'] = image_url(should_generate=config.dynamic_images)
+			tokendict['image_url'] = image_url()
 		return json.jsonify(tokendict)
 
 	def hyphenate_token(tokens, index, hyphenation, gold):
