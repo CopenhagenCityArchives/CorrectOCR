@@ -99,16 +99,16 @@ def create_app(workspace: Workspace = None, config: Any = None):
 	# for sorting docindex to bring unfinished docs to the top
 	sort_key = lambda d: (d['stats']['done'], d['docid'])
 
-	def image_url():
-		if config.dynamic_images:
-			app.logger.debug(f'Checking if image exists for: {g.token}')
-			if not g.token.cached_image_path.exists():
-				app.logger.debug(f'Generating image for: {g.token}')
+	def image_url(token=None, doc_id=None, doc_index=None):
+		if token and config.dynamic_images:
+			app.logger.debug(f'Checking if image exists for: {token}')
+			if not token.cached_image_path.exists():
+				app.logger.debug(f'Generating image for: {token}')
 				try:
-					_ = g.token.extract_image(workspace)
+					_ = token.extract_image(workspace)
 				except PermissionError as e:
-					app.logger.error(f'Could not generate image for {g.token}: {e}')
-		return f'{app.static_url_path}/{g.doc_id}/{g.doc_index}.png'
+					app.logger.error(f'Could not generate image for {token}: {e}')
+		return f'{app.static_url_path}/{token.docid if token else doc_id}/{token.index if token else doc_index}.png'
 
 	@app.route('/')
 	def indexpage():
@@ -218,7 +218,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		"""
 		tokenindex = [{
 			'info_url': url_for('tokeninfo', doc_id=g.doc_id, doc_index=n),
-			'image_url': image_url(),
+			'image_url': image_url(doc_id=g.doc_id, doc_index=n),
 			'string': tv['string'],
 			'is_corrected': tv['is_corrected'],
 			'is_discarded': tv['is_discarded'],
@@ -304,7 +304,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					# if the next token doesn't have gold, we don't consider the joined word as gold
 					tokendict['Gold'] = None
 		if 'image_url' not in tokendict:
-			tokendict['image_url'] = image_url()
+			tokendict['image_url'] = image_url(token=g.token)
 		return json.jsonify(tokendict)
 
 	def hyphenate_token(tokens, index, hyphenation, gold):
