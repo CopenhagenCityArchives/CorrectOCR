@@ -80,12 +80,12 @@ class Dictionary(Set[str]):
 			for w in word.split(' '):
 				self.add(group, w, nowarn, dirty)
 			return
-		if len(word) > 20 and not nowarn:
-			Dictionary.log.warning(f'Added word is more than 20 characters long: {word}')
 		if self.ignoreCase:
 			word = word.lower()
 		if dirty and word not in self.groups[group]:
 			self._dirty.add(group)
+		if len(word) > 20 and not nowarn:
+			Dictionary.log.warning(f'Added word is more than 20 characters long: {word}')
 		return self.groups[group].add(word)
 	
 	def save_group(self, group: str):
