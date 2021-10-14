@@ -143,7 +143,6 @@ def build_dictionary(workspace: Workspace, config):
 
 	if config.add_annotator_gold:
 		for docid, doc in workspace.documents(is_done=True).items():
-			doc.tokens.preload()
 			group = f'gold-{docid}'
 			if group in existing_groups:
 				log.info(f'Skipping {group}, it is already in dictionary')
@@ -152,6 +151,7 @@ def build_dictionary(workspace: Workspace, config):
 				log.info(f'Skipping {docid}, it is not done')
 				continue
 			log.info(f'Adding gold words from annotated tokens in document {docid}')
+			doc.tokens.preload()
 			for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
 				#print([token, token.decision, token.gold, token.is_discarded])
 				if token.decision == 'annotator' and gold is not None and gold is not '':
