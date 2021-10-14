@@ -29,11 +29,14 @@ class Dictionary(Set[str]):
 		self._path = path
 		self.groups = defaultdict(set)
 		self._dirty = set()
-		if self._path and self._path.is_dir():
-			Dictionary.log.info(f'Loading dictionary from {self._path}')
-			for file in progressbar.progressbar(self._path.iterdir()):
-				for line in FileIO.load(file).split('\n'):
-					self.add(file.stem, line, nowarn=True, dirty=False)
+		if self._path:
+			if not self._path.is_dir():
+				FileIO.ensure_directories(self._path)
+			else:
+				Dictionary.log.info(f'Loading dictionary from {self._path}')
+				for file in progressbar.progressbar(self._path.iterdir()):
+					for line in FileIO.load(file).split('\n'):
+						self.add(file.stem, line, nowarn=True, dirty=False)
 		Dictionary.log.info(f'{len(self)} words in dictionary')
 	
 	def __repr__(self) -> str:
