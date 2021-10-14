@@ -113,5 +113,5 @@ class Dictionary(Set[str]):
 	def clean(self, word: str) -> str:
 		word = word.replace('\xad', '') # remove soft hyphens
 		word = word.replace('-', '') # remove hard hyphens
-		word = word.strip(string.punctuation + string.whitespace) # strip surrounding punctuation
+		word = word.strip(string.punctuation + string.whitespace + '»«“”„›‹') # strip surrounding punctuation and quotation marks
 		return word
