@@ -31,6 +31,7 @@ class TestDictionary(unittest.TestCase):
 			'wo-rd', # hard hyphen
 			'(wo\xadrd)', # soft hyphen + parentheses
 			'(wo-rd)', # hard hyphen + parentheses
+			'»word«', # guillemets
 		]
 		
 		for w in words_ok:
