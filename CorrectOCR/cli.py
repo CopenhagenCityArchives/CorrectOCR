@@ -81,7 +81,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 
 	subparsers = rootparser.add_subparsers(dest='command', help='Choose command')
 
-	dictparser = subparsers.add_parser('build_dictionary', help="""
+	dictparser = subparsers.add_parser('dictionary', help='Dictionary-related commands.')
+	dictsubparsers = dictparser.add_subparsers(help='sub-command help')
+	builddictparser = dictsubparsers.add_parser('build', help="""
 		Build dictionary.
 		
 		Input files can be either ``.pdf``, ``.txt``, or ``.xml`` (in `TEI format <https://en.wikipedia.org/wiki/Text_Encoding_Initiative>`__). They may be
@@ -96,11 +98,14 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 
 		See CorrectOCR.dictionary for further details.
 	""")
-	dictparser.add_argument('--corpusPath', type=Path, help='Directory of files to split into words and add to dictionary')
-	dictparser.add_argument('--corpusFile', type=Path, help='File containing paths and URLs to use as corpus (TXT format)')
-	dictparser.add_argument('--add_annotator_gold', action='store_true', default=False, help='Add gold words from annotated tokens')
-	dictparser.add_argument('--clear', action='store_true', default=False, help='Clear the dictionary before adding words')
-	dictparser.set_defaults(func=commands.build_dictionary, **defaults)
+	builddictparser.add_argument('--corpusPath', type=Path, help='Directory of files to split into words and add to dictionary')
+	builddictparser.add_argument('--corpusFile', type=Path, help='File containing paths and URLs to use as corpus (TXT format)')
+	builddictparser.add_argument('--add_annotator_gold', action='store_true', default=False, help='Add gold words from annotated tokens')
+	builddictparser.add_argument('--clear', action='store_true', default=False, help='Clear the dictionary before adding words')
+	builddictparser.set_defaults(func=commands.build_dictionary, **defaults)
+	checkdictparser = dictsubparsers.add_parser('check')
+	checkdictparser.add_argument('words', type=str, nargs='*', help='Words to check in dictionary')
+	checkdictparser.set_defaults(func=commands.check_dictionary, **defaults)
 
 	alignparser = subparsers.add_parser('align', help="""
 		Create alignments.

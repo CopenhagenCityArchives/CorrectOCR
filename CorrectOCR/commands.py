@@ -3,6 +3,7 @@ import hashlib
 import logging
 import pprint
 import random
+import pprint
 import string
 import time
 import zipfile
@@ -165,6 +166,13 @@ def build_dictionary(workspace: Workspace, config):
 			workspace.resources.dictionary.save_group(group)
 
 	workspace.resources.dictionary.save()
+
+
+def check_dictionary(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.check_dictionary')
+
+	for word in config.words:
+		log.info(f'{word} is in dictionary: {word in workspace.resources.dictionary}')
 
 
 ##########################################################################################
