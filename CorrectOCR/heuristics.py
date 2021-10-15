@@ -34,6 +34,7 @@ class Heuristics(object):
 		self.tokenCount = 0
 		self.totalCount = 0
 		self.punctuationCount = 0
+		self.hyphenatedCount = 0
 		self.nogoldCount = 0
 		self.oversegmented = 0
 		self.undersegmented = 0
@@ -83,7 +84,10 @@ class Heuristics(object):
 				token.decision, token.selection, token.bin = self.bin_for_word(token.original, token.kbest)
 				if token.is_hyphenated:
 					# ugly...
-					tokens[token.index+1].decision = token.decision
+					next_token = tokens[token.index+1]
+					next_token.decision = token.decision
+					next_token.selection = token.selection
+					next_token.bin = token.bin
 			if token.decision is None or token.bin is None or token.selection is None:
 				raise ValueError(f'Token {token} was not binned!')
 			if token.bin == -1:
@@ -99,6 +103,9 @@ class Heuristics(object):
 	def add_to_report(self, tokens):
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
 			self.totalCount += 1
+			
+			if token.is_hyphenated:
+				self.hyphenatedCount += 1
 
 			if token.is_punctuation():
 				self.punctuationCount += 1
@@ -163,6 +170,7 @@ class Heuristics(object):
 		out += f'Tokens without gold correction: {self.nogoldCount:10d} ({self.nogoldCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 		out += f'Oversegmented: {self.oversegmented:10d} ({self.oversegmented/self.totalCount:6.2%})'.rjust(60) + '\n'
 		out += f'Undersegmented: {self.undersegmented:10d} ({self.undersegmented/self.totalCount:6.2%})'.rjust(60) + '\n'
+		out += f'Hyphenated: {self.hyphenatedCount:10d} ({self.hyphenatedCount/self.totalCount:6.2%})'.rjust(60) + '\n'
 		out += f'Tokens that are punctuation: {self.punctuationCount:10d} ({self.punctuationCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 		out += f'Tokens available for evaluation: {self.tokenCount:10d} ({self.tokenCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 
