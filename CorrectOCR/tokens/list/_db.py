@@ -49,8 +49,12 @@ class DBTokenList(TokenList):
 
 	def preload(self):
 		DBTokenList.log.info(f'Preloading tokens for doc {self.docid}')
+		DBTokenList.log.debug(f'Note that the progressbar will be k*n for n tokens with k suggestions each')
 		self.tokens = DBTokenList._get_all_tokens(self.config, self.docid, self.tokens)
 		DBTokenList.log.debug(f'Preloaded {len(self.tokens)} tokens, first 10: {self.tokens[:10]}')
+
+	def flush(self):
+		self.load()
 
 	@property
 	def server_ready(self):
