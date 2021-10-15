@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import traceback
 from collections import Counter, OrderedDict, defaultdict
 from dataclasses import dataclass, replace, field
 from typing import Callable, DefaultDict, Dict, List, TYPE_CHECKING
@@ -35,6 +36,7 @@ class Heuristics(object):
 		self.totalCount = 0
 		self.punctuationCount = 0
 		self.hyphenatedCount = 0
+		self.malformedCount = 0
 		self.nogoldCount = 0
 		self.oversegmented = 0
 		self.undersegmented = 0
@@ -102,61 +104,66 @@ class Heuristics(object):
 
 	def add_to_report(self, tokens):
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
-			self.totalCount += 1
-			
-			if token.is_hyphenated:
-				self.hyphenatedCount += 1
+			try:
+				self.totalCount += 1
+				
+				if token.is_hyphenated:
+					self.hyphenatedCount += 1
 
-			if token.is_punctuation():
-				self.punctuationCount += 1
+				if token.is_punctuation():
+					self.punctuationCount += 1
+					continue
+
+				# if the token or gold column is empty, a word segmentation error probably occurred in the original
+				# (though possibly a deletion)
+				# don't count any other errors here; they will be counted in the segmentation error's other half.
+				if original == '' and len(gold) > 0:
+					self.undersegmented += 1 # words ran together in original / undersegmentation
+					continue
+
+				if gold == '' and len(original) > 0:
+					self.oversegmented += 1 # word wrongly broken apart in original / oversegmentation
+					continue
+
+				if len(gold) == 0:
+					self.nogoldCount += 1
+
+				# strip punctuation, which is considered not relevant to evaluation
+				gold = self.dictionary.clean(gold) # gold standard wordform
+				original = self.dictionary.clean(original) # original uncorrected wordform
+
+				# total number of real tokens - controlled for segmentation errors
+				self.tokenCount += 1
+
+				# an evidently useful quantity for sorting out what to send to annotators
+				#  - can split any existing category across a threshold of this quantity
+				#	(based on probabilities of best and 2nd-best candidates)
+				# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
+
+				if _bins[token.bin.number].example is None and len(original) > 3:
+					_bins[token.bin.number].example = token
+
+				counts = _bins[token.bin.number].counts
+				counts['total'] += 1
+
+				if original == gold:
+					counts['(A) gold == orig'] += 1
+
+				if token.kbest[1].candidate == gold:
+					counts['(B) gold == k1'] += 1
+
+				# lower k best candidate words that pass the dictionary check
+				kbest_filtered = [item.candidate for (k, item) in token.kbest.items() if item.candidate in self.dictionary and k > 1]
+
+				if gold in kbest_filtered:
+					counts['(C) gold == lower kbest'] += 1
+
+				if token.decision:
+					counts[f'(D) decision was {token.decision}'] += 1
+			except Exception as e:
+				Heuristics.log.error(f'Error or token: {token}:\n{traceback.format_exc()}')
+				self.malformedCount += 1
 				continue
-
-			# if the token or gold column is empty, a word segmentation error probably occurred in the original
-			# (though possibly a deletion)
-			# don't count any other errors here; they will be counted in the segmentation error's other half.
-			if original == '' and len(gold) > 0:
-				self.undersegmented += 1 # words ran together in original / undersegmentation
-				continue
-
-			if gold == '' and len(original) > 0:
-				self.oversegmented += 1 # word wrongly broken apart in original / oversegmentation
-				continue
-
-			if len(gold) == 0:
-				self.nogoldCount += 1
-
-			# strip punctuation, which is considered not relevant to evaluation
-			gold = self.dictionary.clean(gold) # gold standard wordform
-			original = self.dictionary.clean(original) # original uncorrected wordform
-
-			# total number of real tokens - controlled for segmentation errors
-			self.tokenCount += 1
-
-			# an evidently useful quantity for sorting out what to send to annotators
-			#  - can split any existing category across a threshold of this quantity
-			#	(based on probabilities of best and 2nd-best candidates)
-			# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
-
-			if _bins[token.bin.number].example is None and len(original) > 3:
-				_bins[token.bin.number].example = token
-
-			counts = _bins[token.bin.number].counts
-			counts['total'] += 1
-
-			if original == gold:
-				counts['(A) gold == orig'] += 1
-
-			if token.kbest[1].candidate == gold:
-				counts['(B) gold == k1'] += 1
-
-			# lower k best candidate words that pass the dictionary check
-			kbest_filtered = [item.candidate for (k, item) in token.kbest.items() if item.candidate in self.dictionary and k > 1]
-
-			if gold in kbest_filtered:
-				counts['(C) gold == lower kbest'] += 1
-
-			if token.decision:
-				counts[f'(D) decision was {token.decision}'] += 1
 
 	def report(self) -> str:
 		if self.totalCount == 0:
@@ -171,6 +178,7 @@ class Heuristics(object):
 		out += f'Oversegmented: {self.oversegmented:10d} ({self.oversegmented/self.totalCount:6.2%})'.rjust(60) + '\n'
 		out += f'Undersegmented: {self.undersegmented:10d} ({self.undersegmented/self.totalCount:6.2%})'.rjust(60) + '\n'
 		out += f'Hyphenated: {self.hyphenatedCount:10d} ({self.hyphenatedCount/self.totalCount:6.2%})'.rjust(60) + '\n'
+		out += f'Malformed: {self.malformedCount:10d} ({self.malformedCount/self.totalCount:6.2%})'.rjust(60) + '\n'
 		out += f'Tokens that are punctuation: {self.punctuationCount:10d} ({self.punctuationCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 		out += f'Tokens available for evaluation: {self.tokenCount:10d} ({self.tokenCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 
