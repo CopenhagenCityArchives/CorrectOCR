@@ -143,7 +143,7 @@ class Heuristics(object):
 				# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
 
 				if _bins[token.bin.number].example is None and len(original) > 3 and letterRE.search(original):
-					_bins[token.bin.number].example = token
+					_bins[token.bin.number].example = (original, gold, token.kbest)
 
 				counts = _bins[token.bin.number].counts
 				counts['total'] += 1
@@ -205,12 +205,12 @@ class Heuristics(object):
 			else:
 				out += '\tNo tokens matched.'
 			if _bin.example:
-				example = _bin.example
+				(original, gold, kbest) = _bin.example
 				out += f'Example:\n'
-				out += f'\toriginal = {example.original}\n'
-				out += f'\tgold = {example.gold}\n'
+				out += f'\toriginal = {original}\n'
+				out += f'\tgold = {gold}\n'
 				out += '\tkbest = [\n'
-				for k, item in example.kbest.items():
+				for k, item in kbest.items():
 					inDict = ' * is in dictionary' if item.candidate in self.dictionary else ''
 					out += f'\t\t{k}: {item.candidate} ({item.probability:.2e}){inDict}\n'
 				out += '\t]\n'
@@ -250,7 +250,7 @@ class Bin:
 	"""
 	number: int = None #: The number of the bin.
 	counts: DefaultDict[str, int] = field(default_factory=lambda: defaultdict(int)) #: Statistics used for reporting.
-	example: Token = None #: An example of a matching :class:`CorrectOCR.tokens.Token`, used for reporting.
+	example: (original, gold, kbest) = None #: An example of a match, used for reporting.
 
 	def _copy(self):
 		return replace(self)
