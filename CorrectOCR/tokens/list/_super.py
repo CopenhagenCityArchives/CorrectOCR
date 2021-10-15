@@ -91,6 +91,9 @@ class TokenList(collections.abc.MutableSequence):
 	def preload(self):
 		pass
 
+	def flush(self):
+		pass
+
 	@property
 	def stats(self):
 		stats = collections.defaultdict(int)
