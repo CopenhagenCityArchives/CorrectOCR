@@ -142,6 +142,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group.add_argument('--build', help='Rebuild model')
 	group.add_argument('--get_kbest', type=str, help='Get k-best for word with current model')
 	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM')
+	modelparser.add_argument('--other', type=Path, help='Compare against other model')
 	modelparser.set_defaults(func=commands.model, **defaults)
 
 	addparser = subparsers.add_parser('add', help="""

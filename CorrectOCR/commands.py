@@ -19,7 +19,7 @@ from tei_reader import TeiReader
 from . import progname
 from .correcter import CorrectionShell
 from .fileio import _open_for_reading, FileIO
-from .model.hmm import HMMBuilder
+from .model.hmm import HMM, HMMBuilder
 from .server import create_app
 from .tokens import tokenize_str, Token, Tokenizer
 from .workspace import Workspace
@@ -213,9 +213,10 @@ def model(workspace: Workspace, config):
 		workspace.resources.hmm.emis = builder.emis
 		workspace.resources.hmm.save()
 	elif config.get_kbest:
-		kbest = workspace.resources.hmm.kbest_for_word(config.get_kbest, config.k)
-		pprint.pprint(kbest)
-	
+		print(f'kbest for "{config.get_kbest}" with current model: {pprint.pformat(workspace.resources.hmm.kbest_for_word(config.get_kbest, config.k))}')
+		if config.other:
+			other = HMM(config.other, workspace.resources.multiCharacterError, use_cache=False)
+			print(f'kbest for "{config.get_kbest}" with other model at {config.other}: {pprint.pformat(other.kbest_for_word(config.get_kbest, config.k))}')
 
 ##########################################################################################
 
