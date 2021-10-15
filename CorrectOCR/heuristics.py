@@ -130,10 +130,6 @@ class Heuristics(object):
 				if len(gold) == 0:
 					self.nogoldCount += 1
 
-				# strip punctuation, which is considered not relevant to evaluation
-				gold = self.dictionary.clean(gold) # gold standard wordform
-				original = self.dictionary.clean(original) # original uncorrected wordform
-
 				# total number of real tokens - controlled for segmentation errors
 				self.tokenCount += 1
 
