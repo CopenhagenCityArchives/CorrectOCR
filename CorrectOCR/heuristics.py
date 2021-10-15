@@ -162,6 +162,16 @@ class Heuristics(object):
 
 				if token.decision:
 					counts[f'(D) decision was {token.decision}'] += 1
+				
+				if token.decision == 'annotator':
+					if gold == original:
+						counts[f'(E) Annotator accepted the original'] += 1
+					elif gold == token.kbest[1].candidate:
+						counts[f'(E) Annotator chose the top candidate'] += 1
+					elif any([gold == item.candidate for item in token.kbest.values()]):
+						counts[f'(E) Annotator chose the a lower candidate'] += 1
+					else:
+						counts[f'(E) Annotator made a novel correction'] += 1
 			except Exception as e:
 				Heuristics.log.error(f'Error or token: {token}:\n{traceback.format_exc()}')
 				self.malformedCount += 1
