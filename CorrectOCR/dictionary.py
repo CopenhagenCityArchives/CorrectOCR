@@ -78,7 +78,8 @@ class Dictionary(Set[str]):
 		if ' ' in word:
 			Dictionary.log.info(f'Splitting word with spaces: {word}')
 			for w in word.split(' '):
-				self.add(group, w, nowarn, dirty)
+				if w not in self:
+					self.add(group, w, nowarn, dirty)
 			return
 		if self.ignoreCase:
 			word = word.lower()
