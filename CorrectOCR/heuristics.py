@@ -203,8 +203,10 @@ class Heuristics(object):
 			if _bin.example:
 				(original, gold, kbest) = _bin.example
 				out += f'Example:\n'
-				out += f'\toriginal = {original}\n'
-				out += f'\tgold = {gold}\n'
+				inDict = ' * is in dictionary' if original in self.dictionary else ''
+				out += f'\toriginal = {original}{inDict}\n'
+				inDict = ' * is in dictionary' if gold in self.dictionary else ''
+				out += f'\tgold = {gold}{inDict}\n'
 				out += '\tkbest = [\n'
 				for k, item in kbest.items():
 					inDict = ' * is in dictionary' if item.candidate in self.dictionary else ''
