@@ -8,6 +8,8 @@ from typing import Callable, DefaultDict, Dict, List, TYPE_CHECKING
 
 import progressbar
 
+from ._util import letterRE
+
 if TYPE_CHECKING:
 	from .dictionary import Dictionary
 	from .tokens import Token
@@ -140,7 +142,7 @@ class Heuristics(object):
 				#	(based on probabilities of best and 2nd-best candidates)
 				# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
 
-				if _bins[token.bin.number].example is None and len(original) > 3:
+				if _bins[token.bin.number].example is None and len(original) > 3 and letterRE.search(original):
 					_bins[token.bin.number].example = token
 
 				counts = _bins[token.bin.number].counts
