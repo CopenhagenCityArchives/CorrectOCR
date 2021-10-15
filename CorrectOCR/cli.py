@@ -213,7 +213,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		See CorrectOCR.heuristics.Heuristics for further details.
 	""")
 	group = statsparser.add_mutually_exclusive_group(required=True)
-	group.add_argument('--make_report', action='store_true', help='Make heuristics statistics report from tokens')
+	group.add_argument('--make_report', action='store_true', help='Make heuristics statistics report from finished documents')
 	group.add_argument('--make_settings', action='store_true', help='Make heuristics settings from report')
 	statsparser.set_defaults(func=commands.do_stats, **defaults)
 

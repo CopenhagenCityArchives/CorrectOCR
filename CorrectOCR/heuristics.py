@@ -96,61 +96,60 @@ class Heuristics(object):
 		Heuristics.log.debug(f'Counts for each bin: {counts}')
 		Heuristics.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
 
-	def add_to_report(self, token: 'Token'):
-		self.totalCount += 1
+	def add_to_report(self, tokens):
+		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
+			self.totalCount += 1
 
-		if token.is_punctuation():
-			self.punctuationCount += 1
-			return
+			if token.is_punctuation():
+				self.punctuationCount += 1
+				continue
 
-		# if the token or gold column is empty, a word segmentation error probably occurred in the original
-		# (though possibly a deletion)
-		# don't count any other errors here; they will be counted in the segmentation error's other half.
-		if token.original == '' and len(token.gold) > 0:
-			self.undersegmented += 1 # words ran together in original / undersegmentation
-			return
+			# if the token or gold column is empty, a word segmentation error probably occurred in the original
+			# (though possibly a deletion)
+			# don't count any other errors here; they will be counted in the segmentation error's other half.
+			if original == '' and len(gold) > 0:
+				self.undersegmented += 1 # words ran together in original / undersegmentation
+				continue
 
-		if token.gold == '' and len(token.original) > 0:
-			self.oversegmented += 1 # word wrongly broken apart in original / oversegmentation
-			return
+			if gold == '' and len(original) > 0:
+				self.oversegmented += 1 # word wrongly broken apart in original / oversegmentation
+				continue
 
-		if len(token.gold) == 0:
-			self.nogoldCount += 1
+			if len(gold) == 0:
+				self.nogoldCount += 1
 
-		# strip punctuation, which is considered not relevant to evaluation
-		gold = self.dictionary.clean(token.gold) # gold standard wordform
-		original = self.dictionary.clean(token.original) # original uncorrected wordform
+			# strip punctuation, which is considered not relevant to evaluation
+			gold = self.dictionary.clean(gold) # gold standard wordform
+			original = self.dictionary.clean(original) # original uncorrected wordform
 
-		# total number of real tokens - controlled for segmentation errors
-		self.tokenCount += 1
+			# total number of real tokens - controlled for segmentation errors
+			self.tokenCount += 1
 
-		# an evidently useful quantity for sorting out what to send to annotators
-		#  - can split any existing category across a threshold of this quantity
-		#	(based on probabilities of best and 2nd-best candidates)
-		# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
+			# an evidently useful quantity for sorting out what to send to annotators
+			#  - can split any existing category across a threshold of this quantity
+			#	(based on probabilities of best and 2nd-best candidates)
+			# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
 
-		(_, _, _bin) = self.bin_for_token(token)
+			if _bins[token.bin.number].example is None and len(original) > 3:
+				_bins[token.bin.number].example = token
 
-		if not _bin:
-			return # was unable to make heuristic decision
+			counts = _bins[token.bin.number].counts
+			counts['total'] += 1
 
-		if 'example' not in _bins[_bin.number] and len(original) > 3:
-			_bins[_bin.number].example = token
+			if original == gold:
+				counts['(A) gold == orig'] += 1
 
-		counts = _bins[_bin.number].counts
-		counts['total'] += 1
+			if token.kbest[1].candidate == gold:
+				counts['(B) gold == k1'] += 1
 
-		if original == gold:
-			counts['1 gold == orig'] += 1
+			# lower k best candidate words that pass the dictionary check
+			kbest_filtered = [item.candidate for (k, item) in token.kbest.items() if item.candidate in self.dictionary and k > 1]
 
-		if token.kbest[1].candidate == gold:
-			counts['2 gold == k1'] += 1
+			if gold in kbest_filtered:
+				counts['(C) gold == lower kbest'] += 1
 
-		# lower k best candidate words that pass the dictionary check
-		kbest_filtered = [item.candidate for (k, item) in token.kbest if item.candidate in self.dictionary and k > 1]
-
-		if gold in kbest_filtered:
-			counts['3 gold == lower kbest'] += 1
+			if token.decision:
+				counts[f'(D) decision was {token.decision}'] += 1
 
 	def report(self) -> str:
 		if self.totalCount == 0:
@@ -166,31 +165,24 @@ class Heuristics(object):
 		out += f'Undersegmented: {self.undersegmented:10d} ({self.undersegmented/self.totalCount:6.2%})'.rjust(60) + '\n'
 		out += f'Tokens that are punctuation: {self.punctuationCount:10d} ({self.punctuationCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 		out += f'Tokens available for evaluation: {self.tokenCount:10d} ({self.tokenCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
-		out += 'Choose from these options for each bin:\n'
-		out += '\ta (annotator)\n'
-		out += '\to (original)\n'
-		out += '\tk (k1, best candidate)\n'
-		out += '\td (best candidate in dictionary)\n'
-		out += '(o and k interchangeable when original is identical to k1; d not applicable in all bins)\n\n\n\n'
 
 		for num, _bin in _bins.items():
-			out += f'BIN {num} \t\t\t\t\t\t\t\t enter decision here:\t\n'
+			total = _bin.counts.pop('total', 0) if len(_bin.counts) > 0 else 0
+			out += f'BIN {num}\t\t {total:10d} tokens ({total/self.tokenCount:6.2%} of total)\n'
 			out += _bin.description + '\n'
-			if 'counts' in _bin:
-				total = _bin.counts.pop('total', 0)
+			if len(_bin.counts) > 0:
 				for name, count in sorted(_bin.counts.items(), key=lambda x: x[0]):
-					out += f'{name[2:]:20}:{count:10d} ({count/total:6.2%})'.rjust(60) + '\n'
-				out += f'total:{total:10d} ({total/self.tokenCount:6.2%})'.rjust(60) + '\n'
+					out += f'{name:30}: {count:10d}'.rjust(50) + f' ({count/total:6.2%})\n'
 				_bin.counts['total'] = total
 			else:
 				out += '\tNo tokens matched.'
-			if 'example' in _bin:
+			if _bin.example:
 				example = _bin.example
 				out += f'Example:\n'
 				out += f'\toriginal = {example.original}\n'
 				out += f'\tgold = {example.gold}\n'
 				out += '\tkbest = [\n'
-				for k, item in example.kbest:
+				for k, item in example.kbest.items():
 					inDict = ' * is in dictionary' if item.candidate in self.dictionary else ''
 					out += f'\t\t{k}: {item.candidate} ({item.probability:.2e}){inDict}\n'
 				out += '\t]\n'

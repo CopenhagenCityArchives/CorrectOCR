@@ -296,10 +296,10 @@ def do_stats(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_stats')
 
 	if config.make_report:
-		for docid, doc in workspace.documents(is_done=True):
+		for docid, doc in workspace.documents(is_done=True).items():
 			log.info(f'Collecting stats from {docid}')
-			for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
-				workspace.resources.heuristics.add_to_report(token)
+			doc.tokens.preload()
+			workspace.resources.heuristics.add_to_report(doc.tokens)
 
 		log.info(f'Saving report to {workspace.resources.reportFile}')
 		FileIO.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
