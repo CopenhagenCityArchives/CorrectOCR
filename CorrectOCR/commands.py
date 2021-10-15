@@ -1,6 +1,7 @@
 import collections
 import hashlib
 import logging
+import pprint
 import random
 import string
 import time
@@ -180,28 +181,32 @@ def do_align(workspace: Workspace, config):
 ##########################################################################################
 
 
-def build_model(workspace: Workspace, config):
-	log = logging.getLogger(f'{__name__}.build_model')
+def model(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.model')
 	
-	# Extra config
-	remove_chars: List[str] = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
+	if config.build:
+		# Extra config
+		remove_chars: List[str] = [' ', '\t', '\n', '\r', u'\ufeff', '\x00']
 
-	# Select the gold docs which correspond to the read count files.
-	readCounts = collections.defaultdict(collections.Counter)
-	gold_words = []
-	for docid, doc in workspace.documents(is_done=True).items():
-		log.info(f'Adding gold tokens from {docid} to model')
-		(_, _, counts) = doc.alignments
-		readCounts.update(counts)
-		for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
-			gold_words.append(gold)
+		# Select the gold docs which correspond to the read count files.
+		readCounts = collections.defaultdict(collections.Counter)
+		gold_words = []
+		for docid, doc in workspace.documents(is_done=True).items():
+			log.info(f'Adding gold tokens from {docid} to model')
+			(_, _, counts) = doc.alignments
+			readCounts.update(counts)
+			for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
+				gold_words.append(gold)
 
-	builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, config.characterSet, readCounts, remove_chars, gold_words)
+		builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, config.characterSet, readCounts, remove_chars, gold_words)
 
-	workspace.resources.hmm.init = builder.init
-	workspace.resources.hmm.tran = builder.tran
-	workspace.resources.hmm.emis = builder.emis
-	workspace.resources.hmm.save()
+		workspace.resources.hmm.init = builder.init
+		workspace.resources.hmm.tran = builder.tran
+		workspace.resources.hmm.emis = builder.emis
+		workspace.resources.hmm.save()
+	elif config.get_kbest:
+		kbest = workspace.resources.hmm.kbest_for_word(config.get_kbest, config.k)
+		pprint.pprint(kbest)
 	
 
 ##########################################################################################

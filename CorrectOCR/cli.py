@@ -121,9 +121,9 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	alignparser.add_argument('--exclude', action='append', default=[], help='Doc ID to exclude (can be specified multiple times)')
 	alignparser.set_defaults(func=commands.do_align, **defaults)
 
-	modelparser = subparsers.add_parser('build_model', help="""
+	modelparser = subparsers.add_parser('model', help="""
 		Build model.
-		
+		# TODO #
 		This is done with the aligned original/gold-documents. If none exist, an attempt
 		will be made to create them.
 		
@@ -133,8 +133,11 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		
 		See CorrectOCR.model for further details.
 	""")
+	group = modelparser.add_mutually_exclusive_group(required=True)
+	group.add_argument('--build', help='Rebuild model')
+	group.add_argument('--get_kbest', type=str, help='Get k-best for word with current model')
 	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM')
-	modelparser.set_defaults(func=commands.build_model, **defaults)
+	modelparser.set_defaults(func=commands.model, **defaults)
 
 	addparser = subparsers.add_parser('add', help="""
 		Add documents for processing
