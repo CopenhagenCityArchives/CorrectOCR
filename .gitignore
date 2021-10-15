@@ -36,3 +36,5 @@ workspace/__COCRcache__
 .env
 workspace/resources/dictionary
 workspace/resources/multicharacter_errors.json
+workspace/resources/report*.txt
+workspace/resources/*.0??.*
