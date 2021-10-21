@@ -22,4 +22,4 @@ class TestLastModified(unittest.TestCase):
 		self.assertTrue(token.is_discarded, f'Resulting token should be discarded: {vars(token)}')
 		self.assertEqual(token.gold, '', f'Resulting token.gold should be cleared: {vars(token)}')
 		
-		self.assertTrue(token.last_modified > last_modified, f'Resulting token should have updated last_modified (was {last_modified}): {vars(token)}')
+		self.assertTrue(token.last_modified > last_modified, f'Resulting token should have updated last_modified ({last_modified} > {token.last_modified}): {vars(token)}')
