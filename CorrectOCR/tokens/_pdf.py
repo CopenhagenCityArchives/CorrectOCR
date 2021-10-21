@@ -100,7 +100,7 @@ class PDFToken(Token):
 ##########################################################################################
 
 
-@Tokenizer.register(['.pdf'])
+@Tokenizer.register(['.pdf', 'application/pdf'])
 class PDFTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.PDFTokenizer')
 

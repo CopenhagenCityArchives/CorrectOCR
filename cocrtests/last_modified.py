@@ -7,7 +7,7 @@ from CorrectOCR.tokens import Tokenizer
 
 class TestLastModified(unittest.TestCase):
 	def test_last_modified(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
+		t = Tokenizer.for_type('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('test')
 		tokens = t.tokenize(f, MockConfig())

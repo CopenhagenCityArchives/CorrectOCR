@@ -44,7 +44,7 @@ class MockWorkspace(object):
 	def __init__(self, root, docid, contents):
 		self.root = root
 		self.docid = docid
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
+		t = Tokenizer.for_type('.txt')(language=MockLang('english'))
 		tokens = t.tokenize( MockCorpusFile(contents, self.docid), MockConfig())
 		self.doc = MockDocument(docid, tokens)
 		self.docs = {docid: self.doc}

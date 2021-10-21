@@ -8,7 +8,7 @@ from CorrectOCR.tokens import Tokenizer
 
 class TestAligner(unittest.TestCase):
 	def test_alignments(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
+		t = Tokenizer.for_type('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('This is a t3st')
 		tokens = t.tokenize(f, MockConfig())
@@ -29,7 +29,7 @@ class TestAligner(unittest.TestCase):
 		self.assertEqual(readCounts['3']['e'], 1, f'The character 3 should have been read as e exactly once: {readCounts}')
 
 	def test_align_gold(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
+		t = Tokenizer.for_type('.txt')(language=MockLang('english'))
 
 		left = t.tokenize(MockCorpusFile('This is a t3st'), MockConfig())
 		right = t.tokenize(MockCorpusFile('This is a test'), MockConfig())

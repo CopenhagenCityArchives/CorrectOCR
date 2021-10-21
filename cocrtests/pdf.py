@@ -7,7 +7,7 @@ from CorrectOCR.tokens import Tokenizer
 
 class TestPDF(unittest.TestCase):
 	def test_pdf_tokenization(self):
-		t = Tokenizer.for_extension('.pdf')(language=MockLang('english'))
+		t = Tokenizer.for_type('.pdf')(language=MockLang('english'))
 
 		f = pathlib.Path(__file__).parent.joinpath('test.pdf')
 		tokens = t.tokenize(f, MockConfig())

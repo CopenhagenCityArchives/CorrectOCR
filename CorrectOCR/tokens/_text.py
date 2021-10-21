@@ -29,7 +29,7 @@ class StringToken(Token):
 ##########################################################################################
 
 
-@Tokenizer.register(['.txt'])
+@Tokenizer.register(['.txt', 'text/plain'])
 class StringTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.StringTokenizer')
 

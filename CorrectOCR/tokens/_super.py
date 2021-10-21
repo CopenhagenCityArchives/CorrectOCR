@@ -236,34 +236,34 @@ class Tokenizer(abc.ABC):
 	_subclasses = dict()
 
 	@staticmethod
-	def register(extensions: List[str]):
+	def register(filetypes: List[str]):
 		"""
 		Decorator which registers a :class:`Tokenizer` subclass with the base class.
 
-		:param extensions: List of extensions that the subclass will handle
+		:param filetypes: List of extensions or mimetypes that the subclass will handle
 		"""
 		def wrapper(cls):
-			for ext in extensions:
-				Tokenizer._subclasses[ext] = cls
+			for filetype in filetypes:
+				Tokenizer._subclasses[filetype] = cls
 			return cls
 		return wrapper
 
 	@staticmethod
-	def for_extension(ext: str) -> TokenList.__class__:
+	def for_type(filetype: str) -> TokenList.__class__:
 		"""
 		Obtain the suitable subclass for the given extension. Currently, Tokenizers are
 		provided for the following extensions:
 
-		-  ``.txt`` -- plain old text.
-		-  ``.pdf`` -- assumes the PDF contains images and OCRed text.
-		-  ``.tiff`` -- will run OCR on the image and generate a PDF.
-		-  ``.png`` -- will run OCR on the image and generate a PDF.
+		-  ``.txt`` / ``text/plain`` -- plain old text.
+		-  ``.pdf`` / ``application/pdf`` -- assumes the PDF contains images and OCRed text.
+		-  ``.tiff`` / ``image/tiff`` -- will run OCR on the image and generate a PDF.
+		-  ``.png`` / ``image/png`` -- will run OCR on the image and generate a PDF.
 
-		:param ext: Filename extension (including leading period).
+		:param filetype: Filename extension (including leading period) or mimetype.
 		:return: A Tokenizer subclass.
 		"""
 		Tokenizer.log.debug(f'_subclasses: {Tokenizer._subclasses}')
-		return Tokenizer._subclasses[ext]
+		return Tokenizer._subclasses[filetype]
 
 	def __init__(self, language):
 		"""

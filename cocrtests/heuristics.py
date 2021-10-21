@@ -9,7 +9,7 @@ from CorrectOCR.tokens import Tokenizer
 
 class TestHeuristics(unittest.TestCase):
 	def test_auto_dehyphenation(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
+		t = Tokenizer.for_type('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('String')
 		tokens = t.tokenize(f, MockConfig())

@@ -7,7 +7,7 @@ from CorrectOCR.tokens import Tokenizer
 
 class TestToken(unittest.TestCase):
 	def test_tokenizer(self):
-		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
+		t = Tokenizer.for_type('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('String')
 		tokens = t.tokenize(f, MockConfig())

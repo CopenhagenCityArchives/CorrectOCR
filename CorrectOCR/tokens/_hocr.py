@@ -186,7 +186,7 @@ def tokenize_image(docid: str, page: int, image: Image, language='Eng', force=Fa
 ##########################################################################################
 
 
-@Tokenizer.register(['.tiff', '.png'])
+@Tokenizer.register(['.tiff', '.png', 'image/tiff', 'image/png'])
 class HOCRTokenizer(Tokenizer):
 	log = logging.getLogger(f'{__name__}.HOCRTokenizer')
 

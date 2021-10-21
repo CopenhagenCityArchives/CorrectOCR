@@ -119,7 +119,7 @@ class Document(object):
 
 		if step == 'tokenize':
 			if force or len(self.tokens) == 0:
-				tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.config.language)
+				tokenizer = Tokenizer.for_type(self.ext)(self.workspace.config.language)
 				self.tokens = tokenizer.tokenize(
 					self.originalFile,
 					self.workspace.storageconfig
@@ -159,7 +159,7 @@ class Document(object):
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
 		Document.log.info(f'Cropping tokens for {self.docid}')
-		Tokenizer.for_extension(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens, edge_left, edge_right)
+		Tokenizer.for_type(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens, edge_left, edge_right)
 		self.tokens.save()
 
 	def precache_images(self, complete=False):
