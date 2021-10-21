@@ -104,7 +104,9 @@ class Heuristics(object):
 		Heuristics.log.debug(f'Counts for each bin: {counts}')
 		Heuristics.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
 
-	def add_to_report(self, tokens):
+	def add_to_report(self, tokens, rebin=False, hmm=None):
+		if rebin:
+			Heuristics.log.info(f'Will rebin {len(tokens)} tokens for comparison.')
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
 			try:
 				self.totalCount += 1
@@ -138,20 +140,31 @@ class Heuristics(object):
 				#	(based on probabilities of best and 2nd-best candidates)
 				# qqh = (token.kbest[1].probablity-token.kbest[2].probability) / token.kbest[1].probability
 
-				if _bins[token.bin.number].example is None and len(original) > 3 and letterRE.search(original):
-					_bins[token.bin.number].example = (original, gold, token.kbest)
+				if rebin:
+					kbest = hmm.kbest_for_word(token.original, token.k)
+					decision, selection, token_bin = self.bin_for_word(token.original, kbest)
+					bin_number = token_bin.number
+				else:
+					kbest = token.kbest
+					bin_number = token.bin.number					
 
-				counts = _bins[token.bin.number].counts
+				if _bins[bin_number].example is None and len(original) > 3 and letterRE.search(original):
+					_bins[bin_number].example = (original, gold, kbest)
+
+				counts = _bins[bin_number].counts
 				counts['total'] += 1
+
+				if token.bin and bin_number != token.bin.number:
+					counts[f'previously in bin {token.bin.number}'] += 1
 
 				if original == gold:
 					counts['(A) gold == orig'] += 1
 
-				if token.kbest[1].candidate == gold:
+				if kbest[1].candidate == gold:
 					counts['(B) gold == k1'] += 1
 
 				# lower k best candidate words that pass the dictionary check
-				kbest_filtered = [item.candidate for (k, item) in token.kbest.items() if item.candidate in self.dictionary and k > 1]
+				kbest_filtered = [item.candidate for (k, item) in kbest.items() if item.candidate in self.dictionary and k > 1]
 
 				if gold in kbest_filtered:
 					counts['(C) gold == lower kbest'] += 1
@@ -162,14 +175,14 @@ class Heuristics(object):
 				if token.decision == 'annotator':
 					if gold == original:
 						counts[f'(E) Annotator accepted the original'] += 1
-					elif gold == token.kbest[1].candidate:
+					elif gold == kbest[1].candidate:
 						counts[f'(E) Annotator chose the top candidate'] += 1
-					elif any([gold == item.candidate for item in token.kbest.values()]):
+					elif any([gold == item.candidate for item in kbest.values()]):
 						counts[f'(E) Annotator chose the a lower candidate'] += 1
 					else:
 						counts[f'(E) Annotator made a novel correction'] += 1
 			except Exception as e:
-				Heuristics.log.error(f'Error or token: {token}:\n{traceback.format_exc()}')
+				Heuristics.log.error(f'Malformed token: {token}:\n{traceback.format_exc()}')
 				self.malformedCount += 1
 				continue
 

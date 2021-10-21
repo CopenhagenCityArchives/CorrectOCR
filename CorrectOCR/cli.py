@@ -216,6 +216,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group = statsparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('--make_report', action='store_true', help='Make heuristics statistics report from finished documents')
 	group.add_argument('--make_settings', action='store_true', help='Make heuristics settings from report')
+	statsparser.add_argument('--rebin', action='store_true', help='Rerun kbest/bin steps to compare quality (will take longer)')
 	statsparser.set_defaults(func=commands.do_stats, **defaults)
 
 	correctparser = subparsers.add_parser('correct', help='Apply corrections')
