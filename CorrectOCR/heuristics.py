@@ -155,9 +155,10 @@ class Heuristics(object):
 				counts = _bins[bin_number].counts
 				counts['total'] += 1
 
+				counts['previous'] = counts.get('previous', defaultdict(int))
 				if token.bin and bin_number != token.bin.number:
-					counts[f'previously in bin {token.bin.number}'] += 1
-					counts[f'previously in another bin'] += 1
+					counts['previous'][f'bin {token.bin.number}'] += 1
+					counts['previous'][f'total'] += 1
 
 				if original == gold:
 					counts['(A) gold == orig'] += 1
@@ -180,7 +181,7 @@ class Heuristics(object):
 					elif gold == kbest[1].candidate:
 						counts[f'(E) Annotator chose the top candidate'] += 1
 					elif any([gold == item.candidate for item in kbest.values()]):
-						counts[f'(E) Annotator chose the a lower candidate'] += 1
+						counts[f'(E) Annotator chose a lower candidate'] += 1
 					else:
 						counts[f'(E) Annotator made a novel correction'] += 1
 			except Exception as e:
@@ -207,14 +208,19 @@ class Heuristics(object):
 
 		for num, _bin in _bins.items():
 			total = _bin.counts.pop('total', 0) if len(_bin.counts) > 0 else 0
+			previous = _bin.counts.pop('previous', dict())
 			out += f'BIN {num}\t\t {total:10d} tokens ({total/self.tokenCount:6.2%} of total)\n'
 			out += _bin.description + '\n'
 			if len(_bin.counts) > 0:
 				for name, count in sorted(_bin.counts.items(), key=lambda x: x[0]):
 					out += f'{name:30}: {count:10d}'.rjust(50) + f' ({count/total:6.2%})\n'
-				_bin.counts['total'] = total
 			else:
-				out += '\tNo tokens matched.'
+				out += '\tNo tokens matched.\n'
+			if len(previous) > 0:
+				out += '\nNumber of previously binned tokens that\n'
+				out += 'move to this bin with the current model :\n'
+				for name, count in sorted(previous.items(), key=lambda x: x[0]):
+					out += f'{name:30}: {count:10d}'.rjust(50) + f' ({count/total:6.2%})\n'
 			if _bin.example:
 				(original, gold, kbest) = _bin.example
 				out += f'Example:\n'
