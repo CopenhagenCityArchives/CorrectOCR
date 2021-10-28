@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import datetime
 import itertools
 import logging
+import mimetypes
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple, Union
 
@@ -18,41 +21,43 @@ def window(iterable, size=3):
     return zip(*(itertools.islice(it, index, None) for index, it in enumerate(its)))
 
 
+@dataclass
 class Document(object):
 	log = logging.getLogger(f'{__name__}.Document')
+	
+	workspace: Workspace
+	path: str
+	doc_id: str = None #: The 
+	mimetype: str = None #: The mimetype of the document
+	date_added: datetime.datetime = None #: When the document was added to the system
+	info_url: str = None #: A URL pointing to further information about the document, if necessary
+	nheaderlines: int = None #: Number of lines in file header (only relevant for ``.txt`` / ``text/plain`` files)
 
 	"""
 	Documents provide access to paths and :class:`Tokens<CorrectOCR.tokens.Token>`.
 	"""
-	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, nheaderlines: int = 0):
-		"""
-		:param doc: A path to a file.
-		:param original: Directory for original uncorrected files.
-		:param gold: Directory for known correct "gold" files (if any).
-		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)
-		"""
+	def __post_init__(self):
 		self._server_ready = False
 		self._is_done = False
 		self.workspace = workspace
-		self.docid = Document.get_id(doc)
-		self.ext = doc.suffix
-		if self.docid is None:
-			raise ValueError(f'Cannot get docid from {doc}')
+		self.doc_id = doc.stem
+		self.mimetype = mimetypes.guess_type(doc)
+		if self.doc_id is None:
+			raise ValueError(f'Cannot get doc_id from {doc}')
 		self.info_url = None #: URL that provides information about the document
 		if self.workspace.docInfoBaseURL:
-			self.info_url = self.workspace.docInfoBaseURL + self.docid
-		Document.log.info(f'Document {self.docid} has info_url: {self.info_url}')
-		if self.ext == '.txt':
-			self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(doc.name), nheaderlines)
-			self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(doc.name), nheaderlines)
+			self.info_url = self.workspace.docInfoBaseURL + self.doc_id
+			Document.log.info(f'Document {self.doc_id} has info_url: {self.info_url}')
+		if self.mimetype == 'text/plain':
+			self.originalFile: Union[CorpusFile, Path] = CorpusFile(self.path, nheaderlines)
+			self.goldFile: Union[CorpusFile, Path] = CorpusFile(self.path, nheaderlines)
 		else:
-			self.originalFile: Union[CorpusFile, Path] = original.joinpath(doc.name)
-			self.goldFile: Union[CorpusFile, Path] = gold.joinpath(doc.name)
+			self.originalFile: Union[CorpusFile, Path] = self.path
+			self.goldFile: Union[CorpusFile, Path] = self.path
 		if not self.originalFile.exists():
 			raise ValueError(f'Cannot create Document with non-existing original file: {self.originalFile}')
-		self.tokenFile = training.joinpath(f'{self.docid}.csv')  #: Path to token file (CSV format).
 		
-		self.tokens = TokenList.new(self.workspace.storageconfig, docid=self.docid)
+		self.tokens = TokenList.new(self.workspace.storageconfig, doc_id=self.doc_id)
 		self.tokens.load()
 		Document.log.debug(f'Loaded {len(self.tokens)} tokens. Stats: {self.tokens.stats}')
 
@@ -119,17 +124,17 @@ class Document(object):
 
 		if step == 'tokenize':
 			if force or len(self.tokens) == 0:
-				tokenizer = Tokenizer.for_type(self.ext)(self.workspace.config.language)
+				tokenizer = Tokenizer.for_type(self.mimetype)(self.workspace.config.language)
 				self.tokens = tokenizer.tokenize(
 					self.originalFile,
 					self.workspace.storageconfig
 				)
 				if dehyphenate:
-					Document.log.info(f'Document {self.docid} will be dehyphenated')
+					Document.log.info(f'Document {self.doc_id} will be dehyphenated')
 					self.tokens.dehyphenate()
 				tokens_modified = True
 			else:
-				Document.log.info(f'Document {self.docid} is already tokenized. Use --force to recreate tokens (this will destroy suggestions and corrections).')
+				Document.log.info(f'Document {self.doc_id} is already tokenized. Use --force to recreate tokens (this will destroy suggestions and corrections).')
 				return
 		elif step == 'autocrop':
 			self.prepare('tokenize', k, dehyphenate)
@@ -158,12 +163,12 @@ class Document(object):
 			self.tokens.save()
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
-		Document.log.info(f'Cropping tokens for {self.docid}')
-		Tokenizer.for_type(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens, edge_left, edge_right)
+		Document.log.info(f'Cropping tokens for {self.doc_id}')
+		Tokenizer.for_type(self.mimetype).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens, edge_left, edge_right)
 		self.tokens.save()
 
 	def precache_images(self, complete=False):
-		Document.log.info(f'Precaching images for {self.docid}')
+		Document.log.info(f'Precaching images for {self.doc_id}')
 		if complete:
 			Document.log.info(f'Generating ALL images.')
 			for token in progressbar.progressbar(self.tokens):

@@ -19,6 +19,7 @@ logging.debug(f'If this text is visible, debug logging is active. Change it in {
 
 from .aligner import *
 from .dictionary import *
+from .document import *
 from .heuristics import *
 from .hyphenation import *
 from .last_modified import *
