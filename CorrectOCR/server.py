@@ -252,11 +252,11 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     "Bin": 2,
 		     "Heuristic": "annotator",
 		     "Doc ID": "7696",
-		     "Gold": "",
+		     "gold": "",
 		     "Hyphenated": false,
 		     "Discarded": false,
 		     "Index": 2676,
-		     "Original": "Jornben.",
+		     "original": "Jornben.",
 		     "Selection": [],
 		     "Token info": "...",
 		     "Token type": "PDFToken",
@@ -264,7 +264,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		     "Frame": [0, 0, 100, 100],
 		     "Annotation info": "...",
 		     "image_url": "/7696/token-2676.png"
-		     "k-best": {
+		     "kbest": {
 			   1: { "candidate": "Jornben", "probability": 2.96675056066388e-08 },
 			   2: { "candidate": "Joreben", "probability": 7.41372275428713e-10 },
 			   3: { "candidate": "Jornhen", "probability": 6.17986300962785e-10 },
@@ -284,24 +284,24 @@ def create_app(workspace: Workspace = None, config: Any = None):
 			prev_token = g.docs[g.doc_id].tokens[g.doc_index-1]
 			if prev_token.is_hyphenated:
 				return redirect(url_for('tokeninfo', doc_id=prev_token.docid, doc_index=prev_token.index))
-		tokendict = vars(g.token)
-		if tokendict['Original'][-1] == '\xad': # soft hyphen
-			tokendict['Original'] = tokendict['Original'][:-1] + '-'
-			for k in tokendict['k-best'].keys():
-				tokendict['k-best'][k]['candidate'] = tokendict['k-best'][k]['candidate'].replace('\xad', '-')
-		if tokendict['Gold'] and tokendict['Gold'][-1] == '\xad': # soft hyphen
-			tokendict['Gold'] = tokendict['Gold'][:-1] + '-'
+		tokendict = g.token.to_dict()
+		if tokendict['original'][-1] == '\xad': # soft hyphen
+			tokendict['original'] = tokendict['original'][:-1] + '-'
+			for k in tokendict['kbest'].keys():
+				tokendict['kbest'][k]['candidate'] = tokendict['kbest'][k]['candidate'].replace('\xad', '-')
+		if tokendict['gold'] and tokendict['gold'][-1] == '\xad': # soft hyphen
+			tokendict['gold'] = tokendict['gold'][:-1] + '-'
 		if g.token.is_hyphenated:
 			# TODO ugly hack so users see he joined token....
 			next_token = g.docs[g.doc_id].tokens[g.doc_index+1]
-			tokendict['Original'] += next_token.original
-			if tokendict['Gold']:
+			tokendict['original'] += next_token.original
+			if tokendict['gold']:
 				# even if the first part has gold, the second might not...
 				if next_token.gold:
-					tokendict['Gold'] += next_token.gold
+					tokendict['gold'] += next_token.gold
 				else:
 					# if the next token doesn't have gold, we don't consider the joined word as gold
-					tokendict['Gold'] = None
+					tokendict['gold'] = None
 		if 'image_url' not in tokendict:
 			tokendict['image_url'] = image_url(token=g.token)
 		return json.jsonify(tokendict)

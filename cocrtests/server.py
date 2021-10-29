@@ -43,8 +43,8 @@ class ServerTests(unittest.TestCase):
 
 	def test_token_view(self):
 		response = self.client.get('/abc/token-0.json', follow_redirects=True)
-		self.assertEqual(response.json['Original'], 'Once', f'key "Original" should be "Once": {response.json}')
-		self.assertEqual(response.json['Gold'], 'Once', f'key "Gold" should be "Once": {response.json}')
+		self.assertEqual(response.json['original'], 'Once', f'key "original" should be "Once": {response.json}')
+		self.assertEqual(response.json['gold'], 'Once', f'key "gold" should be "Once": {response.json}')
 
 		response = self.client.get('/abc/token-100.json', follow_redirects=True)
 		self.assertEqual(response.status_code, 404, f'Response should be 404: {response.json}')
@@ -53,53 +53,53 @@ class ServerTests(unittest.TestCase):
 		self.assertEqual(response.status_code, 404, f'Response should be 404: {response.json}')
 
 		response = self.client.get('/abc/token-1.json', follow_redirects=True)
-		self.assertEqual(response.json['Original'], 'upen', f'key "Original" should be "upen": {response.json}')
-		self.assertIsNone(response.json['Gold'], f'key "Gold" should be None: {response.json}')
+		self.assertEqual(response.json['original'], 'upen', f'key "original" should be "upen": {response.json}')
+		self.assertIsNone(response.json['gold'], f'key "gold" should be None: {response.json}')
 
 	def test_token_update(self):
 		response = self.client.get('/', follow_redirects=True)
 		self.assertEqual(response.json[0]['stats']['corrected_count'], 1, f'There should be 1 corrected token: {response.json}')
 	
 		response = self.client.get('/abc/token-1.json', follow_redirects=True)
-		self.assertEqual(response.json['Original'], 'upen', f'key "Original" should be "upen": {response.json}')
-		self.assertIsNone(response.json['Gold'], f'key "Gold" should be None: {response.json}')
+		self.assertEqual(response.json['original'], 'upen', f'key "original" should be "upen": {response.json}')
+		self.assertIsNone(response.json['gold'], f'key "gold" should be None: {response.json}')
 
 		response = self.client.post('/abc/token-1.json', json={'gold': 'upon'}, follow_redirects=True)
-		self.assertEqual(response.json['Original'], 'upen', f'key "Original" should be "upen": {response.json}')
-		self.assertEqual(response.json['Gold'], 'upon', f'key "Original" should be "upon": {response.json}')
+		self.assertEqual(response.json['original'], 'upen', f'key "original" should be "upen": {response.json}')
+		self.assertEqual(response.json['gold'], 'upon', f'key "gold" should be "upon": {response.json}')
 
 		response = self.client.get('/', follow_redirects=True)
 		self.assertEqual(response.json[0]['stats']['corrected_count'], 2, f'There should be 1 corrected token: {response.json}')
 
 	def test_token_hyphenate_left(self):
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
-		self.assertFalse(response.json['Hyphenated'], f'Token should NOT be hyphenated: {response.json}')
+		self.assertFalse(response.json['is_hyphenated'], f'Token should NOT be hyphenated: {response.json}')
 		response = self.client.get('/abc/token-4.json', follow_redirects=True)
-		self.assertFalse(response.json['Hyphenated'], f'Token should NOT be hyphenated: {response.json}')
+		self.assertFalse(response.json['is_hyphenated'], f'Token should NOT be hyphenated: {response.json}')
 
 		response = self.client.post('/abc/token-4.json', json={'gold': 'ti-me', 'hyphenate': 'left'}, follow_redirects=True)
-		self.assertEqual(response.json['Index'], 3, f'Response should be redirected to "main" token: {response.json}')
-		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
+		self.assertEqual(response.json['index'], 3, f'Response should be redirected to "main" token: {response.json}')
+		self.assertTrue(response.json['is_hyphenated'], f'Token should be hyphenated: {response.json}')
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
-		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
+		self.assertTrue(response.json['is_hyphenated'], f'Token should be hyphenated: {response.json}')
 		self.assertEqual(self.tokens[3].gold, 'ti\xad', f'Token should have first part of hyphenated word: {self.tokens[3]}')
 		self.assertEqual(self.tokens[4].gold, 'me', f'Token should have second part of hyphenated word: {self.tokens[4]}')
 
 	def test_token_hyphenate_right(self):
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
-		self.assertFalse(response.json['Hyphenated'], f'Token should NOT be hyphenated: {response.json}')
+		self.assertFalse(response.json['is_hyphenated'], f'Token should NOT be hyphenated: {response.json}')
 
 		response = self.client.post('/abc/token-3.json', json={'gold': 'ti-me', 'hyphenate': 'right'}, follow_redirects=True)
-		self.assertTrue(response.json['Hyphenated'], f'Token should be hyphenated: {response.json}')
+		self.assertTrue(response.json['is_hyphenated'], f'Token should be hyphenated: {response.json}')
 		self.assertEqual(self.tokens[3].gold, 'ti\xad', f'Token should have first part of hyphenated word: {self.tokens[3]}')
 		self.assertEqual(self.tokens[4].gold, 'me', f'Token should have second part of hyphenated word: {self.tokens[4]}')
 
 	def test_error(self):
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
-		self.assertFalse(response.json['Has error'], f'Token should NOT have error info: {response.json}')
+		self.assertFalse(response.json['has_error'], f'Token should NOT have error info: {response.json}')
 
 		response = self.client.post('/abc/token-3.json', json={'error': 'User reported an error.'}, follow_redirects=True)
-		self.assertTrue(response.json['Has error'], f'Token should have error: {response.json}')
+		self.assertTrue(response.json['has_error'], f'Token should have error: {response.json}')
 	
 	def test_random(self):
 		response = self.client.get('/random', follow_redirects=False)
@@ -128,5 +128,5 @@ class ServerTests(unittest.TestCase):
 		self.assertEqual(self.tokens[3].kbest['1'].candidate, 'ti\xadme', f'Original K-best candidate should have a soft hyphen: {self.tokens[3]}')
 
 		response = self.client.get('/abc/token-3.json', follow_redirects=True)
-		self.assertEqual(response.json['k-best']['1']['candidate'], 'ti-me', f'Server K-best candidate should have a hard hyphen: {response.json}')
+		self.assertEqual(response.json['kbest']['1']['candidate'], 'ti-me', f'Server K-best candidate should have a hard hyphen: {response.json}')
 		

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, DefaultDict, List, NamedTuple, Optional, Tuple
 
 import nltk
+from dataclasses_json import dataclass_json
 
 from .list import TokenList
 from .._util import punctuationRE
@@ -27,6 +28,7 @@ def tokenize_str(data: str, language='english') -> List[str]:
 ##########################################################################################
 
 
+@dataclass_json
 @dataclass
 class Token(abc.ABC):
 	"""
@@ -143,34 +145,10 @@ class Token(abc.ABC):
 		"""
 		return self.original.isnumeric()
 
-	@property
-	def __dict__(self):
-		output = {
-			'Gold': self.gold,
-			'Original': self.original,
-			'Doc ID': self.docid,
-			'Index': self.index,
-			'Hyphenated': self.is_hyphenated,
-			'Discarded': self.is_discarded,
-			'Page': self.page,
-			'Frame': self.frame,
-		}
-		output['k-best'] = dict()
-		for k, item in self.kbest.items():
-			output['k-best'][k] = vars(item)
-		if self.bin:
-			output['Bin'] = self.bin.number
-		#else:
-		#	raise ValueError(f'Bin missing in __dict__(): {t}')
-		output['Heuristic'] = self.heuristic
-		output['Selection'] = self.selection
-		output['Token type'] = self.__class__.__name__
-		output['Token info'] = json.dumps(self.token_info)
-		output['Annotations'] = json.dumps(self.annotations)
-		output['Has error'] = self.has_error
-		output['Last Modified'] = self.last_modified.timestamp() if self.last_modified else None
-
-		return output
+	def to_dict(self) -> Dictionary:
+		d = super().to_dict()
+		d['token_info'] = self.__class__.__name__
+		return d
 
 	# https://stackoverflow.com/questions/68417319/initialize-python-dataclass-from-dictionary
 	@classmethod
@@ -180,39 +158,10 @@ class Token(abc.ABC):
 
 		:param d: A dictionary of properties for the Token
 		"""
-		if not isinstance(d, collections.Mapping):
-			raise ValueError(f'Object is not dict-like: {d}')
-		classname = d['Token type']
-		#self.__class__.log.debug(f'from_dict: {d}')
-		t = Token._subclasses[classname](
-			json.loads(d['Token info']),
-			d['Doc ID'],
-			d['Index']
-		)
-		try:
-			t.gold = d.get('Gold', None)
-			t.is_hyphenated = bool(d.get('Hyphenated', False))
-			t.is_discarded = bool(d.get('Discarded', False))
-			t.annotations = json.loads(d.get('Annotations', []))
-			t.has_error = bool(d.get('Has error', False))
-
-			t.last_modified = d['Last Modified'] if 'Last Modified' in d else None
-			if 'k-best' in d:
-				kbest = collections.defaultdict(KBestItem)
-				for k, b in d['k-best'].items():
-					kbest[k] = KBestItem(b['candidate'], b['probability'])
-				t.kbest = kbest
-			if 'Bin' in d and d['Bin'] not in (None, '', '-1', -1):
-				from ..heuristics import Heuristics
-				t.bin = Heuristics.bin(int(d['Bin']))
-			#else:
-			#	raise ValueError(f'Bin: {d.get("Bin", None)} in from_dict(): {t}')
-			t.heuristic = d.get('Heuristic', None)
-			t.selection = d.get('Selection', None)
-			#t.__class__.log.debug(t)
-		except:
-			raise ValueError(f'Could not initialize token {t} from {d}')
-		return t
+		if cls == Token:
+			return Token._subclasses[d['token_type']].from_dict(d)
+		else:
+			return super().from_dict(d)
 
 	def drop_cached_image(self):
 		if self.cached_image_path.is_file():

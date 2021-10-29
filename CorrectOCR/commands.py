@@ -350,6 +350,7 @@ def do_correct(workspace: Workspace, config):
 		doc.prepare('autocorrect', k=config.k)
 		corrected = doc.tokens
 	elif config.apply:
+		# TODO remove
 		log.info(f'Getting corrections from {config.apply}')
 		if not config.apply.is_file():
 			log.error(f'Unable to apply non-file path {config.apply}')

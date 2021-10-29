@@ -127,24 +127,24 @@ class DBTokenList(TokenList):
 				# init token with first row
 				if not token_dict:
 					token_dict = {
-						'Token type': result.token_type,
-						'Token info': result.token_info,
-						'Annotations': result.annotations,
-						'Has error': result.has_error,
-						'Last Modified': result.last_modified,
-						'Doc ID': result.doc_id,
-						'Index': result.doc_index,
-						'Gold': result.gold,
-						'Bin': result.bin,
-						'Selection': json.loads(result.selection),
-						'Heuristic': result.heuristic,
-						'Hyphenated': result.hyphenated,
-						'Discarded': result.discarded,
-						'k-best': dict(),
+						'token_type': result.token_type,
+						'token_info': result.token_info,
+						'annotations': result.annotations,
+						'has_error': result.has_error,
+						'last_modified': result.last_modified,
+						'doc_id': result.doc_id,
+						'doc_index': result.doc_index,
+						'gold': result.gold,
+						'bin': result.bin,
+						'heuristic': result.heuristic,
+						'selection': json.loads(result.selection),
+						'hyphenated': result.hyphenated,
+						'discarded': result.discarded,
+						'kbest': dict(),
 					}
 				# then set k-best from all rows
 				if result.k:
-					token_dict['k-best'][result.k] = {
+					token_dict['kbest'][result.k] = {
 						'candidate': result.candidate,
 						'probability': result.probability,
 					}
@@ -197,24 +197,24 @@ class DBTokenList(TokenList):
 				if not token_dict:
 					# init new token
 					token_dict = {
-						'Token type': result.token_type,
-						'Token info': result.token_info,
-						'Annotations': result.annotations,
-						'Has error': result.has_error,
-						'Last Modified': result.last_modified,
-						'Doc ID': result.doc_id,
-						'Index': result.doc_index,
-						'Gold': result.gold,
-						'Bin': result.bin,
-						'Selection': json.loads(result.selection) if result.selection else None,
-						'Heuristic': result.heuristic,
-						'Hyphenated': result.hyphenated,
-						'Discarded': result.discarded,
-						'k-best': dict(),
+						'token_type': result.token_type,
+						'token_info': result.token_info,
+						'annotations': result.annotations,
+						'has_error': result.has_error,
+						'last_modified': result.last_modified,
+						'doc_id': result.doc_id,
+						'doc_index': result.doc_index,
+						'gold': result.gold,
+						'bin': result.bin,
+						'heuristic': result.heuristic,
+						'selection': json.loads(result.selection),
+						'hyphenated': result.hyphenated,
+						'discarded': result.discarded,
+						'kbest': dict(),
 					}
 				# set k-best from all rows
 				if result.k:
-					token_dict['k-best'][result.k] = {
+					token_dict['kbest'][result.k] = {
 						'candidate': result.candidate,
 						'probability': result.probability,
 					}
