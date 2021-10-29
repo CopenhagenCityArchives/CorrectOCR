@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import pprint
 import traceback
 from collections import Counter, OrderedDict, defaultdict
 from dataclasses import dataclass, replace, field
@@ -39,7 +40,7 @@ class Heuristics(object):
 		self.totalCount = 0
 		self.punctuationCount = 0
 		self.hyphenatedCount = 0
-		self.malformedCount = 0
+		self.malformedTokens = []
 		self.nogoldCount = 0
 		self.oversegmented = 0
 		self.undersegmented = 0
@@ -186,7 +187,7 @@ class Heuristics(object):
 						counts[f'(E) Annotator made a novel correction'] += 1
 			except Exception as e:
 				Heuristics.log.error(f'Malformed token: {token}:\n{traceback.format_exc()}')
-				self.malformedCount += 1
+				self.malformedTokens.append(token)
 				continue
 
 	def report(self) -> str:
@@ -202,7 +203,7 @@ class Heuristics(object):
 		out += f'Oversegmented: {self.oversegmented:10d} ({self.oversegmented/self.totalCount:6.2%})'.rjust(60) + '\n'
 		out += f'Undersegmented: {self.undersegmented:10d} ({self.undersegmented/self.totalCount:6.2%})'.rjust(60) + '\n'
 		out += f'Hyphenated: {self.hyphenatedCount:10d} ({self.hyphenatedCount/self.totalCount:6.2%})'.rjust(60) + '\n'
-		out += f'Malformed: {self.malformedCount:10d} ({self.malformedCount/self.totalCount:6.2%})'.rjust(60) + '\n'
+		out += f'Malformed: {len(self.malformedTokens):10d} ({len(self.malformedTokens)/self.totalCount:6.2%})'.rjust(60) + '\n'
 		out += f'Tokens that are punctuation: {self.punctuationCount:10d} ({self.punctuationCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 		out += f'Tokens available for evaluation: {self.tokenCount:10d} ({self.tokenCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 
@@ -234,6 +235,11 @@ class Heuristics(object):
 					out += f'\t\t{k}: {item.candidate} ({item.probability:.2e}){inDict}\n'
 				out += '\t]\n'
 			out += '\n\n\n'
+
+		if len(self.malformedTokens) > 0:
+			out += f'There were some malformed tokens:\n\n'
+			for token in self.malformedTokens:
+				out += f'{pprint.pprint(vars(token))}\n\n'
 
 		return out
 
