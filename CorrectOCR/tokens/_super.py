@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, DefaultDict, List, NamedTuple, Optional, Tuple
 
 import nltk
-from dataclasses_json import dataclass_json
+from dataclasses_json import DataClassJsonMixin
 
 from .list import TokenList
 from .._util import punctuationRE
@@ -28,9 +28,30 @@ def tokenize_str(data: str, language='english') -> List[str]:
 ##########################################################################################
 
 
-@dataclass_json
+class CorrectOCRDictMixin(DataClassJsonMixin):
+	def to_dict(self) -> Dictionary:
+		d = super(DataClassJsonMixin, self).to_dict()
+		d['token_info'] = self.__class__.__name__
+		return d
+
+	@classmethod
+	def from_dict(cls, d: dict) -> Token:
+		"""
+		Initialize and return a new Token with values from a dictionary.
+
+		:param d: A dictionary of properties for the Token
+		"""
+		print(('from_dict: ', cls, type(cls), Token.__class__))
+		if cls == Token:
+			sc = Token._subclasses[d['token_type']]
+			print(('sublass: ', sc))
+			return sc.from_dict(d)
+		else:
+			return cls.from_dict(d)
+
+
 @dataclass
-class Token(abc.ABC):
+class Token(CorrectOCRDictMixin, abc.ABC):
 	"""
 	Abstract base class. Tokens handle single words. ...
 	"""
@@ -144,24 +165,6 @@ class Token(abc.ABC):
 		Is the Token purely numeric?
 		"""
 		return self.original.isnumeric()
-
-	def to_dict(self) -> Dictionary:
-		d = super().to_dict()
-		d['token_info'] = self.__class__.__name__
-		return d
-
-	# https://stackoverflow.com/questions/68417319/initialize-python-dataclass-from-dictionary
-	@classmethod
-	def from_dict(cls, d: dict) -> Token:
-		"""
-		Initialize and return a new Token with values from a dictionary.
-
-		:param d: A dictionary of properties for the Token
-		"""
-		if cls == Token:
-			return Token._subclasses[d['token_type']].from_dict(d)
-		else:
-			return super().from_dict(d)
 
 	def drop_cached_image(self):
 		if self.cached_image_path.is_file():
