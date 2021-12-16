@@ -196,7 +196,7 @@ class Heuristics(object):
 
 		Heuristics.log.debug(f'{[(i, b.counts) for i,b in _bins.items()]}')
 
-		out = f'CorrectOCR Report for {datetime.datetime.now().isoformat()}'
+		out = f'CorrectOCR Report for {datetime.datetime.now().isoformat()}\n\n'
 
 		out += f'Total tokens included in evaluation: {self.totalCount:10d}         '.rjust(60) + '\n\n'
 		out += f'Tokens without gold correction: {self.nogoldCount:10d} ({self.nogoldCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
