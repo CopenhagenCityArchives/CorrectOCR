@@ -44,6 +44,7 @@ class Heuristics(object):
 		self.nogoldCount = 0
 		self.oversegmented = 0
 		self.undersegmented = 0
+		self.summary = Counter()
 
 	def bin_for_word(self, original, kbest):
 		# k best candidates which are in dictionary
@@ -207,6 +208,7 @@ class Heuristics(object):
 		out += f'Tokens that are punctuation: {self.punctuationCount:10d} ({self.punctuationCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 		out += f'Tokens available for evaluation: {self.tokenCount:10d} ({self.tokenCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 
+		summary = Counter()
 		for num, _bin in _bins.items():
 			total = _bin.counts.pop('total', 0) if len(_bin.counts) > 0 else 0
 			previous = _bin.counts.pop('previous', dict())
@@ -215,6 +217,7 @@ class Heuristics(object):
 			if len(_bin.counts) > 0:
 				for name, count in sorted(_bin.counts.items(), key=lambda x: x[0]):
 					out += f'{name:30}: {count:10d}'.rjust(50) + f' ({count/total:6.2%})\n'
+					summary[name] += count
 			else:
 				out += '\tNo tokens matched.\n'
 			if len(previous) > 0:
@@ -236,8 +239,12 @@ class Heuristics(object):
 				out += '\t]\n'
 			out += '\n\n\n'
 
+		out += 'Summary of annotations:\n'
+		for name, count in sorted(summary.items(), key=lambda x: x[0]):
+			out += f'{name:30}: {count:10d}'.rjust(60) + '\n'
+
 		if len(self.malformedTokens) > 0:
-			out += f'There were some malformed tokens:\n\n'
+			out += f'\n\n\nThere were some malformed tokens:\n\n'
 			for token in self.malformedTokens:
 				out += f'{pprint.pprint(vars(token))}\n\n'
 
