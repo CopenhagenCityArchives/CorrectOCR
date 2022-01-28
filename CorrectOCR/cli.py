@@ -139,7 +139,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		See CorrectOCR.model for further details.
 	""")
 	group = modelparser.add_mutually_exclusive_group(required=True)
-	group.add_argument('--build', help='Rebuild model')
+	group.add_argument('--build', action='store_true', help='Rebuild model')
 	group.add_argument('--get_kbest', type=str, help='Get k-best for word with current model')
 	modelparser.add_argument('--smoothingParameter', default=0.0001, metavar='N[.N]', help='Smoothing parameters for HMM')
 	modelparser.add_argument('--other', type=Path, help='Compare against other model')
