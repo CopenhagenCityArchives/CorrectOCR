@@ -157,7 +157,7 @@ def create_app(workspace: Workspace = None, config: Any = None):
 					#app.logger.debug(f'Skipping document marked done: {docid}')
 					continue
 				stats = doc.tokens.stats
-				if stats['token_count'] == stats['corrected_count'] + stats['error_count']:
+				if stats['uncorrected_count'] == 0 or (stats['token_count'] == stats['corrected_count'] + stats['error_count']):
 					app.logger.debug(f'Skipping document without correctable tokens: {docid}')
 					continue
 				docindex.append({
