@@ -35,7 +35,7 @@ class Document(object):
 		self._server_ready = False
 		self._is_done = False
 		self.workspace = workspace
-		self.docid = doc.stem
+		self.docid = Document.get_id(doc)
 		self.ext = doc.suffix
 		if self.docid is None:
 			raise ValueError(f'Cannot get docid from {doc}')
@@ -56,6 +56,10 @@ class Document(object):
 		self.tokens = TokenList.new(self.workspace.storageconfig, docid=self.docid)
 		self.tokens.load()
 		Document.log.debug(f'Loaded {len(self.tokens)} tokens. Stats: {self.tokens.stats}')
+
+	@classmethod
+	def get_id(cls, doc):
+		return doc.stem
 
 	@property
 	def is_done(self):
