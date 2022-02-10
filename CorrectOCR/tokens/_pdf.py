@@ -215,7 +215,11 @@ class PDFTokenizer(Tokenizer):
 			#PDFTokenizer.log.info(f'token.rect: {token.rect}')
 			for i in range(int(token.rect.x0), int(token.rect.x1)):
 				x_values.append(i)
-		
+
+		if len(x_values) == 0:
+			PDFTokenizer.log.warn('Unable to calculate crop area, will use full page width')
+			return 0, width
+
 		#PDFTokenizer.log.debug(f'min(x_values): {min(x_values)}')
 		#PDFTokenizer.log.debug(f'max(x_values): {max(x_values)}')
 		counts, bin_edges = numpy.histogram(x_values, bins=100)
