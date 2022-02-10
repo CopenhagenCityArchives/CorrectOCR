@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import urllib
+from collections.abc import MutableMapping
 from pathlib import Path, PurePath
 from pprint import pformat
 from typing import Any, Dict, Iterator, List, Tuple
@@ -15,6 +16,47 @@ from .document import Document
 from .fileio import FileIO
 from .heuristics import Heuristics
 from .model.hmm import HMM
+
+
+class LazyDocumentDict(MutableMapping):
+	log = logging.getLogger(f'{__name__}.LazyDocumentDict')
+
+	def __init__(self, workspace, *args, **kargs):
+		LazyDocumentDict.log.debug('LazyDocumentDict __init__')
+		self.workspace = workspace
+		self._dict = dict(*args, **kargs)
+
+	def __getitem__(self, key):
+		LazyDocumentDict.log.debug(f'LazyDocumentDict __getitem__ {key}')
+		value = self._dict[key]
+		if isinstance(value, PurePath):
+			LazyDocumentDict.log.debug(f'LazyDocumentDict __getitem__ GENERATING {key}')
+			value = Document(
+				self.workspace,
+				value,
+				self.workspace.root.joinpath(self.workspace.config.originalPath).resolve(),
+				self.workspace.root.joinpath(self.workspace.config.goldPath).resolve(),
+				self.workspace.root.joinpath(self.workspace.config.trainingPath).resolve(),
+				self.workspace.nheaderlines,
+			)
+		self._dict[key] = value
+		return value
+
+	def __setitem__(self, key, value):
+		LazyDocumentDict.log.debug(f'LazyDocumentDict __setitem__ {key} {value}')
+		self._dict[key] = value
+
+	def __delitem__(self, key):
+		LazyDocumentDict.log.debug(f'LazyDocumentDict __delitem__ {key}')
+		return self._dict.__delitem__(key)
+
+	def __iter__(self):
+		LazyDocumentDict.log.debug('LazyDocumentDict __iter__')
+		return iter(self._dict)
+
+	def __len__(self):
+		LazyDocumentDict.log.debug('LazyDocumentDict __len__')
+		return len(self._dict)
 
 
 class Workspace(object):
@@ -48,13 +90,14 @@ class Workspace(object):
 		self.nheaderlines: int = self.config.nheaderlines
 		self.docInfoBaseURL: int = self.config.docInfoBaseURL
 		self.resources = ResourceManager(self.root, resourceconfig)
-		self.docs: Dict[str, Document] = dict()
+		self.docs: Dict[str, Document] = LazyDocumentDict(self)
+
 		Workspace.log.info(f'Adding documents from: {self._originalPath}')
 		for file in self._originalPath.iterdir():
 			if file.name in {'.DS_Store'}:
 				continue
 			self.add_doc(file)
-		Workspace.log.info(f'Workspace documents: {self.docs}')
+		Workspace.log.info(f'Workspace documents: {len(self.docs)}')
 		self.cache = LRUCache(maxsize=1000)
 
 	def add_doc(self, doc: Any) -> str:
@@ -86,18 +129,11 @@ class Workspace(object):
 		else:
 			raise ValueError(f'Cannot add doc from reference of unknown type: {type(doc)} {doc}')
 
-		document = Document(
-			self,
-			doc,
-			self.root.joinpath(self.config.originalPath).resolve(),
-			self.root.joinpath(self.config.goldPath).resolve(),
-			self.root.joinpath(self.config.trainingPath).resolve(),
-			self.nheaderlines,
-		)
-		self.docs[document.docid] = document
-		Workspace.log.debug(f'Added {document.docid}: {document}')
+		docid = Document.get_id(doc)
+		self.docs[docid] = doc
+		Workspace.log.debug(f'Added {docid}: {doc}')
 		
-		return document.docid
+		return docid
 
 	def documents(self, ext: str=None, server_ready=False, is_done=False) -> List[str]:
 		"""
