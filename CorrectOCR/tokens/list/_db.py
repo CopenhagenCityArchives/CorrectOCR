@@ -327,7 +327,7 @@ class DBTokenList(TokenList):
 					skip_next = True
 				if result.has_error:
 					stats['error_count'] += 1
-				if result.gold is None:
+				elif result.gold is None:
 					stats['uncorrected_count'] += 1
 				else:
 					stats['corrected_count'] += 1

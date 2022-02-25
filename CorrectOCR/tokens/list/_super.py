@@ -112,7 +112,7 @@ class TokenList(collections.abc.MutableSequence):
 				skip_next = True
 			if token.has_error:
 				stats['error_count'] += 1
-			if token.gold is None:
+			elif token.gold is None:
 				stats['uncorrected_count'] += 1
 			else:
 				stats['corrected_count'] += 1
