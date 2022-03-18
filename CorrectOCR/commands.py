@@ -156,7 +156,7 @@ def build_dictionary(workspace: Workspace, config):
 			doc.tokens.preload()
 			for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
 				#print([token, token.decision, token.gold, token.is_discarded])
-				if token.decision == 'annotator' and gold is not None and gold is not '':
+				if token.decision == 'annotator' and gold is not None and gold != '':
 					if gold not in workspace.resources.dictionary:
 						log.info(f'Adding {gold}')
 						workspace.resources.dictionary.add(group, gold)
