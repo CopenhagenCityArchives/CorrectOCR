@@ -10,7 +10,7 @@ Pillow
 plotille
 progressbar2
 pycountry
-PyMuPDF>=1.14.10
+PyMuPDF>=1.19
 pyodbc
 regex
 requests

@@ -119,7 +119,7 @@ class PDFTokenizer(Tokenizer):
 		tokens = TokenList.new(storageconfig, docid=file.stem)
 		for page in doc:
 			PDFTokenizer.log.info(f'Getting tokens from {file.name} page {page.number}')
-			for w in progressbar.progressbar(page.getTextWords()):
+			for w in progressbar.progressbar(page.get_text_words()):
 				token = PDFToken((page.number, ) + tuple(w), file.stem, len(tokens))
 				tokens.append(token)
 
