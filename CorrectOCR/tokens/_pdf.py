@@ -136,7 +136,7 @@ class PDFTokenizer(Tokenizer):
 		for page in pdf_original:
 			PDFTokenizer.log.debug(f'(page {page.number})')
 			newpage = pdf_corrected.newPage(-1, page.rect.width, page.rect.height)
-			for image_info in page.getImageList():
+			for image_info in page.get_images():
 				xref = image_info[0]
 				stream = pdf_original.extractImage(xref)['image']
 				newpage.insertImage(page.rect, stream=stream)
@@ -155,7 +155,7 @@ class PDFTokenizer(Tokenizer):
 			# Adjust rectangle to fit word:
 			fontfactor = 0.70
 			size = token.rect.height * fontfactor
-			textwidth = fitz.getTextlength(word, fontsize=size)
+			textwidth = fitz.get_text_length(word, fontsize=size)
 			rect = fitz.Rect(token.rect.x0, token.rect.y0, max(token.rect.x1, token.rect.x0+textwidth+1.0), token.rect.y1 + token.rect.height)
 
 			res = page.insertTextbox(rect, f'{word} ', fontsize=size, render_mode=3)
