@@ -15,7 +15,7 @@ class Dictionary(Set[str]):
 	"""
 	Set of words to use for determining correctness of :class:`Tokens<CorrectOCR.tokens.Token>` and suggestions.
 	
-	**Note**: A Dictionary "contains" all "words" that do not contain alphabetic letters, such as ``8,5`` or ``(600)``.
+	**Note**: A Dictionary "contains" all "words" that contain at most 1 alphabetic letters, such as ``8,5`` or ``(600)`` or ``A4`` .
 	"""
 	log = logging.getLogger(f'{__name__}.Dictionary')
 
@@ -48,7 +48,7 @@ class Dictionary(Set[str]):
 
 	def __contains__(self, word: str) -> bool:
 		word = self.clean(word)
-		if word == '' or not letterRE.search(word):
+		if word == '' or len(letterRE.findall(word)) <= 1:
 			return True
 		if self.ignoreCase:
 			word = word.lower()

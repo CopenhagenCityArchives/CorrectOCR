@@ -24,6 +24,7 @@ class TestDictionary(unittest.TestCase):
 			'123',
 			'.',
 			'',
+			'A4',
 			'[word',
 			'word! ',
 			' word ',
