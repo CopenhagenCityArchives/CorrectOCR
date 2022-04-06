@@ -235,27 +235,30 @@ class Token(abc.ABC):
 			d['Doc ID'],
 			d['Index']
 		)
-		t.gold = d.get('Gold', None)
-		t.is_hyphenated = bool(d.get('Hyphenated', False))
-		t.is_discarded = bool(d.get('Discarded', False))
-		t.annotations = json.loads(d.get('Annotations', []))
-		t.has_error = bool(d.get('Has error', False))
+		try:
+			t.gold = d.get('Gold', None)
+			t.is_hyphenated = bool(d.get('Hyphenated', False))
+			t.is_discarded = bool(d.get('Discarded', False))
+			t.annotations = json.loads(d.get('Annotations', []))
+			t.has_error = bool(d.get('Has error', False))
 
-		t.last_modified = d['Last Modified'] if 'Last Modified' in d else None
-		if 'k-best' in d:
-			kbest = collections.defaultdict(KBestItem)
-			for k, b in d['k-best'].items():
-				kbest[k] = KBestItem(b['candidate'], b['probability'])
-			t.kbest = kbest
-		if 'Bin' in d and d['Bin'] not in ('', '-1', -1):
-			from ..heuristics import Heuristics
-			t.bin = Heuristics.bin(int(d['Bin']))
-			t.bin.heuristic = d['Heuristic']
-		#else:
-		#	raise ValueError(f'Bin: {d.get("Bin", None)} in from_dict(): {t}')
-		t.decision = d.get('Decision', None)
-		t.selection = d.get('Selection', None)
-		#t.__class__.log.debug(t)
+			t.last_modified = d['Last Modified'] if 'Last Modified' in d else None
+			if 'k-best' in d:
+				kbest = collections.defaultdict(KBestItem)
+				for k, b in d['k-best'].items():
+					kbest[k] = KBestItem(b['candidate'], b['probability'])
+				t.kbest = kbest
+			if 'Bin' in d and d['Bin'] not in ('', '-1', -1):
+				from ..heuristics import Heuristics
+				t.bin = Heuristics.bin(int(d['Bin']))
+				t.bin.heuristic = d['Heuristic']
+			#else:
+			#	raise ValueError(f'Bin: {d.get("Bin", None)} in from_dict(): {t}')
+			t.decision = d.get('Decision', None)
+			t.selection = d.get('Selection', None)
+			#t.__class__.log.debug(t)
+		except:
+			raise ValueError(f'Could not initialize token {t} from {d}')
 		return t
 
 	def drop_cached_image(self):
