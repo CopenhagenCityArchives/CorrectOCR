@@ -226,19 +226,20 @@ class PDFTokenizer(Tokenizer):
 		#PDFTokenizer.log.debug(f'counts: {counts}')
 		#PDFTokenizer.log.debug(f'bin_edges: {bin_edges}')
 		if show_histogram:
-			print(plotille.histogram(x_values, bins=int(max(x_values))))
+			print(plotille.histogram(x_values, bins=len(x_values)))
+			print(plotille.histogram(counts, bins=len(counts)))
 		
 		cutoff = max(counts)*tolerance
 		PDFTokenizer.log.info(f'Cutoff set to {max(counts)} * {tolerance} = {cutoff}')
 
-		edge_left, edge_right = 0, max(x_values)+1
-		for i, c in enumerate(counts[:edge_percentage], start=1):
+		edge_left, edge_right = 0, width+1
+		for i, (c, e) in enumerate(zip(counts[:edge_percentage], bin_edges[:edge_percentage])):
 			#PDFTokenizer.log.debug(f'{i}: {c} < {cutoff} ? => {edge_left}')
 			if c < cutoff:
-				edge_left = (width*i)/100
-		for i, c in enumerate(counts[-edge_percentage:], start=1):
+				edge_left = e
+		for i, (c, e) in enumerate(zip(counts[-edge_percentage:], bin_edges[-edge_percentage:])):
 			#PDFTokenizer.log.debug(f'{i}: {c} < {cutoff} ? => {edge_right}')
 			if c < cutoff:
-				edge_right = (width*(100-i))/100
+				edge_right = e
 
 		return edge_left, edge_right
