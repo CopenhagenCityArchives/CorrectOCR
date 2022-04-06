@@ -36,6 +36,7 @@ class Heuristics(object):
 			_bin.number = number
 		Heuristics.log.debug(f'Bins: {_bins}')
 		self.dictionary = dictionary
+		self.documentCount = 0
 		self.tokenCount = 0
 		self.totalCount = 0
 		self.punctuationCount = 0
@@ -108,6 +109,7 @@ class Heuristics(object):
 		Heuristics.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
 
 	def add_to_report(self, tokens, rebin=False, hmm=None):
+		self.documentCount += 1
 		if rebin:
 			Heuristics.log.info(f'Will rebin {len(tokens)} tokens for comparison.')
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
@@ -199,6 +201,7 @@ class Heuristics(object):
 
 		out = f'CorrectOCR Report for {datetime.datetime.now().isoformat()}\n\n'
 
+		out += f'Total documents included in evaluation: {self.documentCount:10d}         '.rjust(60) + '\n\n'
 		out += f'Total tokens included in evaluation: {self.totalCount:10d}         '.rjust(60) + '\n\n'
 		out += f'Tokens without gold correction: {self.nogoldCount:10d} ({self.nogoldCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 		out += f'Oversegmented: {self.oversegmented:10d} ({self.oversegmented/self.totalCount:6.2%})'.rjust(60) + '\n'
