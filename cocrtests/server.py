@@ -106,7 +106,7 @@ class ServerTests(unittest.TestCase):
 		response = self.client.get('/random', follow_redirects=False)
 		self.assertEqual(response.status_code, 302, f'Response should be 302 redirect: {response.json}')
 		
-		location_matcher = re.compile(r'^http://localhost/([^/]+)/token-(\d+)\.json$')
+		location_matcher = re.compile(r'^(?:http://localhost)?/([^/]+)/token-(\d+)\.json$')
 		self.assertTrue(location_matcher.match(response.location), f'{location_matcher} should match {response.location}')
 		
 		response = self.client.get(response.location, follow_redirects=False)
