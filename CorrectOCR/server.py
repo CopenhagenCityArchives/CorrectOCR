@@ -250,10 +250,9 @@ def create_app(workspace: Workspace = None, config: Any = None):
 		   
 		   {
 		     "Bin": 2,
-		     "Decision": "annotator",
+		     "Heuristic": "annotator",
 		     "Doc ID": "7696",
 		     "Gold": "",
-		     "Heuristic": "a",
 		     "Hyphenated": false,
 		     "Discarded": false,
 		     "Index": 2676,

@@ -202,7 +202,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	cropparser.set_defaults(func=commands.do_crop, **defaults)
 
 	statsparser = subparsers.add_parser('stats', help="""
-		Calculate stats for correction decisions.
+		Calculate stats about corrected documents.
 		
 		The procedure is to first generate a report that shows how many tokens
 		have been sorted into each bin. This report can then be annotated with

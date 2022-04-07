@@ -116,7 +116,7 @@ class TokenList(collections.abc.MutableSequence):
 				stats['uncorrected_count'] += 1
 			else:
 				stats['corrected_count'] += 1
-				if token.decision == 'annotator':
+				if token.heuristic == 'annotator':
 					stats['corrected_by_annotator_count'] += 1
 				else:
 					stats['corrected_by_model_count'] += 1
@@ -167,7 +167,7 @@ class TokenList(collections.abc.MutableSequence):
 
 	@property
 	def server_ready(self):
-		return all(t.decision is not None and not t.is_discarded for t in self.tokens)
+		return all(t.heuristic is not None and not t.is_discarded for t in self.tokens)
 
 	def random_token_index(self, has_gold=False, is_discarded=False):
 		return self.random_token(has_gold, is_discarded).index
@@ -203,7 +203,7 @@ class TokenList(collections.abc.MutableSequence):
 				'is_corrected': (token.gold is not None),
 				'is_discarded': token.is_discarded,
 				'has_error': token.has_error,
-				'requires_annotator': (token.decision == 'annotator'),
+				'requires_annotator': (token.heuristic == 'annotator'),
 				'last_modified': token.last_modified,
 			}
 

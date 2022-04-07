@@ -91,8 +91,8 @@ class Token(abc.ABC):
 		with a numerical index starting at 1, and the values are instances
 		of :class:`KBestItem`.
 		"""
-		self.decision: Optional[str] = None #: The decision that was made when :attr:`gold` was set automatically.
-		self.selection: Any = None #: The selected automatic correction for the :attr:`decision`.
+		self.heuristic: Optional[str] = None #: The heuristic that was was determined by the bin.
+		self.selection: Any = None #: The selected automatic correction for the :attr:`heuristic`.
 		self.is_hyphenated = False # (documented in @property methods below)
 		self.is_discarded = False #: (documented in @property methods below)
 
@@ -206,10 +206,9 @@ class Token(abc.ABC):
 			output['k-best'][k] = vars(item)
 		if self.bin:
 			output['Bin'] = self.bin.number
-			output['Heuristic'] = self.bin.heuristic
 		#else:
 		#	raise ValueError(f'Bin missing in __dict__(): {t}')
-		output['Decision'] = self.decision
+		output['Heuristic'] = self.heuristic
 		output['Selection'] = self.selection
 		output['Token type'] = self.__class__.__name__
 		output['Token info'] = json.dumps(self.token_info)
@@ -248,13 +247,12 @@ class Token(abc.ABC):
 				for k, b in d['k-best'].items():
 					kbest[k] = KBestItem(b['candidate'], b['probability'])
 				t.kbest = kbest
-			if 'Bin' in d and d['Bin'] not in ('', '-1', -1):
+			if 'Bin' in d and d['Bin'] not in (None, '', '-1', -1):
 				from ..heuristics import Heuristics
 				t.bin = Heuristics.bin(int(d['Bin']))
-				t.bin.heuristic = d['Heuristic']
 			#else:
 			#	raise ValueError(f'Bin: {d.get("Bin", None)} in from_dict(): {t}')
-			t.decision = d.get('Decision', None)
+			t.heuristic = d.get('Heuristic', None)
 			t.selection = d.get('Selection', None)
 			#t.__class__.log.debug(t)
 		except:

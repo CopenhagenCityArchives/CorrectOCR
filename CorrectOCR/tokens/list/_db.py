@@ -63,7 +63,7 @@ class DBTokenList(TokenList):
 				SELECT COUNT(*)
 				FROM token
 				WHERE doc_id = ?
-				AND decision IS NULL
+				AND heuristic IS NULL
 				AND discarded != 1
 				""",
 				self.docid,
@@ -115,9 +115,8 @@ class DBTokenList(TokenList):
 						'Index': result.doc_index,
 						'Gold': result.gold,
 						'Bin': result.bin,
-						'Heuristic': result.heuristic,
 						'Selection': json.loads(result.selection),
-						'Decision': result.decision,
+						'Heuristic': result.heuristic,
 						'Hyphenated': result.hyphenated,
 						'Discarded': result.discarded,
 						'k-best': dict(),
@@ -175,9 +174,8 @@ class DBTokenList(TokenList):
 						'Index': result.doc_index,
 						'Gold': result.gold,
 						'Bin': result.bin,
+						'Selection': json.loads(result.selection) if result.selection else None,
 						'Heuristic': result.heuristic,
-						'Selection': json.loads(result.selection),
-						'Decision': result.decision,
 						'Hyphenated': result.hyphenated,
 						'Discarded': result.discarded,
 						'k-best': dict(),
@@ -199,8 +197,8 @@ class DBTokenList(TokenList):
 		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
 		with get_connection(config).cursor() as cursor:
 			cursor.execute("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotations, has_error, last_modified) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, selection, token_type, token_info, annotations, has_error, last_modified) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				token.docid,
 				token.index,
@@ -209,8 +207,7 @@ class DBTokenList(TokenList):
 				token.is_discarded,
 				token.gold,
 				token.bin.number if token.bin else -1,
-				token.bin.heuristic if token.bin else '',
-				token.decision,
+				token.heuristic,
 				json.dumps(token.selection),
 				token.__class__.__name__,
 				json.dumps(token.token_info),
@@ -250,8 +247,7 @@ class DBTokenList(TokenList):
 				token.is_discarded,
 				token.gold,
 				token.bin.number if token.bin else -1,
-				token.bin.heuristic if token.bin else '',
-				token.decision,
+				token.heuristic,
 				json.dumps(token.selection),
 				token.__class__.__name__,
 				json.dumps(token.token_info),
@@ -273,8 +269,8 @@ class DBTokenList(TokenList):
 			return
 		with get_connection(config).cursor() as cursor:
 			cursor.executemany("""
-				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, decision, selection, token_type, token_info, annotations, has_error, last_modified) 
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, selection, token_type, token_info, annotations, has_error, last_modified) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
 				""",
 				tokendata,
 			)
@@ -306,7 +302,7 @@ class DBTokenList(TokenList):
 					discarded,
 					hyphenated,
 					gold,
-					decision,
+					heuristic,
 					has_error
 				FROM token
 				WHERE token.doc_id = ?
@@ -331,7 +327,7 @@ class DBTokenList(TokenList):
 					stats['uncorrected_count'] += 1
 				else:
 					stats['corrected_count'] += 1
-					if result.decision == 'annotator':
+					if result.heuristic == 'annotator':
 						stats['corrected_by_annotator_count'] += 1
 					else:
 						stats['corrected_by_model_count'] += 1
@@ -395,7 +391,7 @@ class DBTokenList(TokenList):
 					original,
 					gold,
 					discarded,
-					decision,
+					heuristic,
 					has_error,
 					last_modified
 				FROM token
@@ -412,7 +408,7 @@ class DBTokenList(TokenList):
 					'is_corrected': (result.gold is not None),
 					'is_discarded': bool(result.discarded),
 					'has_error': bool(result.has_error),
-					'requires_annotator': (result.decision == 'annotator'),
+					'requires_annotator': (result.heuristic == 'annotator'),
 					'last_modified': result.last_modified,
 				}
 

@@ -155,8 +155,8 @@ def build_dictionary(workspace: Workspace, config):
 			log.info(f'Adding gold words from annotated tokens in document {docid}')
 			doc.tokens.preload()
 			for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
-				#print([token, token.decision, token.gold, token.is_discarded])
-				if token.decision == 'annotator' and gold is not None and gold != '':
+				#print([token, token.heuristic, token.gold, token.is_discarded])
+				if token.heuristic == 'annotator' and gold is not None and gold != '':
 					if gold not in workspace.resources.dictionary:
 						log.info(f'Adding {gold}')
 						workspace.resources.dictionary.add(group, gold)
@@ -306,6 +306,7 @@ def do_stats(workspace: Workspace, config):
 		log.info(f'Saving report to {workspace.resources.reportFile}')
 		FileIO.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
 	elif config.make_settings:
+		# TODO doesnt work
 		log.info(f'Reading report from {workspace.resources.reportFile.name}')
 		bins = [ln for ln in FileIO.load(workspace.resources.reportFile).split('\n') if "BIN" in ln]
 	

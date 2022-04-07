@@ -46,7 +46,7 @@ class FileIO(object):
 		header = ['Gold', 'Original', 'Hyphenated', 'Discarded']
 		for n in range(1, k+1):
 			header += [f'{n}-best', f'{n}-best prob.']
-		header += ['Bin', 'Heuristic', 'Decision', 'Selection']
+		header += ['Bin', 'Heuristic', 'Selection']
 		header += ['Token type', 'Token info', 'Doc ID', 'Index']
 		header += ['Annotation info', 'Has error']
 		cls.log.debug(f'header for k={k}: {header}')

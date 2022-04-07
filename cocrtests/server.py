@@ -17,8 +17,8 @@ class ServerTests(unittest.TestCase):
 		)
 		self.tokens = self.workspace.docs['abc'].tokens
 		self.tokens[0].gold = self.tokens[0].original
-		self.tokens[0].decision = 'original'
-		self.tokens[1].decision = 'annotator'
+		self.tokens[0].heuristic = 'original'
+		self.tokens[1].heuristic = 'annotator'
 		self.tokens[3].kbest = {
 			'1': KBestItem(candidate='ti\xadme', probability=1.0), # soft hyphen
 		}

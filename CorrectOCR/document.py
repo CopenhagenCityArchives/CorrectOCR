@@ -85,6 +85,7 @@ class Document(object):
 		Possible steps are:
 
 		   -  ``tokenize``: basic tokenizaton
+		   -  ``autocrop``: crop tokens near edges
 		   -  ``rehyphenate``: redoes hyphenation
 		   -  ``align``: alignment of original and gold tokens
 		   -  ``kbest`` calculates *k*-best correction candidates for each
@@ -127,6 +128,10 @@ class Document(object):
 			else:
 				Document.log.info(f'Document {self.docid} is already tokenized. Use --force to recreate tokens (this will destroy suggestions and corrections).')
 				return
+		elif step == 'autocrop':
+			self.prepare('tokenize', k, dehyphenate)
+			self.tokens.crop_tokens()
+			tokens_modified = True
 		elif step == 'rehyphenate':
 			self.tokens.dehyphenate()
 		elif step == 'align':
@@ -146,9 +151,9 @@ class Document(object):
 			self.prepare('bin', k, dehyphenate, force)
 			for t in progressbar.progressbar(self.tokens):
 				if force or not t.gold:
-					if t.decision in {'kbest', 'kdict'}:
+					if t.heuristic in {'kbest', 'kdict'}:
 						t.gold = t.kbest[int(t.selection)].candidate
-					elif t.decision == 'original':
+					elif t.heuristic == 'original':
 						t.gold = t.original
 		
 		self.tokens.save()
@@ -168,7 +173,7 @@ class Document(object):
 			Document.log.info(f'Generating images for annotation.')
 			count = 0
 			for l, token, r in progressbar.progressbar(list(window(self.tokens))):
-				if ('annotator' in (l.decision, token.decision, r.decision) or l.is_hyphenated) and not token.is_discarded:
+				if ('annotator' in (l.heuristic, token.heuristic, r.heuristic) or l.is_hyphenated) and not token.is_discarded:
 					_, _ = l.extract_image(self.workspace)
 					_, _ = token.extract_image(self.workspace)
 					_, _ = r.extract_image(self.workspace)

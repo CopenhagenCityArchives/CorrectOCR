@@ -18,6 +18,14 @@ if TYPE_CHECKING:
 	from .tokens.list import TokenList
 
 
+_heuristics_map = {
+	'a': 'annotator',
+	'o': 'original',
+	'k': 'kbest',
+	'd': 'kdict',
+}
+
+
 class Heuristics(object):
 	log = logging.getLogger(f'{__name__}.Heuristics')
 
@@ -27,10 +35,13 @@ class Heuristics(object):
 
 	def __init__(self, settings: Dict[int, str], dictionary):
 		"""
-		:param settings: A dictionary of ``bin`` => ``heuristic`` settings.
+		:param settings: A dictionary of ``bin number`` => ``heuristic`` settings.
 		:param dictionary: A dictionary for determining correctness of :class:`Tokens<CorrectOCR.tokens.Token>` and suggestions.
 		"""
 		for (_bin, code) in settings.items():
+			if code not in _heuristics_map.values():
+				Heuristics.log.warning(f'Unknown heuristic for bin {_bin}! Must be one of {_heuristics_map.values()}')
+				code = _heuristics_map[code] # attempt to get valid heuristic
 			_bins[int(_bin)].heuristic = code
 		for (number, _bin) in _bins.items():
 			_bin.number = number
@@ -68,18 +79,18 @@ class Heuristics(object):
 		if token_bin is None:
 			raise ValueError(f'No bin matched for: {token}')
 
-		# return decision and chosen candidate(s)
-		if token_bin.heuristic == 'o':
-			(decision, selection) = ('original', original)
-		elif token_bin.heuristic == 'k':
-			(decision, selection) = ('kbest', 1)
-		elif token_bin.heuristic == 'd':
-			(decision, selection) = ('kdict', filtids[0])
+		if token_bin.heuristic == 'original':
+			selection = original
+		elif token_bin.heuristic == 'kbest':
+			selection = 1
+		elif token_bin.heuristic == 'kdict':
+			selection = filtids[0]
+		elif token_bin.heuristic == 'annotator':
+			selection = filtids
 		else:
-			# heuristic is 'a' or unrecognized
-			(decision, selection) = ('annotator', filtids)
+			raise ValueError(f'Bin {token_bin} has an unknown heuristic: {token_bin.heuristic}')
 		
-		return decision, selection, token_bin
+		return token_bin.heuristic, selection, token_bin
 
 	def bin_tokens(self, tokens: TokenList, force = False):
 		Heuristics.log.info('Running heuristics on tokens to determine annotator workload.')
@@ -89,21 +100,22 @@ class Heuristics(object):
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
 			#Heuristics.log.debug(f'binning {token}')
 			if force or token.bin is None:
-				token.decision, token.selection, token.bin = self.bin_for_word(token.original, token.kbest)
+				token.heuristic, token.selection, token.bin = self.bin_for_word(token.original, token.kbest)
 				if token.is_hyphenated:
 					# ugly...
 					next_token = tokens[token.index+1]
-					next_token.decision = token.decision
+					next_token.heuristic = token.heuristic
 					next_token.selection = token.selection
 					next_token.bin = token.bin
-			if token.decision is None or token.bin is None or token.selection is None:
+				modified_count += 1
+			if token.heuristic is None or token.bin is None or token.selection is None:
 				raise ValueError(f'Token {token} was not binned!')
 			if token.bin == -1:
 				raise ValueError(f'Token {token} was not binned!')
 			if token.bin.number == -1:
 				raise ValueError(f'Token {token} was not binned!')
 			counts[token.bin.number] += 1
-			if token.decision == 'annotator':
+			if token.heuristic == 'annotator':
 				annotatorRequired += 1
 		Heuristics.log.debug(f'Counts for each bin: {counts}')
 		Heuristics.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
@@ -147,7 +159,7 @@ class Heuristics(object):
 
 				if rebin:
 					kbest = hmm.kbest_for_word(token.original, token.k)
-					decision, selection, token_bin = self.bin_for_word(token.original, kbest)
+					heuristic, selection, token_bin = self.bin_for_word(token.original, kbest)
 					bin_number = token_bin.number
 				else:
 					kbest = token.kbest
@@ -176,10 +188,10 @@ class Heuristics(object):
 				if gold in kbest_filtered:
 					counts['(C) gold == lower kbest'] += 1
 
-				if token.decision:
-					counts[f'(D) decision was {token.decision}'] += 1
+				if token.heuristic:
+					counts[f'(D) heuristic was {token.heuristic}'] += 1
 				
-				if token.decision == 'annotator':
+				if token.heuristic == 'annotator':
 					if gold == original:
 						counts[f'(E) Annotator accepted the original'] += 1
 					elif gold == kbest[1].candidate:
@@ -217,6 +229,7 @@ class Heuristics(object):
 			previous = _bin.counts.pop('previous', dict())
 			out += f'BIN {num}\t\t {total:10d} tokens ({total/self.tokenCount:6.2%} of total)\n'
 			out += _bin.description + '\n'
+			out += f'Current heuristic: {_bin.heuristic}\n'
 			if len(_bin.counts) > 0:
 				for name, count in sorted(_bin.counts.items(), key=lambda x: x[0]):
 					out += f'{name:30}: {count:10d}'.rjust(50) + f' ({count/total:6.2%})\n'
@@ -274,14 +287,14 @@ class Bin:
 	:param d: Dictionary
 	:param dcode: One of 'zerokd', 'somekd', 'allkd' for whether zero, some, or all other *k*-best candidates are in dictionary
 	"""
-	heuristic: str = 'a'
+	heuristic: str = 'annotator'
 	"""
 	Which heuristic the bin is set up for, one of:
 	
-	-  'a' = Defer to annotator.
-	-  'o' = Select original.
-	-  'k' = Select top *k*-best.
-	-  'd' = Select *k*-best in dictionary.
+	-  'annotator' = Defer to annotator.
+	-  'original' = Select original.
+	-  'kbest' = Select top *k*-best.
+	-  'kdict' = Select top *k*-best in dictionary.
 	"""
 	number: int = None #: The number of the bin.
 	counts: DefaultDict[str, int] = field(default_factory=lambda: defaultdict(int)) #: Statistics used for reporting.
