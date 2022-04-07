@@ -146,7 +146,7 @@ class Heuristics(object):
 					self.oversegmented += 1 # word wrongly broken apart in original / oversegmentation
 					continue
 
-				if len(gold) == 0:
+				if gold is None or len(gold) == 0:
 					self.nogoldCount += 1
 
 				# total number of real tokens - controlled for segmentation errors
@@ -246,7 +246,7 @@ class Heuristics(object):
 				out += f'Example:\n'
 				inDict = ' * is in dictionary' if original in self.dictionary else ''
 				out += f'\toriginal = {original}{inDict}\n'
-				inDict = ' * is in dictionary' if gold in self.dictionary else ''
+				inDict = ' * is in dictionary' if gold is not None and gold in self.dictionary else ''
 				out += f'\tgold = {gold}{inDict}\n'
 				out += '\tkbest = [\n'
 				for k, item in kbest.items():
