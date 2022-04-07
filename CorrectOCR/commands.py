@@ -181,6 +181,9 @@ def check_dictionary(workspace: Workspace, config):
 def do_align(workspace: Workspace, config):
 	if config.docid:
 		workspace.docs[config.docid].alignments(force=config.force)
+	elif config.docids:
+		for docid in config.docids:
+			workspace.docs[docid].alignments(force=config.force)
 	elif config.all:
 		for docid, doc in filter(lambda x: x[1].goldFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
 			doc.alignments(force=config.force)
@@ -260,6 +263,8 @@ def do_prepare(workspace: Workspace, config):
 	
 	if config.docid:
 		docs = [(config.docid, workspace.docs[config.docid])]
+	elif config.docids:
+		docs = filter(lambda x: x[0] in config.docids, workspace.docs.items())
 	elif config.all:
 		docs = filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items())
 	elif config.skip_done:
@@ -284,6 +289,9 @@ def do_crop(workspace: Workspace, config):
 	
 	if config.docid:
 		workspace.docs[config.docid].crop_tokens(config.edge_left, config.edge_right)
+	elif config.docids:
+		for docid in config.docids:
+			workspace.docs[docid].crop_tokens(config.edge_left, config.edge_right)
 	elif config.all:
 		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
 			doc.crop_tokens(config.edge_left, config.edge_right)
