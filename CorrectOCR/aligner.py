@@ -1,8 +1,10 @@
 import collections
 import difflib
 import logging
+import pathlib
 from typing import Counter, DefaultDict, Dict, List, Optional, Tuple
 
+from .fileio import FileIO
 from .tokens.list import TokenList
 
 import progressbar
@@ -15,7 +17,7 @@ class Aligner(object):
 		self._wordAlignments: Optional[DefaultDict[str, Dict[int, str]]] = None
 		self._readCounts: Optional[DefaultDict[str, Counter[str]]] = None
 
-	def alignments(self, tokens: TokenList):
+	def alignments(self, tokens: TokenList, cachePath: pathlib.Path = None):
 		"""
 		Aligns the original and gold tokens in order to discover the corrections that have been made.
 
@@ -29,8 +31,14 @@ class Aligner(object):
 		self._fullAlignments: List[Tuple[str, str]] = []
 		self._wordAlignments: DefaultDict[str, Dict[int, str]] = collections.defaultdict(dict)
 		self._readCounts: DefaultDict[str, Counter[str]] = collections.defaultdict(collections.Counter)
-		
+
+		if cachePath and cachePath.is_file():
+			Aligner.log.info(f'Loading cached alignments from {cachePath}')
+			(self._fullAlignments, self._wordAlignments, self._readCounts) = FileIO.load(cachePath)
+			return self._fullAlignments, self._wordAlignments, self._readCounts
+
 		Aligner.log.info(f'Aligning {len(tokens)} tokens')
+		tokens.preload()
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
 			self._wordAlignments[original][token.index] = gold
 			for leftChar, rightChar in zip(original, gold):
@@ -40,6 +48,10 @@ class Aligner(object):
 		Aligner.log.debug(f'fullAlignments: {len(self._fullAlignments)}')
 		Aligner.log.debug(f'wordAlignments: {len(self._wordAlignments)}')
 		Aligner.log.debug(f'readCounts: {len(self._readCounts)}')
+
+		if cachePath:
+			Aligner.log.info(f'Saving alignments to {cachePath}')
+			FileIO.save([self._fullAlignments, self._wordAlignments, self._readCounts], cachePath)
 
 		return self._fullAlignments, self._wordAlignments, self._readCounts
 
