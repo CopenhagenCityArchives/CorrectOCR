@@ -232,7 +232,7 @@ class HMM(object):
 
 		return variant_words
 
-	def generate_kbest(self, tokens: TokenList, k: int = 4, force = False):
+	def generate_kbest(self, tokens: TokenList, k: int = 4, force = False) -> bool:
 		"""
 		Generates *k*-best correction candidates for a list of Tokens and adds them
 		to each token.
@@ -240,19 +240,21 @@ class HMM(object):
 		:param force: Force the regeneration of candidates if they already exist.
 		:param tokens: List of tokens.
 		:param k: How many candidates to generate.
+		:return: Whether any tokens were modified.
 		"""
 		if len(tokens) == 0:
 			HMM.log.error(f'No tokens were supplied?!')
 			raise SystemExit(-1)
 
 		HMM.log.info(f'Generating {k}-best suggestions for each token')
-		count = 0
+		modified_count = 0
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
 			if force or not token.kbest or len(token.kbest) != k:
 				token.kbest = self.kbest_for_word(original, k)
-				count += 1
+				modified_count += 1
 
-		HMM.log.debug(f'Generated {k}-best for {count} of {len(tokens)} tokens')
+		HMM.log.debug(f'Generated {k}-best for {modified_count} of {len(tokens)} tokens')
+		return modified_count > 0
 
 
 ##########################################################################################

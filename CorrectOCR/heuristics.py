@@ -92,8 +92,9 @@ class Heuristics(object):
 		
 		return token_bin.heuristic, selection, token_bin
 
-	def bin_tokens(self, tokens: TokenList, force = False):
+	def bin_tokens(self, tokens: TokenList, force = False) -> bool:
 		Heuristics.log.info('Running heuristics on tokens to determine annotator workload.')
+		modified_count = 0
 		counts = Counter()
 		annotatorRequired = 0
 		ts = iter(tokens)
@@ -118,7 +119,8 @@ class Heuristics(object):
 			if token.heuristic == 'annotator':
 				annotatorRequired += 1
 		Heuristics.log.debug(f'Counts for each bin: {counts}')
-		Heuristics.log.info(f'Annotator required for {annotatorRequired} of {len(tokens)} tokens.')
+		Heuristics.log.info(f'Set bin for {modified_count} tokens. Annotator is required for {annotatorRequired} of {len(tokens)} tokens.')
+		return modified_count > 0
 
 	def add_to_report(self, tokens, rebin=False, hmm=None):
 		self.documentCount += 1

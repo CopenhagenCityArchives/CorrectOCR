@@ -115,6 +115,8 @@ class Document(object):
 		step = prep_methods.get(step, step)
 		Document.log.info(f'Creating {step} tokens for {self.docid} (k = {k}, dehyphenate = {dehyphenate}, force = {force})')
 
+		tokens_modified = False
+
 		if step == 'tokenize':
 			if force or len(self.tokens) == 0:
 				tokenizer = Tokenizer.for_extension(self.ext)(self.workspace.config.language)
@@ -125,6 +127,7 @@ class Document(object):
 				if dehyphenate:
 					Document.log.info(f'Document {self.docid} will be dehyphenated')
 					self.tokens.dehyphenate()
+				tokens_modified = True
 			else:
 				Document.log.info(f'Document {self.docid} is already tokenized. Use --force to recreate tokens (this will destroy suggestions and corrections).')
 				return
@@ -134,19 +137,17 @@ class Document(object):
 			tokens_modified = True
 		elif step == 'rehyphenate':
 			self.tokens.dehyphenate()
+			tokens_modified = True
 		elif step == 'align':
 			self.prepare('tokenize', k, dehyphenate)
 			if self.is_done:
 				_ = self.alignments
 		elif step == 'kbest':
-			if self.goldFile.is_file():
-				self.prepare('align', k, dehyphenate, force)
-			else:
-				self.prepare('tokenize', k, dehyphenate)
-			self.workspace.resources.hmm.generate_kbest(self.tokens, k, force)
+			self.prepare('tokenize', k, dehyphenate)
+			tokens_modified = self.workspace.resources.hmm.generate_kbest(self.tokens, k, force)
 		elif step == 'bin':
 			self.prepare('kbest', k, dehyphenate, force)
-			self.workspace.resources.heuristics.bin_tokens(self.tokens, force)
+			tokens_modified = self.workspace.resources.heuristics.bin_tokens(self.tokens, force)
 		elif step == 'autocorrect':
 			self.prepare('bin', k, dehyphenate, force)
 			for t in progressbar.progressbar(self.tokens):
@@ -155,8 +156,10 @@ class Document(object):
 						t.gold = t.kbest[int(t.selection)].candidate
 					elif t.heuristic == 'original':
 						t.gold = t.original
+					tokens_modified = True
 		
-		self.tokens.save()
+		if tokens_modified:
+			self.tokens.save()
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
 		Document.log.info(f'Cropping tokens for {self.docid}')
