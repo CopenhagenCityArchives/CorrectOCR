@@ -41,9 +41,10 @@ class Aligner(object):
 		tokens.preload()
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
 			self._wordAlignments[original][token.index] = gold
-			for leftChar, rightChar in zip(original, gold):
-				self._fullAlignments.append((leftChar, rightChar))
-				self._readCounts[leftChar][rightChar] += 1
+			if gold is not None:
+				for leftChar, rightChar in zip(original, gold):
+					self._fullAlignments.append((leftChar, rightChar))
+					self._readCounts[leftChar][rightChar] += 1
 
 		Aligner.log.debug(f'fullAlignments: {len(self._fullAlignments)}')
 		Aligner.log.debug(f'wordAlignments: {len(self._wordAlignments)}')
