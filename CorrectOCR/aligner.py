@@ -17,7 +17,7 @@ class Aligner(object):
 		self._wordAlignments: Optional[DefaultDict[str, Dict[int, str]]] = None
 		self._readCounts: Optional[DefaultDict[str, Counter[str]]] = None
 
-	def alignments(self, tokens: TokenList, cachePath: pathlib.Path = None):
+	def alignments(self, tokens: TokenList, cachePath: pathlib.Path = None, force = False):
 		"""
 		Aligns the original and gold tokens in order to discover the corrections that have been made.
 
@@ -32,7 +32,7 @@ class Aligner(object):
 		self._wordAlignments: DefaultDict[str, Dict[int, str]] = collections.defaultdict(dict)
 		self._readCounts: DefaultDict[str, Counter[str]] = collections.defaultdict(collections.Counter)
 
-		if cachePath and cachePath.is_file():
+		if not force and cachePath and cachePath.is_file():
 			Aligner.log.info(f'Loading cached alignments from {cachePath}')
 			(self._fullAlignments, self._wordAlignments, self._readCounts) = FileIO.load(cachePath)
 			return self._fullAlignments, self._wordAlignments, self._readCounts
