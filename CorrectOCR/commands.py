@@ -180,13 +180,13 @@ def check_dictionary(workspace: Workspace, config):
 
 def do_align(workspace: Workspace, config):
 	if config.docid:
-		workspace.docs[config.docid].alignments(force=config.force)
+		_ = workspace.docs[config.docid].alignments
 	elif config.docids:
 		for docid in config.docids:
-			workspace.docs[docid].alignments(force=config.force)
+			_ = workspace.docs[docid].alignments
 	elif config.all:
 		for docid, doc in filter(lambda x: x[1].goldFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
-			doc.alignments(force=config.force)
+			_ = doc.alignments
 
 
 ##########################################################################################
