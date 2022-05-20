@@ -75,6 +75,9 @@ class Document(object):
 
 	@property
 	def alignments(self):
+		if not self.is_done:
+			Document.log.error(f'Cannot create alignments for non-done document {self.docid}!')
+			return None
 		return Aligner().alignments(self.tokens, FileIO.cachePath('alignments').joinpath(f'{self.docid}.json'))
 
 	def prepare(self, step: str, k: int, dehyphenate=False, force=False):
