@@ -163,6 +163,7 @@ def build_dictionary(workspace: Workspace, config):
 					else:
 						#log.debug(f'{gold} is already in dictionary')
 						pass
+			doc.tokens.flush()
 			workspace.resources.dictionary.save_group(group)
 
 	workspace.resources.dictionary.save()
@@ -279,6 +280,7 @@ def do_prepare(workspace: Workspace, config):
 			doc.crop_tokens()
 		if config.precache_images:
 			doc.precache_images()
+		doc.tokens.flush()
 
 
 ##########################################################################################
