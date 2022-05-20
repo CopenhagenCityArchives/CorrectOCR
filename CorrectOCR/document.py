@@ -86,7 +86,6 @@ class Document(object):
 		   -  ``tokenize``: basic tokenizaton
 		   -  ``autocrop``: crop tokens near edges
 		   -  ``rehyphenate``: redoes hyphenation
-		   -  ``align``: alignment of original and gold tokens
 		   -  ``kbest`` calculates *k*-best correction candidates for each
 		      token via the HMM
 		   -  ``bin``: sorts the tokens into *bins* according to the
@@ -137,10 +136,6 @@ class Document(object):
 		elif step == 'rehyphenate':
 			self.tokens.dehyphenate()
 			tokens_modified = True
-		elif step == 'align':
-			self.prepare('tokenize', k, dehyphenate)
-			if self.is_done:
-				_ = self.alignments
 		elif step == 'kbest':
 			self.prepare('tokenize', k, dehyphenate)
 			tokens_modified = self.workspace.resources.hmm.generate_kbest(self.tokens, k, force)
