@@ -204,11 +204,14 @@ def model(workspace: Workspace, config):
 		readCounts = collections.defaultdict(collections.Counter)
 		gold_words = []
 		for docid, doc in workspace.documents(is_done=True).items():
-			log.info(f'Adding gold tokens from {docid} to model')
+			log.info(f'Adding alignments from {docid} to model')
 			(_, _, counts) = doc.alignments
 			readCounts.update(counts)
+			log.info(f'Adding gold tokens from {docid} to model')
+			doc.tokens.preload()
 			for original, gold, token in progressbar.progressbar(doc.tokens.consolidated, max_value=len(doc.tokens)):
 				gold_words.append(gold)
+			doc.tokens.flush()
 
 		builder = HMMBuilder(workspace.resources.dictionary, config.smoothingParameter, config.characterSet, readCounts, remove_chars, gold_words)
 
