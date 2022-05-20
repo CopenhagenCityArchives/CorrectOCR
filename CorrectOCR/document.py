@@ -112,7 +112,7 @@ class Document(object):
 			'all': 'autocorrect',
 		}
 		step = prep_methods.get(step, step)
-		Document.log.info(f'Creating {step} tokens for {self.docid} (k = {k}, dehyphenate = {dehyphenate}, force = {force})')
+		Document.log.info(f'Running step "{step}" for {self.docid} (k = {k}, dehyphenate = {dehyphenate}, force = {force})')
 
 		tokens_modified = False
 
