@@ -16,7 +16,7 @@ from .document import Document
 from .fileio import FileIO
 from .heuristics import Heuristics
 from .model.hmm import HMM
-
+from .tokens.list import TokenList
 
 class LazyDocumentDict(MutableMapping):
 	log = logging.getLogger(f'{__name__}.LazyDocumentDict')
@@ -91,6 +91,8 @@ class Workspace(object):
 		self.docInfoBaseURL: int = self.config.docInfoBaseURL
 		self.resources = ResourceManager(self.root, resourceconfig)
 		self.docs: Dict[str, Document] = LazyDocumentDict(self)
+
+		TokenList.for_type(storageconfig.type).setup_config(storageconfig)
 
 		Workspace.log.info(f'Adding documents from: {self._originalPath}')
 		for file in self._originalPath.iterdir():

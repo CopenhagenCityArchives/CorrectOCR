@@ -27,6 +27,10 @@ class TokenList(collections.abc.MutableSequence):
 		return wrapper
 
 	@staticmethod
+	def setup_config(config):
+		pass
+
+	@staticmethod
 	def new(config, docid = None, tokens = None) -> TokenList:
 		if tokens:
 			return TokenList.for_type(config.type)(config, docid=docid, tokens=tokens)

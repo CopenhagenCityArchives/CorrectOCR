@@ -16,18 +16,19 @@ def close_connection(connection):
 	logging.getLogger(f'{__name__}.close_connection').debug(f'Closing connection {connection}')
 	connection.close()
 
-def get_connection(config):
-	log = logging.getLogger(f'{__name__}.get_connection')
-	con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
-	#log.debug(f'Connection string: {con_str}')
-	connection = pyodbc.connect(con_str)
-	#setattr(config, '_finalize', weakref.finalize(config, close_connection, connection))
-	return connection
-
 
 @TokenList.register('db')
 class DBTokenList(TokenList):
 	log = logging.getLogger(f'{__name__}.DBTokenList')
+
+	@staticmethod
+	def setup_config(config):
+		log = logging.getLogger(f'{__name__}.get_connection')
+		con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
+		#log.debug(f'Connection string: {con_str}')
+		connection = pyodbc.connect(con_str)
+		setattr(config, 'connection', connection)
+		setattr(config, '_finalize', weakref.finalize(config, close_connection, connection))
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -35,7 +36,7 @@ class DBTokenList(TokenList):
 	def load(self):
 		if self.docid is None:
 			raise ValueError('Cannot load a TokenList without a docid!')
-		with get_connection(self.config).cursor() as cursor:
+		with self.config.connection.cursor() as cursor:
 			cursor.execute("""
 				SELECT COUNT(*)
 				FROM token
@@ -58,7 +59,7 @@ class DBTokenList(TokenList):
 
 	@property
 	def server_ready(self):
-		with get_connection(self.config).cursor() as cursor:
+		with self.config.connection.cursor() as cursor:
 			cursor.execute("""
 				SELECT COUNT(*)
 				FROM token
@@ -82,7 +83,7 @@ class DBTokenList(TokenList):
 	@staticmethod
 	def _get_token(config, docid, index):
 		from .. import Token
-		with get_connection(config).cursor() as cursor:
+		with config.connection.cursor() as cursor:
 			cursor.execute("""
 				SELECT *
 				FROM token
@@ -136,7 +137,7 @@ class DBTokenList(TokenList):
 	@staticmethod
 	def _get_all_tokens(config, docid, tokens):
 		from .. import Token
-		with get_connection(config).cursor() as cursor:
+		with config.connection.cursor() as cursor:
 			cursor.execute("""
 				SELECT *
 				FROM token
@@ -195,7 +196,7 @@ class DBTokenList(TokenList):
 	@staticmethod
 	def _save_token(config, token: 'Token'):
 		#DBTokenList.log.debug(f'saving token {token.docid}, {token.index}, {token.original}, {token.gold}')
-		with get_connection(config).cursor() as cursor:
+		with config.connection.cursor() as cursor:
 			cursor.execute("""
 				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, selection, token_type, token_info, annotations, has_error, last_modified) 
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
@@ -267,7 +268,7 @@ class DBTokenList(TokenList):
 		if len(tokendata) == 0:
 			DBTokenList.log.debug(f'No tokens to save.')
 			return
-		with get_connection(config).cursor() as cursor:
+		with config.connection.cursor() as cursor:
 			cursor.executemany("""
 				REPLACE INTO token (doc_id, doc_index, original, hyphenated, discarded, gold, bin, heuristic, selection, token_type, token_info, annotations, has_error, last_modified) 
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
@@ -294,7 +295,7 @@ class DBTokenList(TokenList):
 	def stats(self):
 		stats = collections.defaultdict(int)
 		skip_next = False
-		with get_connection(self.config).cursor() as cursor:
+		with self.config.connection.cursor() as cursor:
 			cursor.execute("""
 				SELECT
 					doc_id,
@@ -337,7 +338,7 @@ class DBTokenList(TokenList):
 		return stats
 
 	def random_token_index(self, has_gold=False, is_discarded=False):
-		with get_connection(self.config).cursor() as cursor:
+		with self.config.connection.cursor() as cursor:
 			if has_gold:
 				cursor.execute("""
 					SELECT MAX(doc_index)
@@ -371,7 +372,7 @@ class DBTokenList(TokenList):
 
 	@staticmethod
 	def _get_count(config, docid):
-		with get_connection(config).cursor() as cursor:
+		with config.connection.cursor() as cursor:
 			cursor.execute(
 				"SELECT MAX(doc_index) FROM token WHERE doc_id = ?",
 				docid,
@@ -383,7 +384,7 @@ class DBTokenList(TokenList):
 
 	@property
 	def overview(self):
-		with get_connection(self.config).cursor() as cursor:
+		with self.config.connection.cursor() as cursor:
 			cursor.execute("""
 				SELECT
 					doc_id,
@@ -414,7 +415,7 @@ class DBTokenList(TokenList):
 
 	@property
 	def last_modified(self):
-		with get_connection(self.config).cursor() as cursor:
+		with self.config.connection.cursor() as cursor:
 			cursor.execute("""
 				SELECT
 					MAX(last_modified)
