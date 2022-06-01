@@ -3,6 +3,7 @@ cachetools
 Flask
 flask-cors
 lxml
+mysql-connector-python
 nltk
 numpy
 opencv-contrib-python-headless
@@ -11,7 +12,6 @@ plotille
 progressbar2
 pycountry
 PyMuPDF>=1.19
-pyodbc
 regex
 requests
 tei-reader
