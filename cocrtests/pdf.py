@@ -10,6 +10,6 @@ class TestPDF(unittest.TestCase):
 		t = Tokenizer.for_extension('.pdf')(language=MockLang('english'))
 
 		f = pathlib.Path(__file__).parent.joinpath('test.pdf')
-		tokens = t.tokenize(f, MockConfig(type='fs'))
+		tokens = t.tokenize(f, MockConfig(type='mem'))
 
 		self.assertEqual(str(tokens), 'Once upen a ti- me.', f'Resulting string does not contain expected tokens')

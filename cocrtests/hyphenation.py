@@ -18,7 +18,7 @@ class TestHyphenation(unittest.TestCase):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('Str- ing Te-st')
-		tokens = t.tokenize(f, MockConfig(type='fs'))
+		tokens = t.tokenize(f, MockConfig(type='mem'))
 		tokens.dehyphenate()
 
 		self.assertEqual(str(tokens), 'String Te-st', f'Resulting string should be dehyphenated in {tokens}.')
@@ -27,7 +27,7 @@ class TestHyphenation(unittest.TestCase):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('Str\xad ing Te\xadst')
-		tokens = t.tokenize(f, MockConfig(type='fs'))
+		tokens = t.tokenize(f, MockConfig(type='mem'))
 		tokens.dehyphenate()
 
 		self.assertEqual(str(tokens), 'String Te\xadst', f'Resulting string should be dehyphenated in {tokens}.')
@@ -36,7 +36,7 @@ class TestHyphenation(unittest.TestCase):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('Str- ing')
-		tokens = t.tokenize(f, MockConfig(type='fs'))
+		tokens = t.tokenize(f, MockConfig(type='mem'))
 
 		self.assertEqual(str(tokens), 'Str- ing', f'Resulting string should not be dehyphenated.')
 

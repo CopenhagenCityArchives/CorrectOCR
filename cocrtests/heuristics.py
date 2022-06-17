@@ -12,7 +12,7 @@ class TestHeuristics(unittest.TestCase):
 		t = Tokenizer.for_extension('.txt')(language=MockLang('english'))
 
 		f = MockCorpusFile('String')
-		tokens = t.tokenize(f, MockConfig(type='fs'))
+		tokens = t.tokenize(f, MockConfig(type='mem'))
 		token = tokens[0]
 
 		self.assertIsNone(token.bin, f'Token should not be in any bin.')
