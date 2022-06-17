@@ -233,6 +233,8 @@ def do_add(workspace: Workspace, config):
 
 	if config.document:
 		files = [config.document]
+	if config.directory:
+		files = list(config.directory.iterdir())
 	else:
 		files = []
 		for line in _open_for_reading(config.documentsFile).readlines():

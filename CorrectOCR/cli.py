@@ -159,6 +159,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	""")
 	group = addparser.add_mutually_exclusive_group(required=True)
 	group.add_argument('document', type=Path, nargs='?', help='Single path/URL to document')
+	group.add_argument('--directory', type=Path, help='Directory containing documents')
 	group.add_argument('--documentsFile', type=Path, help='File containing list of files/URLS to documents')
 	addparser.add_argument('--prepare_step', choices=['tokenize', 'align', 'kbest', 'bin', 'all', 'server'], help='Automatically prepare added documents')
 	addparser.add_argument('--max_count', type=int, help='Maximum number of new documents to add from --documentsFile.')
