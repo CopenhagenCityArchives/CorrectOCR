@@ -30,7 +30,6 @@ def get_workspace_argparser():
 	workspaceparser.add_argument('--rootPath', metavar='PATH', type=Path, help='Path to root of workspace')
 	workspaceparser.add_argument('--originalPath', metavar='PATH', type=Path, help='Path to directory of original, uncorrected docs')
 	workspaceparser.add_argument('--goldPath', metavar='PATH', type=Path, help='Path to directory of known correct "gold" docs')
-	workspaceparser.add_argument('--trainingPath', metavar='PATH', type=Path, help='Path for generated training files')
 	workspaceparser.add_argument('--docInfoBaseURL', metavar='URL', type=str, help='Base URL that serves info about documents')
 	workspaceparser.add_argument('--nheaderlines', metavar='N', type=int, default=0, help='Number of lines in corpus headers')
 	workspaceparser.add_argument('--language', type=lambda x: languages.get(name=x), help='Language of text')
@@ -244,11 +243,6 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	indexparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
 	indexparser.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
 	indexparser.set_defaults(func=commands.do_index, **defaults)
-
-	cleanupparser = subparsers.add_parser('cleanup', help='Clean up intermediate files')
-	cleanupparser.add_argument('--dryrun', action='store_true', help='Don''t delete files, just list them')
-	cleanupparser.add_argument('--full', action='store_true', help='Also delete the most recent files (without .nnn. in suffix)')
-	cleanupparser.set_defaults(func=commands.do_cleanup, **defaults)
 
 	serverparser = subparsers.add_parser('server', help='Run basic JSON-dispensing Flask server')
 	serverparser.add_argument('--host', help='The host address')

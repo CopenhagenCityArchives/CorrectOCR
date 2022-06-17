@@ -24,12 +24,11 @@ class Document(object):
 	"""
 	Documents provide access to paths and :class:`Tokens<CorrectOCR.tokens.Token>`.
 	"""
-	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, training: Path, nheaderlines: int = 0):
+	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, nheaderlines: int = 0):
 		"""
 		:param doc: A path to a file.
 		:param original: Directory for original uncorrected files.
 		:param gold: Directory for known correct "gold" files (if any).
-		:param training: Directory for storing intermediate files.
 		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)
 		"""
 		self._server_ready = False

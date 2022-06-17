@@ -36,7 +36,6 @@ class LazyDocumentDict(MutableMapping):
 				value,
 				self.workspace.root.joinpath(self.workspace.config.originalPath).resolve(),
 				self.workspace.root.joinpath(self.workspace.config.goldPath).resolve(),
-				self.workspace.root.joinpath(self.workspace.config.trainingPath).resolve(),
 				self.workspace.nheaderlines,
 			)
 		self._dict[key] = value
@@ -69,7 +68,6 @@ class Workspace(object):
 	   -  **language**: A language instance from `pycountry <https://pypi.org/project/pycountry/>`.
 	   -  **originalPath** (:class:`Path<pathlib.Path>`): Directory containing the original docs.
 	   -  **goldPath** (:class:`Path<pathlib.Path>`): Directory containing the gold (if any) docs.
-	   -  **trainingPath** (:class:`Path<pathlib.Path>`): Directory for storing intermediate docs.
 	   -  **docInfoBaseURL** (:class:`str`): Base URL that when appended with a doc_id provides information about documents.
 
 	:param resourceconfig: Passed directly to :class:`ResourceManager<CorrectOCR.workspace.ResourceManager>`, see this for further info.
@@ -83,7 +81,6 @@ class Workspace(object):
 		self.storageconfig = storageconfig
 		self.root = self.config.rootPath.resolve()
 		FileIO.cacheRoot = self.root.joinpath('__COCRCache__')
-		self.storageconfig.trainingPath = self.root.joinpath(self.config.trainingPath) # hacky...
 		self._originalPath = self.root.joinpath(self.config.originalPath)
 		Workspace.log.info(f'Workspace configuration:\n{pformat(vars(self.config))} at {self.root}')
 		Workspace.log.info(f'Storage configuration:\n{pformat(vars(self.storageconfig))}')
@@ -155,24 +152,6 @@ class Workspace(object):
 				continue
 			docs[docid] = doc
 		return docs
-
-	def cleanup(self, dryrun=True, full=False):
-		"""
-		Cleans out the backup files in the ``trainingPath``.
-
-		:param dryrun: Just lists the files without actually deleting them
-		:param full: Also deletes the current files (ie. those without .nnn. in their suffix).
-		"""
-		is_backup = re.compile(r'^\.\d\d\d$')
-
-		for file in self._trainingPath.iterdir():
-			if file.name[0] == '.':
-				continue
-			#self.log.debug(f'file: {file}')
-			if full or is_backup.match(file.suffixes[-2]):
-				self.log.info(f'Deleting {file}')
-				if not dryrun:
-					FileIO.delete(file)
 
 	@cached
 	def _cached_page_image(self, docid: str, page: int):

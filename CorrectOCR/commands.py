@@ -489,15 +489,6 @@ def do_index(workspace: Workspace, config):
 ##########################################################################################
 
 
-def do_cleanup(workspace: Workspace, config):
-	log = logging.getLogger(f'{__name__}.do_cleanup')
-
-	workspace.cleanup(config.dryrun, config.full)
-
-
-##########################################################################################
-
-
 def run_server(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.run_server')
 
