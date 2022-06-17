@@ -158,7 +158,7 @@ class PDFTokenizer(Tokenizer):
 			textwidth = fitz.get_text_length(word, fontsize=size)
 			rect = fitz.Rect(token.rect.x0, token.rect.y0, max(token.rect.x1, token.rect.x0+textwidth+1.0), token.rect.y1 + token.rect.height)
 
-			res = page.insertTextbox(rect, f'{word} ', fontsize=size, render_mode=3)
+			res = page.insert_textbox(rect, f'{word} ', fontsize=size, render_mode=3)
 			if res < 0:
 				PDFTokenizer.log.warning(
 					f'Token was not inserted properly: {word}\n'
