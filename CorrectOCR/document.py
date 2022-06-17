@@ -24,46 +24,130 @@ class Document(object):
 	"""
 	Documents provide access to paths and :class:`Tokens<CorrectOCR.tokens.Token>`.
 	"""
-	def __init__(self, workspace: Workspace, doc: Path, original: Path, gold: Path, nheaderlines: int = 0):
+	def __init__(self, workspace: Workspace, docid: str, ext: str, original: Path, gold: Path, nheaderlines: int = 0):
 		"""
-		:param doc: A path to a file.
+		:param doc: A filename stem.
+		:param ext: An extension (eg. '.pdf')
 		:param original: Directory for original uncorrected files.
 		:param gold: Directory for known correct "gold" files (if any).
 		:param nheaderlines: Number of lines in file header (only relevant for ``.txt`` files)
 		"""
 		self._server_ready = False
 		self._is_done = False
+		self._tokens = None
 		self.workspace = workspace
-		self.docid = Document.get_id(doc)
-		self.ext = doc.suffix
-		if self.docid is None:
-			raise ValueError(f'Cannot get docid from {doc}')
+		self.docid = docid
+		self.ext = ext
 		self.info_url = None #: URL that provides information about the document
-		if self.workspace.docInfoBaseURL:
-			self.info_url = self.workspace.docInfoBaseURL + self.docid
-		Document.log.info(f'Document {self.docid} has info_url: {self.info_url}')
-		if self.ext == '.txt':
-			self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(doc.name), nheaderlines)
-			self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(doc.name), nheaderlines)
-		else:
-			self.originalFile: Union[CorpusFile, Path] = original.joinpath(doc.name)
-			self.goldFile: Union[CorpusFile, Path] = gold.joinpath(doc.name)
-		if not self.originalFile.exists():
-			raise ValueError(f'Cannot create Document with non-existing original file: {self.originalFile}')
-		self.tokenFile = training.joinpath(f'{self.docid}.csv')  #: Path to token file (CSV format).
-		
-		self.tokens = TokenList.new(self.workspace.storageconfig, docid=self.docid)
-		self.tokens.load()
-		Document.log.debug(f'Loaded {len(self.tokens)} tokens. Stats: {self.tokens.stats}')
+		with self.workspace.storageconfig.connection.cursor(named_tuple=True, buffered=True) as cursor:
+			cursor.execute("""
+				SELECT
+					doc_id,
+					ext,
+					original_path,
+					gold_path,
+					is_done
+				FROM documents
+				WHERE 
+					doc_id = %s AND
+					ext = %s
+				""", (
+					self.docid,
+					self.ext,
+				)
+			)
+			result = cursor.fetchone()
+			Document.log.info(result)
+			if result is not None:
+				if self.docid != result.doc_id or self.ext != result.ext:
+					raise ValueError('Mismatching doc_id or extension!')
+				self.original_path = Path(result.original_path)
+				self.gold_path = Path(result.gold_path)
+				self._is_done = result.is_done
+			else:
+				if self.workspace.docInfoBaseURL:
+					self.info_url = self.workspace.docInfoBaseURL + self.docid
+				Document.log.info(f'Document {self.docid} has info_url: {self.info_url}')
+				name = self.docid + self.ext
+				if self.ext == '.txt':
+					self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(name), nheaderlines)
+					self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(name), nheaderlines)
+				else:
+					self.originalFile: Union[CorpusFile, Path] = original.joinpath(name)
+					self.goldFile: Union[CorpusFile, Path] = gold.joinpath(name)
+				cursor.execute("""
+						INSERT INTO documents (
+							doc_id,
+							ext,
+							original_path,
+							gold_path,
+							is_done
+						) VALUES (
+							%s, %s, %s, %s, %s
+						)
+					""", (
+						self.docid,
+						self.ext,
+						str(self.originalFile),
+						str(self.goldFile),
+						self._is_done,
+					)
+				)
+				self.workspace.storageconfig.connection.commit()
+
+	@property
+	def tokens(self):
+		if self._tokens is None:
+			self._tokens = TokenList.new(self.workspace.storageconfig, docid=self.docid)
+			self._tokens.load()
+			Document.log.debug(f'Loaded {len(self._tokens)} tokens. Stats: {self._tokens.stats}')
+		return self._tokens
 
 	@classmethod
-	def get_id(cls, doc):
-		return doc.stem
+	def get_all(cls, workspace):
+		docs = dict()
+		with workspace.storageconfig.connection.cursor(named_tuple=True, buffered=True) as cursor:
+			cursor.execute("""
+				SELECT
+					doc_id,
+					ext,
+					original_path,
+					gold_path,
+					is_done
+				FROM documents
+				ORDER BY doc_id
+				"""
+			)
+			for result in cursor.fetchall():
+				doc = Document(
+					workspace,
+					result.doc_id,
+					result.ext,
+					Path(result.original_path),
+					Path(result.gold_path)
+				)
+				doc._is_done = result.is_done
+				docs[result.doc_id] = doc
+		return docs
 
 	@property
 	def is_done(self):
 		if not self._is_done:
 			self._is_done = self.tokens.stats['done']
+			if self._is_done:
+				with self.workspace.storageconfig.connection.cursor(named_tuple=True, buffered=True) as cursor:
+					cursor.execute("""
+						UPDATE documents
+						SET is_done = TRUE
+						WHERE 
+							doc_id = %s AND
+							ext = %s
+						""", (
+							self.docid,
+							self.ext,
+						)
+					)
+					self.workspace.storageconfig.connection.commit()
 		return self._is_done
 		
 	@property

@@ -33,7 +33,8 @@ class LazyDocumentDict(MutableMapping):
 			LazyDocumentDict.log.debug(f'LazyDocumentDict __getitem__ GENERATING {key}')
 			value = Document(
 				self.workspace,
-				value,
+				value.stem,
+				value.suffix,
 				self.workspace.root.joinpath(self.workspace.config.originalPath).resolve(),
 				self.workspace.root.joinpath(self.workspace.config.goldPath).resolve(),
 				self.workspace.nheaderlines,
@@ -92,10 +93,7 @@ class Workspace(object):
 		TokenList.for_type(storageconfig.type).setup_config(storageconfig)
 
 		Workspace.log.info(f'Adding documents from: {self._originalPath}')
-		for file in self._originalPath.iterdir():
-			if file.name in {'.DS_Store'}:
-				continue
-			self.add_doc(file)
+		self.docs = Document.get_all(self)
 		Workspace.log.info(f'Workspace documents: {len(self.docs)}')
 		self.cache = LRUCache(maxsize=1000)
 
@@ -110,9 +108,9 @@ class Workspace(object):
 
 		:param doc: A path or URL.
 		"""
-		self.log.debug(f'Preparing to add {doc}')
+		Workspace.log.debug(f'Preparing to add {doc}')
 		if isinstance(doc, PurePath):
-			if doc.parent != self._originalPath:
+			if doc.parent.resolve() != self._originalPath.resolve():
 				FileIO.copy(doc, self._originalPath)
 		elif isinstance(doc, str) and doc[:4] == 'http':
 			url = urllib.parse.urlparse(doc)
@@ -127,9 +125,17 @@ class Workspace(object):
 			doc = new_doc_file
 		else:
 			raise ValueError(f'Cannot add doc from reference of unknown type: {type(doc)} {doc}')
+		Workspace.log.debug(f'{type(doc)} {doc}')
 
-		docid = Document.get_id(doc)
-		self.docs[docid] = doc
+		docid = doc.stem
+		self.docs[docid] = Document(
+			self,
+			docid,
+			doc.suffix,
+			self.root.joinpath(self.config.originalPath).resolve(),
+			self.root.joinpath(self.config.goldPath).resolve(),
+			self.nheaderlines,
+		)
 		Workspace.log.debug(f'Added {docid}: {doc}')
 		
 		return docid

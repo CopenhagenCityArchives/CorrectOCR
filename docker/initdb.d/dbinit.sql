@@ -1,3 +1,14 @@
+CREATE TABLE documents (
+	doc_id VARCHAR(255) PRIMARY KEY,
+	ext VARCHAR(10) NOT NULL,
+	original_path VARCHAR(255) NOT NULL,
+	gold_path VARCHAR(255) NOT NULL,
+	is_done BOOLEAN
+);
+
+CREATE INDEX idx_docs
+	ON documents(doc_id);
+
 CREATE TABLE token (
 	doc_id VARCHAR(255) NOT NULL,
 	doc_index INT NOT NULL,
