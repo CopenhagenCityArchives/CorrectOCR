@@ -12,9 +12,26 @@ import random
 
 from ._super import TokenList
 
-def close_connection(connection):
-	logging.getLogger(f'{__name__}.close_connection').debug(f'Closing connection {connection}')
-	connection.close()
+def open_connection(config):
+	return mysql.connector.connect(
+		host=config.db_host,
+		database=config.db_name,
+		user=config.db_user,
+		password=config.db_pass,
+	)
+
+def get_connection(config):
+	log = logging.getLogger(f'{__name__}.get_connection')
+	if not hasattr(config, '_connection'):
+		setattr(config, '_connection', open_connection(config))
+		log.debug(f'New connection: {config._connection}')
+	else:
+		try:
+			config._connection.ping(reconnect=True)
+		except InterfaceError:
+			config._connection = open_connection(config)
+			log.debug(f'Recreated connection: {config._connection}')
+	return config._connection
 
 
 @TokenList.register('db')
@@ -23,19 +40,7 @@ class DBTokenList(TokenList):
 
 	@staticmethod
 	def setup_config(config):
-		log = logging.getLogger(f'{__name__}.get_connection')
-		connection = mysql.connector.connect(
-			host=config.db_host,
-			database=config.db_name,
-			user=config.db_user,
-			password=config.db_pass,
-		)
-		#con_str = f'DRIVER={{{config.db_driver}}};SERVER={config.db_host};DATABASE={config.db_name};UID={config.db_user};PWD={config.db_pass}'
-		#log.debug(f'Connection string: {con_str}')
-		#connection = pyodbc.connect(con_str)
-		log.debug(f'Connection: {connection}')
-		setattr(config, 'connection', connection)
-		setattr(config, '_finalize', weakref.finalize(config, close_connection, connection))
+		setattr(config.__class__, 'connection', property(get_connection))
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
