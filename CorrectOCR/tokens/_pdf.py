@@ -38,6 +38,10 @@ class PDFToken(Token):
 	def frame(self):
 		return (self.token_info[1], self.token_info[2], self.token_info[3], self.token_info[4])
 
+	@property
+	def rect(self):
+		return fitz.Rect(*self.frame)
+
 	def __init__(self, token_info, docid, index):
 		super().__init__(token_info[5], docid, index)
 		self.token_info = token_info
@@ -58,7 +62,7 @@ class PDFToken(Token):
 		yscale = pix.height / pagerect.height
 		#PDFToken.log.debug(f'extract_image ({self.index}): {tokenrect} {xscale} {yscale}')
 		image = Image.frombytes('RGB', (pix.width, pix.height), pix.samples)
-		_rect = fitz.Rect(*self.frame)
+		_rect = self.rect
 		_rect.normalize()
 		tokenrect = _rect.irect * fitz.Matrix(xscale, yscale)
 		#PDFToken.log.debug(f'tokenrect ({self.index}): {tokenrect}')
