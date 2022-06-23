@@ -163,7 +163,7 @@ class Workspace(object):
 	def _cached_page_image(self, docid: str, page: int):
 		Workspace.log.debug(f'_cached_page_image: {docid} page {page}')
 		import fitz
-		doc = fitz.open(str(self.docs[docid].originalFile))
+		doc = fitz.open(str(self.docs[docid].original_path))
 		_page = doc[page]
 		img_info = _page.getImageList()[0]
 		xref = img_info[0]

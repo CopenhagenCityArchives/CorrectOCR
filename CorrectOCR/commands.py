@@ -186,7 +186,7 @@ def do_align(workspace: Workspace, config):
 		for docid in config.docids:
 			_ = workspace.docs[docid].alignments
 	elif config.all:
-		for docid, doc in filter(lambda x: x[1].goldFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
+		for docid, doc in filter(lambda x: x[1].gold_file.is_file() and x[0] not in config.exclude, workspace.docs.items()):
 			_ = doc.alignments
 
 
@@ -272,7 +272,7 @@ def do_prepare(workspace: Workspace, config):
 	elif config.docids:
 		docs = filter(lambda x: x[0] in config.docids, workspace.docs.items())
 	elif config.all:
-		docs = filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items())
+		docs = filter(lambda x: x[1].original_path.is_file() and x[0] not in config.exclude, workspace.docs.items())
 	elif config.skip_done:
 		docs = workspace.documents(is_done=False)
 	else:
@@ -300,7 +300,7 @@ def do_crop(workspace: Workspace, config):
 		for docid in config.docids:
 			workspace.docs[docid].crop_tokens(config.edge_left, config.edge_right)
 	elif config.all:
-		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
+		for docid, doc in filter(lambda x: x[1].original_path.is_file() and x[0] not in config.exclude, workspace.docs.items()):
 			doc.crop_tokens(config.edge_left, config.edge_right)
 			
 
@@ -387,9 +387,9 @@ def do_correct(workspace: Workspace, config):
 
 	log.info(f'Applying corrections to {docid}')
 	Tokenizer.for_extension(doc.ext).apply(
-		doc.originalFile,
+		doc.original_path,
 		corrected,
-		doc.goldFile,
+		doc.gold_file,
 		highlight=config.highlight
 	)
 
@@ -447,7 +447,7 @@ def do_index(workspace: Workspace, config):
 		if config.highlight and workspace.docs[docid].ext == '.pdf':
 			from .tokens._pdf import PDFToken
 			log.info(f'Applying highlights')
-			pdf = fitz.open(workspace.docs[docid].originalFile)
+			pdf = fitz.open(workspace.docs[docid].original_path)
 			red = (1.0, 0.0, 0.0)
 			for run in matches:
 				for tagged_token in run:
@@ -470,7 +470,7 @@ def do_index(workspace: Workspace, config):
 		matches[config.docid] = match_terms(workspace.docs[config.docid])
 	elif config.all:
 		matches = dict()
-		for docid, doc in filter(lambda x: x[1].originalFile.is_file() and x[0] not in config.exclude, workspace.docs.items()):
+		for docid, doc in filter(lambda x: x[1].original_path.is_file() and x[0] not in config.exclude, workspace.docs.items()):
 			matches[docid] = match_terms(doc)
 	#log.debug(f'matches: {matches}')
 

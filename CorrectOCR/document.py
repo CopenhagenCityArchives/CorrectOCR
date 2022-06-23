@@ -70,11 +70,11 @@ class Document(object):
 				Document.log.info(f'Document {self.docid} has info_url: {self.info_url}')
 				name = self.docid + self.ext
 				if self.ext == '.txt':
-					self.originalFile: Union[CorpusFile, Path] = CorpusFile(original.joinpath(name), nheaderlines)
-					self.goldFile: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(name), nheaderlines)
+					self.original_path: Union[CorpusFile, Path] = CorpusFile(original.joinpath(name), nheaderlines)
+					self.gold_path: Union[CorpusFile, Path] = CorpusFile(gold.joinpath(name), nheaderlines)
 				else:
-					self.originalFile: Union[CorpusFile, Path] = original.joinpath(name)
-					self.goldFile: Union[CorpusFile, Path] = gold.joinpath(name)
+					self.original_path: Union[CorpusFile, Path] = original.joinpath(name)
+					self.gold_path: Union[CorpusFile, Path] = gold.joinpath(name)
 				cursor.execute("""
 						INSERT INTO documents (
 							doc_id,
@@ -88,8 +88,8 @@ class Document(object):
 					""", (
 						self.docid,
 						self.ext,
-						str(self.originalFile),
-						str(self.goldFile),
+						str(self.original_path),
+						str(self.gold_path),
 						self._is_done,
 					)
 				)
@@ -205,7 +205,7 @@ class Document(object):
 			if force or len(self.tokens) == 0:
 				tokenizer = Tokenizer.for_type(self.ext)(self.workspace.config.language)
 				self.tokens = tokenizer.tokenize(
-					self.originalFile,
+					self.original_path,
 					self.workspace.storageconfig
 				)
 				if dehyphenate:
@@ -243,7 +243,7 @@ class Document(object):
 
 	def crop_tokens(self, edge_left = None, edge_right = None):
 		Document.log.info(f'Cropping tokens for {self.docid}')
-		Tokenizer.for_type(self.ext).crop_tokens(self.originalFile, self.workspace.storageconfig, self.tokens, edge_left, edge_right)
+		Tokenizer.for_type(self.ext).crop_tokens(self.original_path, self.workspace.storageconfig, self.tokens, edge_left, edge_right)
 		self.tokens.save()
 
 	def precache_images(self, complete=False):
