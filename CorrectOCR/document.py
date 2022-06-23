@@ -204,7 +204,7 @@ class Document(object):
 		if step == 'tokenize':
 			if force or len(self.tokens) == 0:
 				tokenizer = Tokenizer.for_type(self.ext)(self.workspace.config.language)
-				self.tokens = tokenizer.tokenize(
+				self._tokens = tokenizer.tokenize(
 					self.original_path,
 					self.workspace.storageconfig
 				)
