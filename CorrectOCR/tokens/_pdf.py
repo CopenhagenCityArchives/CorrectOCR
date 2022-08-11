@@ -146,11 +146,11 @@ class PDFTokenizer(Tokenizer):
 			if token.is_discarded:
 				continue
 
-			page = pdf_corrected[token.ordering[0]]
+			page = pdf_corrected[token.page]
 			word = token.gold or token.original
 
 			# Adjust rectangle to fit word:
-			fontfactor = 0.70
+			fontfactor = 0.60
 			size = token.rect.height * fontfactor
 			textwidth = fitz.get_text_length(word, fontsize=size)
 			rect = fitz.Rect(token.rect.x0, token.rect.y0, max(token.rect.x1, token.rect.x0+textwidth+1.0), token.rect.y1 + token.rect.height)
