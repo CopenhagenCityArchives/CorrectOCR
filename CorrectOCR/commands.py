@@ -233,7 +233,7 @@ def do_add(workspace: Workspace, config):
 
 	if config.document:
 		files = [config.document]
-	if config.directory:
+	elif config.directory:
 		files = list(config.directory.iterdir())
 	else:
 		files = []
@@ -270,7 +270,7 @@ def do_prepare(workspace: Workspace, config):
 	if config.docid:
 		docs = [(config.docid, workspace.docs[config.docid])]
 	elif config.docids:
-		docs = filter(lambda x: x[0] in config.docids, workspace.docs.items())
+		docs = [(docid, workspace.docs[docid]) for docid in config.docids]
 	elif config.all:
 		docs = filter(lambda x: x[1].original_path.is_file() and x[0] not in config.exclude, workspace.docs.items())
 	elif config.skip_done:
