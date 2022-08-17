@@ -132,11 +132,11 @@ class PDFTokenizer(Tokenizer):
 		PDFTokenizer.log.info('Copying images from original to corrected PDF')
 		for page in pdf_original:
 			PDFTokenizer.log.debug(f'(page {page.number})')
-			newpage = pdf_corrected.newPage(-1, page.rect.width, page.rect.height)
+			newpage = pdf_corrected.new_page(-1, page.rect.width, page.rect.height)
 			for image_info in page.get_images():
 				xref = image_info[0]
-				stream = pdf_original.extractImage(xref)['image']
-				newpage.insertImage(page.rect, stream=stream)
+				stream = pdf_original.extract_image(xref)['image']
+				newpage.insert_image(page.rect, stream=stream)
 
 		blue = fitz.utils.getColor('blue')
 		red = fitz.utils.getColor('red')
@@ -166,9 +166,9 @@ class PDFTokenizer(Tokenizer):
 					f' -- rect.height: {rect.height} result: {res}\n'
 				)
 				if highlight:
-					page.drawRect(rect, color=red)
+					page.draw_rect(rect, color=red)
 			elif highlight:
-				page.drawRect(rect, color=blue)
+				page.draw_rect(rect, color=blue)
 
 		PDFTokenizer.log.info(f'Saving corrected PDF to {outfile}')
 		pdf_corrected.save(str(outfile))#, garbage=4, deflate=True)
