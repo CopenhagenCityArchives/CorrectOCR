@@ -287,7 +287,7 @@ class Tokenizer(abc.ABC):
 
 	@staticmethod
 	@abc.abstractmethod
-	def apply(original: Path, tokens: TokenList, outfile: Path, highlight=False):
+	def apply(original: Path, tokens: TokenList, outfile: Path, config):
 		pass
 
 	@staticmethod

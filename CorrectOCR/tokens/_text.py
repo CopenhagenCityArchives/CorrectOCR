@@ -45,7 +45,7 @@ class StringTokenizer(Tokenizer):
 		return tokenlist
 
 	@staticmethod
-	def apply(original: CorpusFile, tokens, outfile: CorpusFile, highlight=False):
+	def apply(original: CorpusFile, tokens, outfile: CorpusFile, config):
 		spaced = str.join(' ', [token.gold or token.original for token in tokens if not token.is_discarded])
 		despaced = spaced.replace('_NEWLINE_N_', '\n').replace(' \n ', '\n')
 

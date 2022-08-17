@@ -125,7 +125,7 @@ class PDFTokenizer(Tokenizer):
 		return tokens
 
 	@staticmethod
-	def apply(original, tokens: List[PDFToken], outfile, highlight=False):
+	def apply(original, tokens: List[PDFToken], outfile, config):
 		pdf_original = fitz.open(str(original))
 		pdf_corrected = fitz.open()
 
@@ -138,8 +138,9 @@ class PDFTokenizer(Tokenizer):
 				stream = pdf_original.extract_image(xref)['image']
 				newpage.insert_image(page.rect, stream=stream)
 
-		blue = fitz.utils.getColor('blue')
-		red = fitz.utils.getColor('red')
+		if config.highlight:
+			blue = fitz.utils.getColor('blue')
+			red = fitz.utils.getColor('red')
 
 		PDFTokenizer.log.info('Inserting tokens in corrected PDF')
 		for token in sorted(tokens, key=lambda x: (x.page, x.block, x.line, x.word)):
@@ -150,24 +151,23 @@ class PDFTokenizer(Tokenizer):
 			word = token.gold or token.original
 
 			# Adjust rectangle to fit word:
-			fontfactor = 0.60
-			size = token.rect.height * fontfactor
-			textwidth = fitz.get_text_length(word, fontsize=size)
-			rect = fitz.Rect(token.rect.x0, token.rect.y0, max(token.rect.x1, token.rect.x0+textwidth+1.0), token.rect.y1 + token.rect.height)
+			fontsize = token.rect.height * config.fontfactor
+			textwidth = fitz.get_text_length(word, fontsize=fontsize)
+			rect = fitz.Rect(token.rect.x0, token.rect.y0, max(token.rect.x1, token.rect.x0+textwidth+config.padding), token.rect.y1 + token.rect.height)
 
-			res = page.insert_textbox(rect, f'{word} ', fontsize=size, render_mode=3)
+			res = page.insert_textbox(rect, f'{word} ', fontsize=fontsize, render_mode=3)
 			if res < 0:
 				PDFTokenizer.log.warning(
 					f'Token was not inserted properly: {word}\n'
 					f' -- token.rect: {token.rect}\n'
 					f' -- rect: {rect}\n'
-					f' -- font size: {size}\n'
+					f' -- font size: {fontsize}\n'
 					f' -- calc.width: {textwidth} rect.width: {rect.width}\n'
 					f' -- rect.height: {rect.height} result: {res}\n'
 				)
-				if highlight:
+				if config.highlight:
 					page.draw_rect(rect, color=red)
-			elif highlight:
+			elif config.highlight:
 				page.draw_rect(rect, color=blue)
 
 		PDFTokenizer.log.info(f'Saving corrected PDF to {outfile}')

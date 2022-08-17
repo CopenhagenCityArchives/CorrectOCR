@@ -220,7 +220,7 @@ class HOCRTokenizer(Tokenizer):
 		return all_tokens
 
 	@staticmethod
-	def apply(original, tokens: List[HOCRToken], outfile: Path, highlight=False):
+	def apply(original, tokens: List[HOCRToken], outfile: Path, config):
 		pdf = fitz.open()
 		pix = fitz.Pixmap(str(original))
 		page = pdf.newPage(-1, width=pix.width, height=pix.height)
