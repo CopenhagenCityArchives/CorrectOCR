@@ -344,6 +344,7 @@ def do_correct(workspace: Workspace, config):
 		docid = config.docid
 
 	doc = workspace.docs[config.docid]
+	doc.tokens.preload()
 
 	if config.autocorrect:
 		log.info(f'Getting autocorrected tokens')
@@ -386,12 +387,13 @@ def do_correct(workspace: Workspace, config):
 	corrected = [t for t in corrected if not t.is_discarded]
 
 	log.info(f'Applying corrections to {docid}')
-	Tokenizer.for_extension(doc.ext).apply(
+	Tokenizer.for_type(doc.ext).apply(
 		doc.original_path,
 		corrected,
-		doc.gold_file,
-		highlight=config.highlight
+		doc.gold_path,
+		config
 	)
+	doc.tokens.flush()
 
 
 ##########################################################################################
