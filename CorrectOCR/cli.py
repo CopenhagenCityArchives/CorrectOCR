@@ -221,6 +221,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group.add_argument('--make_settings', action='store_true', help='Make heuristics settings from report')
 	statsparser.add_argument('--rebin', action='store_true', help='Rerun kbest/bin steps to compare quality (will take longer)')
 	statsparser.add_argument('--only_done', type=str2bool, default='True', help='Whether to include all or only fully annotated documents')
+	statsparser.add_argument('--docids', nargs='+', help='Input multiple document IDs. Overrides --only_done.')
 	statsparser.set_defaults(func=commands.do_stats, **defaults)
 
 	correctparser = subparsers.add_parser('correct', help='Apply corrections')

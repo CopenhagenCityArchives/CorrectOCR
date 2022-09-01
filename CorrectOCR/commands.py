@@ -312,7 +312,12 @@ def do_stats(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.do_stats')
 
 	if config.make_report:
-		for docid, doc in workspace.documents(is_done=config.only_done).items():
+		if config.docids:
+			docs = [(docid, workspace.docs[docid]) for docid in config.docids]
+		else:
+			docs = workspace.documents(is_done=config.only_done).items()
+		
+		for docid, doc in  docs:
 			log.info(f'Collecting stats from {docid}')
 			doc.tokens.preload()
 			workspace.resources.heuristics.add_to_report(doc.tokens, config.rebin, workspace.resources.hmm)
