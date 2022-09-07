@@ -43,3 +43,17 @@ class TestHyphenation(unittest.TestCase):
 		tokens[0].is_hyphenated = True
 
 		self.assertEqual(str(tokens), 'String', f'Resulting string should be dehyphenated.')
+
+	def test_final_hyphen(self):
+		t = Tokenizer.for_type('.txt')(language=MockLang('english'))
+
+		f = MockCorpusFile('Str-')
+		tokens = t.tokenize(f, MockConfig())
+
+		self.assertEqual(str(tokens), 'Str-', f'Resulting string should not be dehyphenated.')
+
+		tokens[0].is_hyphenated = True
+
+		expected = 'Str-'
+		self.assertEqual(str(tokens), expected, f'Resulting string should be {expected}.')
+

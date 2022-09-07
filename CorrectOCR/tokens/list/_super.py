@@ -4,11 +4,20 @@ import abc
 import collections
 import logging
 import random
-from typing import Tuple
+from typing import NamedTuple, Tuple
 
 import progressbar
 
 from ..._util import hyphenRE
+
+
+class DummyToken(NamedTuple):
+	original: str
+	gold: str
+
+	@classmethod
+	def hyphen(cls):
+		return DummyToken('-', '-')
 
 class TokenList(collections.abc.MutableSequence):
 	log = logging.getLogger(f'{__name__}.TokenList')
@@ -63,7 +72,7 @@ class TokenList(collections.abc.MutableSequence):
 			output.append(t.gold or t.original)
 			#TokenList.log.debug(f'output: {output}')
 			if t.is_hyphenated:
-				n = next(ts)
+				n = next(ts, DummyToken.hyphen())
 				#TokenList.log.debug(f'n: {n}')
 				output[-1] = output[-1][:-1] + (n.gold or n.original)
 				#TokenList.log.debug(f'output: {output}')
@@ -163,7 +172,7 @@ class TokenList(collections.abc.MutableSequence):
 			original = token.original
 			gold = token.gold
 			if token.is_hyphenated:
-				n = next(tokens)
+				n = next(tokens, DummyToken.hyphen())
 				original += n.original
 				if gold:
 					gold += n.gold
