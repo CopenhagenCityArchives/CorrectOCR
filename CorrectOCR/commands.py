@@ -291,6 +291,43 @@ def do_prepare(workspace: Workspace, config):
 ##########################################################################################
 
 
+def do_batch(workspace: Workspace, config):
+	log = logging.getLogger(f'{__name__}.batch')
+
+	docs = dict()
+
+	for file in config.files:
+		docid = file.stem
+		if docid not in workspace.docs:
+			log.info(f'Adding {file}')
+			workspace.add_doc(file)
+		docs[docid] = workspace.docs[docid]
+	
+	for docid, doc in docs.items():
+		log.info(f'Tokenizing {docid}')
+		doc.prepare('tokenize', k=config.k, dehyphenate=config.dehyphenate)
+
+		log.info(f'Autocropping {docid}')
+		doc.crop_tokens()
+
+		log.info(f'Prepping {docid}')
+		doc.prepare('server', k=config.k)
+
+		log.info(f'Creating gold {docid}')
+		if not doc.gold_path.is_file():
+			corrected = [t for t in doc.tokens if not t.is_discarded]
+			Tokenizer.for_type(doc.ext).apply(
+				doc.original_path,
+				corrected,
+				doc.gold_path,
+				config
+			)
+		doc.tokens.flush()
+
+
+##########################################################################################
+
+
 def do_crop(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.crop')
 	

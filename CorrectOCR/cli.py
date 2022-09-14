@@ -184,6 +184,20 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	prepareparser.add_argument('--precache_images', action='store_true', help='Create images for the server API')
 	prepareparser.set_defaults(func=commands.do_prepare, **defaults)
 
+	batchparser = subparsers.add_parser('batch', help="""
+		Run batch of documents.
+
+		.. See :py:class:`Document<CorrectOCR.workspace.Document>`
+
+		See CorrectOCR.workspace.Document
+		for further details on the possible steps.
+	""")
+	batchparser.add_argument('files', nargs='+', type=Path, help='Input multiple document files')
+	batchparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
+	batchparser.add_argument('--fontfactor', type=float, default=0.71, help='Adjust fontsize (only available for PDFs)')
+	batchparser.add_argument('--padding', type=float, default=10.0, help='Adjust padding (only available for PDFs)')
+	batchparser.set_defaults(func=commands.do_batch, **defaults)
+
 	cropparser = subparsers.add_parser('crop', help="""
 		Mark tokens near the edges of a page as disabled.
 		
