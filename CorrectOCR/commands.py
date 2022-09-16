@@ -322,7 +322,12 @@ def do_batch(workspace: Workspace, config):
 				doc.gold_path,
 				config
 			)
+		
+		workspace.resources.heuristics.add_to_report(doc.tokens, config.rebin, workspace.resources.hmm)
 		doc.tokens.flush()
+
+	log.info(f'Saving report to {workspace.resources.reportFile}')
+	FileIO.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
 
 
 ##########################################################################################
