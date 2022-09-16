@@ -248,7 +248,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	group2.add_argument('--autocorrect', action='store_true', help='Apply automatic corrections as configured in settings')
 	group2.add_argument('--gold_ready', action='store_true', help='Apply gold from ready document')
 	correctparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
-	correctparser.add_argument('--fontfactor', type=float, default=0.8, help='Adjust fontsize (only available for PDFs)')
+	correctparser.add_argument('--fontfactor', type=float, default=0.71, help='Adjust fontsize (only available for PDFs)')
 	correctparser.add_argument('--padding', type=float, default=10.0, help='Adjust padding (only available for PDFs)')
 	correctparser.set_defaults(func=commands.do_correct, **defaults)
 
