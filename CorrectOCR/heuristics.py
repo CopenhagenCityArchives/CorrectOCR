@@ -203,7 +203,7 @@ class Heuristics(object):
 						counts[f'(E) Annotator chose the top candidate'] += 1
 					elif any([gold == item.candidate for item in kbest.values()]):
 						counts[f'(E) Annotator chose a lower candidate'] += 1
-					else:
+					elif gold is not None:
 						counts[f'(E) Annotator made a novel correction'] += 1
 			except Exception as e:
 				Heuristics.log.error(f'Malformed token: {token}:\n{traceback.format_exc()}')
