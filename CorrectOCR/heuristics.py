@@ -47,7 +47,7 @@ class Heuristics(object):
 			_bin.number = number
 		Heuristics.log.debug(f'Bins: {_bins}')
 		self.dictionary = dictionary
-		self.documentCount = 0
+		self.documents = dict()
 		self.tokenCount = 0
 		self.totalCount = 0
 		self.punctuationCount = 0
@@ -123,7 +123,10 @@ class Heuristics(object):
 		return modified_count > 0
 
 	def add_to_report(self, tokens, rebin=False, hmm=None):
-		self.documentCount += 1
+		if len(tokens) == 0:
+			Heuristics.log.warning(f'No tokens were added!')
+			return
+		self.documents.add(tokens[0].docid)
 		if rebin:
 			Heuristics.log.info(f'Will rebin {len(tokens)} tokens for comparison.')
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
@@ -215,7 +218,7 @@ class Heuristics(object):
 
 		out = f'CorrectOCR Report for {datetime.datetime.now().isoformat()}\n\n'
 
-		out += f'Total documents included in evaluation: {self.documentCount:10d}         '.rjust(60) + '\n\n'
+		out += f'Total documents included in evaluation: {len(self.documents):10d}         '.rjust(60) + '\n\n'
 		out += f'Total tokens included in evaluation: {self.totalCount:10d}         '.rjust(60) + '\n\n'
 		out += f'Tokens without gold correction: {self.nogoldCount:10d} ({self.nogoldCount/self.totalCount:6.2%})'.rjust(60) + '\n\n'
 		out += f'Oversegmented: {self.oversegmented:10d} ({self.oversegmented/self.totalCount:6.2%})'.rjust(60) + '\n'
@@ -265,6 +268,8 @@ class Heuristics(object):
 			out += f'\n\n\nThere were some malformed tokens:\n\n'
 			for token in self.malformedTokens:
 				out += f'{pprint.pprint(vars(token))}\n\n'
+
+		out += 'Included documents:\n\t' + '\n\t'.join([f'{docid}: {len(self.documents)} tokens' for docid in sorted(self.documents.keys())]) + '\n'
 
 		return out
 
