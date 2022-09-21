@@ -126,7 +126,7 @@ class Heuristics(object):
 		if len(tokens) == 0:
 			Heuristics.log.warning(f'No tokens were added!')
 			return
-		self.documents.add(tokens[0].docid)
+		self.documents[tokens[0].docid] = len(tokens)
 		if rebin:
 			Heuristics.log.info(f'Will rebin {len(tokens)} tokens for comparison.')
 		for original, gold, token in progressbar.progressbar(tokens.consolidated, max_value=len(tokens)):
