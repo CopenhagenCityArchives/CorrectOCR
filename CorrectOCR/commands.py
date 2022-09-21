@@ -295,13 +295,33 @@ def do_batch(workspace: Workspace, config):
 	log = logging.getLogger(f'{__name__}.batch')
 
 	docs = dict()
+	report_name = None
 
-	for file in config.files:
-		docid = file.stem
-		if docid not in workspace.docs:
-			log.info(f'Adding {file}')
-			workspace.add_doc(file)
-		docs[docid] = workspace.docs[docid]
+	if config.files:
+		for file in config.files:
+			docid = file.stem
+			if docid not in workspace.docs:
+				log.info(f'Adding {file}')
+				workspace.add_doc(file)
+			docs[docid] = workspace.docs[docid]
+	elif config.filelist:
+		for docid in _open_for_reading(config.filelist).readlines():
+			if docid[-1] == '\n':
+				docid = docid[:-1]
+			file = workspace._originalPath / (docid + config.file_type)
+			if not file.is_file():
+				url = config.repo_url + docid
+				log.info(f'Saving {url} to {file}')
+				r = requests.get(url)
+				if r.status_code == 200:
+					with open(file, 'wb') as f:
+						f.write(r.content)
+				else:
+					log.error(f'Unable to save file: {r}')
+			if docid not in workspace.docs:
+				log.info(f'Adding {file}')
+				workspace.add_doc(file)
+			docs[docid] = workspace.docs[docid]
 	
 	for docid, doc in docs.items():
 		log.info(f'Tokenizing {docid}')
@@ -323,11 +343,16 @@ def do_batch(workspace: Workspace, config):
 				config
 			)
 		
-		workspace.resources.heuristics.add_to_report(doc.tokens, config.rebin, workspace.resources.hmm)
+		log.info(f'Adding {docid} to report')
+		workspace.resources.heuristics.add_to_report(doc.tokens, False, workspace.resources.hmm)
 		doc.tokens.flush()
 
-	log.info(f'Saving report to {workspace.resources.reportFile}')
-	FileIO.save(workspace.resources.heuristics.report(), workspace.resources.reportFile)
+	if report_name:
+		report_path = workspace.resources.reportFile.parent / workspace.resources.reportFile.stem + '-' + report_name + workspace.resources.reportFile.suffix
+	else:
+		report_path = workspace.resources.reportFile
+	log.info(f'Saving report to {report_path}')
+	FileIO.save(workspace.resources.heuristics.report(), report_path)
 
 
 ##########################################################################################

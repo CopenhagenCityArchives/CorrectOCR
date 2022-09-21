@@ -192,7 +192,11 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 		See CorrectOCR.workspace.Document
 		for further details on the possible steps.
 	""")
-	batchparser.add_argument('files', nargs='+', type=Path, help='Input multiple document files')
+	group = batchparser.add_mutually_exclusive_group(required=True)
+	group.add_argument('--files', nargs='+', type=Path, help='Input multiple document files')
+	group.add_argument('--filelist', type=Path, help='Input document with list of document IDs')
+	batchparser.add_argument('--repo_url', type=str, help='Base URL for document IDs in list')
+	batchparser.add_argument('--file_type', default='.pdf', help='Type of documents in list')
 	batchparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
 	batchparser.add_argument('--fontfactor', type=float, default=0.71, help='Adjust fontsize (only available for PDFs)')
 	batchparser.add_argument('--padding', type=float, default=10.0, help='Adjust padding (only available for PDFs)')
