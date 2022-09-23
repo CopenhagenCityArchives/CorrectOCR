@@ -322,18 +322,20 @@ def do_batch(workspace: Workspace, config):
 				log.info(f'Adding {file}')
 				workspace.add_doc(file)
 			docs[docid] = workspace.docs[docid]
-	
-	for docid, doc in docs.items():
-		log.info(f'Tokenizing {docid}')
+		
+	for i, docid, doc in enumerate(docs.items()):
+		def log_info(msg: str):
+			log.info(f'{msg} #{i}: {docid}')
+		log_info(f'Tokenizing')
 		doc.prepare('tokenize', k=config.k, dehyphenate=config.dehyphenate)
 
-		log.info(f'Autocropping {docid}')
+		log_info(f'Autocropping')
 		doc.crop_tokens()
 
-		log.info(f'Prepping {docid}')
+		log_info(f'Prepping')
 		doc.prepare('server', k=config.k)
 
-		log.info(f'Creating gold {docid}')
+		log_info(f'Creating gold')
 		if not doc.gold_path.is_file():
 			corrected = [t for t in doc.tokens if not t.is_discarded]
 			Tokenizer.for_type(doc.ext).apply(
@@ -343,7 +345,7 @@ def do_batch(workspace: Workspace, config):
 				config
 			)
 		
-		log.info(f'Adding {docid} to report')
+		log_info(f'Adding to report')
 		workspace.resources.heuristics.add_to_report(doc.tokens, False, workspace.resources.hmm)
 		doc.tokens.flush()
 
