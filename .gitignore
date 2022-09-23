@@ -38,3 +38,4 @@ workspace/resources/dictionary
 workspace/resources/multicharacter_errors.json
 workspace/resources/report*.txt
 workspace/resources/*.0??.*
+testdata
