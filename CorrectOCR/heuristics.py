@@ -102,7 +102,7 @@ class Heuristics(object):
 			#Heuristics.log.debug(f'binning {token}')
 			if force or token.bin is None:
 				token.heuristic, token.selection, token.bin = self.bin_for_word(token.original, token.kbest)
-				if token.is_hyphenated:
+				if token.is_hyphenated and token.index+1 < len(tokens):
 					# ugly...
 					next_token = tokens[token.index+1]
 					next_token.heuristic = token.heuristic
