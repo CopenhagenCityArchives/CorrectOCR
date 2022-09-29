@@ -306,13 +306,14 @@ def do_batch(workspace: Workspace, config):
 			docs[docid] = workspace.docs[docid]
 	elif config.filelist:
 		report_name = config.filelist.stem
-		for docid in _open_for_reading(config.filelist).readlines():
+		docids = _open_for_reading(config.filelist).readlines()
+		for i, docid in enumerate(docids):
 			if docid[-1] == '\n':
 				docid = docid[:-1]
 			file = workspace._originalPath / (docid + config.file_type)
 			if not file.is_file():
 				url = config.repo_url + docid
-				log.info(f'Saving {url} to {file}')
+				log.info(f'Saving {url} #{i}/{len(docids)} to {file}')
 				r = requests.get(url)
 				if r.status_code == 200:
 					with open(file, 'wb') as f:
@@ -320,13 +321,13 @@ def do_batch(workspace: Workspace, config):
 				else:
 					log.error(f'Unable to save file: {r}')
 			if docid not in workspace.docs:
-				log.info(f'Adding {file}')
+				log.info(f'Adding #{i}/{len(docids)} {file}')
 				workspace.add_doc(file)
 			docs[docid] = workspace.docs[docid]
 		
-	for i, docid, doc in enumerate(docs.items()):
+	for i, (docid, doc) in enumerate(docs.items()):
 		def log_info(msg: str):
-			log.info(f'{msg} #{i}: {docid}')
+			log.info(f'{msg} #{i}/{len(docs)}: {docid}')
 		log_info(f'Tokenizing')
 		doc.prepare('tokenize', k=config.k, dehyphenate=config.dehyphenate)
 
