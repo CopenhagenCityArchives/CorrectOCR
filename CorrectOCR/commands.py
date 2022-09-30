@@ -327,24 +327,25 @@ def do_batch(workspace: Workspace, config):
 	for i, (docid, doc) in enumerate(docs.items()):
 		def log_info(msg: str):
 			log.info(f'{msg} #{i}/{len(docs)}: {docid}')
-		log_info(f'Tokenizing')
-		doc.prepare('tokenize', k=config.k, dehyphenate=config.dehyphenate)
+		if not config.only_report:
+			log_info(f'Tokenizing')
+			doc.prepare('tokenize', k=config.k, dehyphenate=config.dehyphenate)
 
-		log_info(f'Autocropping')
-		doc.crop_tokens()
+			log_info(f'Autocropping')
+			doc.crop_tokens()
 
-		log_info(f'Prepping')
-		doc.prepare('server', k=config.k)
+			log_info(f'Prepping')
+			doc.prepare('server', k=config.k)
 
-		log_info(f'Creating gold')
-		if not doc.gold_path.is_file():
-			corrected = [t for t in doc.tokens if not t.is_discarded]
-			Tokenizer.for_type(doc.ext).apply(
-				doc.original_path,
-				corrected,
-				doc.gold_path,
-				config
-			)
+			log_info(f'Creating gold')
+			if not doc.gold_path.is_file():
+				corrected = [t for t in doc.tokens if not t.is_discarded]
+				Tokenizer.for_type(doc.ext).apply(
+					doc.original_path,
+					corrected,
+					doc.gold_path,
+					config
+				)
 		
 		log_info(f'Adding to report')
 		workspace.resources.heuristics.add_to_report(doc.tokens, False, workspace.resources.hmm)
