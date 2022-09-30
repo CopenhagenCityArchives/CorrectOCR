@@ -200,6 +200,7 @@ def get_root_argparser(defaults = None, serverdefaults = None):
 	batchparser.add_argument('--highlight', action='store_true', help='Create a copy with highlighted words (only available for PDFs)')
 	batchparser.add_argument('--fontfactor', type=float, default=0.71, help='Adjust fontsize (only available for PDFs)')
 	batchparser.add_argument('--padding', type=float, default=10.0, help='Adjust padding (only available for PDFs)')
+	batchparser.add_argument('--only_report', action='store_true', help='Create report from documents without (re-)running prep steps')
 	batchparser.set_defaults(func=commands.do_batch, **defaults)
 
 	cropparser = subparsers.add_parser('crop', help="""
