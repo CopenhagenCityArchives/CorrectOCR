@@ -57,7 +57,7 @@ class Document(object):
 				)
 			)
 			result = cursor.fetchone()
-			Document.log.info(result)
+			#Document.log.info(result)
 			if result is not None:
 				if self.docid != result.doc_id or self.ext != result.ext:
 					raise ValueError('Mismatching doc_id or extension!')

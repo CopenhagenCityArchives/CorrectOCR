@@ -22,12 +22,12 @@ class LazyDocumentDict(MutableMapping):
 	log = logging.getLogger(f'{__name__}.LazyDocumentDict')
 
 	def __init__(self, workspace, *args, **kargs):
-		LazyDocumentDict.log.debug('LazyDocumentDict __init__')
+		#LazyDocumentDict.log.debug('LazyDocumentDict __init__')
 		self.workspace = workspace
 		self._dict = dict(*args, **kargs)
 
 	def __getitem__(self, key):
-		LazyDocumentDict.log.debug(f'LazyDocumentDict __getitem__ {key}')
+		#LazyDocumentDict.log.debug(f'LazyDocumentDict __getitem__ {key}')
 		value = self._dict[key]
 		if isinstance(value, PurePath):
 			LazyDocumentDict.log.debug(f'LazyDocumentDict __getitem__ GENERATING {key}')
@@ -43,19 +43,19 @@ class LazyDocumentDict(MutableMapping):
 		return value
 
 	def __setitem__(self, key, value):
-		LazyDocumentDict.log.debug(f'LazyDocumentDict __setitem__ {key} {value}')
+		#LazyDocumentDict.log.debug(f'LazyDocumentDict __setitem__ {key} {value}')
 		self._dict[key] = value
 
 	def __delitem__(self, key):
-		LazyDocumentDict.log.debug(f'LazyDocumentDict __delitem__ {key}')
+		#LazyDocumentDict.log.debug(f'LazyDocumentDict __delitem__ {key}')
 		return self._dict.__delitem__(key)
 
 	def __iter__(self):
-		LazyDocumentDict.log.debug('LazyDocumentDict __iter__')
+		#LazyDocumentDict.log.debug('LazyDocumentDict __iter__')
 		return iter(self._dict)
 
 	def __len__(self):
-		LazyDocumentDict.log.debug('LazyDocumentDict __len__')
+		#LazyDocumentDict.log.debug('LazyDocumentDict __len__')
 		return len(self._dict)
 
 
