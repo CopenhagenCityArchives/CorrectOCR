@@ -51,8 +51,8 @@ class DBTokenList(TokenList):
 		with self.config.connection.cursor(named_tuple=True, buffered=True) as cursor:
 			cursor.execute("""
 				SELECT COUNT(*) AS count
-				FROM token
-				WHERE token.doc_id = %s
+				FROM token t, documents d
+				WHERE t.doc_id = d.id AND d.doc_id = %s
 				""", (
 					self.docid,
 				)
@@ -75,12 +75,12 @@ class DBTokenList(TokenList):
 		with self.config.connection.cursor(named_tuple=True, buffered=True) as cursor:
 			cursor.execute("""
 				SELECT COUNT(*) AS count
-				FROM token
-				WHERE doc_id = %s
+				FROM token t, documents d
+				WHERE t.doc_id = d.id AND d.doc_id = %s
 				AND heuristic IS NULL
 				AND discarded != 1
 				""", (
-					self.docid,
+					self.config._db_id_for_doc(self.docid),
 				)
 			)
 			server_ready = cursor.fetchone().count == 0
@@ -100,7 +100,6 @@ class DBTokenList(TokenList):
 		with config.connection.cursor(named_tuple=True, buffered=True) as cursor:
 			cursor.execute("""
 				SELECT 
-					token.doc_id,
 					token.doc_index,
 					token_type,
 					token_info,
@@ -119,8 +118,8 @@ class DBTokenList(TokenList):
 					probability
 				FROM token
 				LEFT JOIN kbest
-				ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
-				WHERE token.doc_id = %s AND token.doc_index = %s
+				ON token.id = kbest.token_id
+				WHERE token.doc_id = (SELECT id FROM documents WHERE doc_id = %s) AND token.doc_index = %s
 				""", (
 					docid,
 					index,
@@ -137,7 +136,7 @@ class DBTokenList(TokenList):
 						'Annotations': result.annotations,
 						'Has error': result.has_error,
 						'Last Modified': result.last_modified,
-						'Doc ID': result.doc_id,
+						'Doc ID': docid,
 						'Index': result.doc_index,
 						'Gold': result.gold,
 						'Bin': result.bin,
@@ -165,7 +164,6 @@ class DBTokenList(TokenList):
 		with config.connection.cursor(named_tuple=True, buffered=True) as cursor:
 			cursor.execute("""
 				SELECT
-					token.doc_id,
 					token.doc_index,
 					token_type,
 					token_info,
@@ -184,9 +182,8 @@ class DBTokenList(TokenList):
 					probability
 				FROM token
 				LEFT JOIN kbest
-				ON token.doc_id = kbest.doc_id AND token.doc_index = kbest.doc_index
-				WHERE token.doc_id = %s
-				ORDER BY token.doc_id, token.doc_index
+				ON token.id = kbest.token_id
+				WHERE token.doc_id = (SELECT id FROM documents WHERE doc_id = %s)
 				""", (
 					docid,
 				)
@@ -207,7 +204,7 @@ class DBTokenList(TokenList):
 						'Annotations': result.annotations,
 						'Has error': result.has_error,
 						'Last Modified': result.last_modified,
-						'Doc ID': result.doc_id,
+						'Doc ID': docid,
 						'Index': result.doc_index,
 						'Gold': result.gold,
 						'Bin': result.bin,
@@ -344,8 +341,8 @@ class DBTokenList(TokenList):
 					has_error,
 					gold,
 					heuristic
-				FROM token
-				WHERE token.doc_id = %s
+				FROM token t, documents d
+				WHERE t.doc_id = d.id AND d.doc_id = %s
 				""", (
 					self.docid,
 				)
@@ -382,10 +379,10 @@ class DBTokenList(TokenList):
 			if has_gold:
 				cursor.execute("""
 					SELECT MAX(doc_index) AS max
-					FROM token
-					WHERE token.doc_id = %s
-					AND token.discarded = %s
-					AND token.gold IS NOT NULL
+					FROM token t, documents d
+					WHERE t.doc_id = d.id AND d.doc_id = %s
+					AND t.discarded = %s
+					AND t.gold IS NOT NULL
 					""", (
 						self.docid,
 						is_discarded,
@@ -394,9 +391,9 @@ class DBTokenList(TokenList):
 			else:
 				cursor.execute("""
 					SELECT MAX(doc_index) AS max
-					FROM token
-					WHERE token.doc_id = %s
-					AND token.discarded = %s
+					FROM token t, documents d
+					WHERE t.doc_id = d.id AND d.doc_id = %s
+					AND t.discarded = %s
 					""", (
 						self.docid,
 						is_discarded,
@@ -416,7 +413,11 @@ class DBTokenList(TokenList):
 	def _get_count(config, docid):
 		with config.connection.cursor(named_tuple=True, buffered=True) as cursor:
 			cursor.execute(
-				"SELECT MAX(doc_index) AS max FROM token WHERE doc_id = %s", (
+				"""
+					SELECT MAX(doc_index) AS max
+					FROM token t, documents d
+					WHERE t.doc_id = d.id AND d.doc_id = %s
+				""", (
 					docid,
 				)
 			)
@@ -430,7 +431,7 @@ class DBTokenList(TokenList):
 		with self.config.connection.cursor(named_tuple=True, buffered=True) as cursor:
 			cursor.execute("""
 				SELECT
-					doc_id,
+					d.doc_id,
 					doc_index,
 					original,
 					gold,
@@ -438,8 +439,8 @@ class DBTokenList(TokenList):
 					has_error,
 					heuristic,
 					last_modified
-				FROM token
-				WHERE token.doc_id = %s
+				FROM token t, documents d
+				WHERE t.doc_id = d.id AND d.doc_id = %s
 				ORDER BY doc_index
 				""", (
 					self.docid,
@@ -463,8 +464,8 @@ class DBTokenList(TokenList):
 			cursor.execute("""
 				SELECT
 					MAX(last_modified) AS max
-				FROM token
-				WHERE token.doc_id = %s
+				FROM token t, documents d
+				WHERE t.doc_id = d.id AND d.doc_id = %s
 				ORDER BY doc_index
 				""", (
 					self.docid,
