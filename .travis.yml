@@ -9,30 +9,24 @@ php:
 services:
   - docker
 
-# require the branch name to be master (note for PRs this is the base branch name)
-if: branch = master
-
 before_install:
-  # Stop travis mysql as we're using MySQL in an image
-  - sudo service mysql stop
   # Print Docker version for debugging purposes
   - docker --version
      
-# Setup containers, run tests, clean up, install production dependencies and push Docker image
+# Build image and run tests
 script:
-  # Prepare for deployment of Docker image
+  # build and test correct-ocr-backend image
+  - docker build -t correct-ocr-backend .
+  - docker run --entrypoint python correct-ocr-backend -m unittest cocrtests
+
+# Tag docker image and push it
+before_deploy: 
+  # Get AWS credentials
   - pip install --user awscli # install aws cli w/o sudo
   - export PATH=$PATH:$HOME/.local/bin # put aws in the path
   - aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 282251075226.dkr.ecr.eu-west-1.amazonaws.com #needs AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY envvars
   
-  # Run tests
-  #- docker-compose up -d
-  #- sleep 30
-  #- docker-compose exec backend python -m unittest -v cocrtests
-
-  # build and push correct-ocr-backend image
-  - docker build -t correct-ocr-backend .
-  - docker run --entrypoint python correct-ocr-backend -m unittest cocrtests
+  # Tag and push image
   - docker tag correct-ocr-backend 282251075226.dkr.ecr.eu-west-1.amazonaws.com/correct-ocr-backend:latest
   - docker push 282251075226.dkr.ecr.eu-west-1.amazonaws.com/correct-ocr-backend:latest
 
@@ -46,5 +40,4 @@ deploy:
     bucket: elasticbeanstalk-eu-west-1-282251075226
     edge: true
     on:
-      all_branches: true
-      condition: $TRAVIS_BRANCH =~ ^(master)$
+        branch: master  
