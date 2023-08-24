@@ -16,4 +16,4 @@ regex
 requests
 tei-reader
 tesserocr
-uwsgi==2.0.20
+uwsgi==2.0.22
